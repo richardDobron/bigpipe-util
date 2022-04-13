@@ -4,7 +4,7 @@ import {byTag} from "./core/Parent";
 export default function Primer() {
   const rootElement = document.documentElement;
 
-  const RELATIONSHIP_REGEX = /async(?:-post)?/;
+  const RELATIONSHIP_REGEX = /async(?:-post)?|dialog/;
 
   rootElement.onclick = function (event) {
     event = event || window.event;
@@ -27,6 +27,14 @@ export default function Primer() {
         (new AsyncRequest(linkNodeOnClicked.getAttribute("ajaxify")))
           .setRelative(linkNodeOnClicked)
           .setMethod(relationship === "async-post" ? "POST" : "GET")
+          .send();
+        break;
+      case "dialog":
+        event.preventDefault();
+
+        (new AsyncRequest(linkNodeOnClicked.getAttribute("ajaxify")))
+          .setRelative(linkNodeOnClicked)
+          .setMethod("POST")
           .send();
         break;
     }

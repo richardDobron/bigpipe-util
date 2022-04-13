@@ -19,6 +19,7 @@
   "bugs:": "https://github.com/richardDobron/bigpipe-util/issues",
   "license": "MIT",
   "dependencies": {
-    "fbjs": "^3.0.4"
+    "fbjs": "^3.0.4",
+    "modal-vanilla": "^0.9.0"
   }
 }
