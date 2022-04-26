@@ -1,9 +1,11 @@
 import Modal from "modal-vanilla/lib/modal";
 import DOM from "./DOM";
 
+const DEFAULT_Z_INDEX = 1040;
+
 const stack = [];
 let modalId = 1;
-let zIndex = 1040;
+let zIndex;
 let originalBodyPad = null;
 
 export default class Dialog {
@@ -55,7 +57,7 @@ export default class Dialog {
     const self = this;
 
     return _modal.on('shown', function ({el}) {
-      zIndex = 10 * stack.length;
+      zIndex = DEFAULT_Z_INDEX + (10 * stack.length);
       el.style.zIndex = zIndex;
       setTimeout(() => document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1);
     }).on('showBackdrop', this._fixBackdrop).on('hidden', function ({el}) {
