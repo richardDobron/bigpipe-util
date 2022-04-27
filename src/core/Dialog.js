@@ -13,6 +13,14 @@ export default class Dialog {
     stack.forEach((dialog) => dialog.hide())
   }
 
+  closeCurrent() {
+    const dialog = stack[stack.length - 1];
+
+    if (dialog) {
+      dialog.hide();
+    }
+  }
+
   render(options) {
     DOM.appendContent(document.body, this._makeDialog(options.content));
 
