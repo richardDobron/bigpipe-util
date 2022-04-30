@@ -29,8 +29,6 @@ export default class ServerJS {
 
       context[method].apply(context, marker || []);
     } else {
-      marker = method;
-
       if (marker) {
         replaceTransportMarkers(this._relativeTo, marker);
       }
