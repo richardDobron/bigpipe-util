@@ -21,3 +21,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Fixed
 - Dialog z-index
+
+## v0.1.4 - 2022-05-06
+
+### Added
+- Async requests counter
+- Support for extra arguments in dialog controller
+
+### Fixed
+- Arguments for non-method require calls
