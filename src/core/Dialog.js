@@ -21,7 +21,7 @@ export default class Dialog {
     }
   }
 
-  render(options) {
+  render(options, args) {
     DOM.appendContent(document.body, this._makeDialog(options.content));
 
     modalId++;
@@ -32,12 +32,12 @@ export default class Dialog {
       backdrop: options.backdrop ?? true,
       transition: options.transition ?? 0,
       backdropTransition: options.backdropTransition ?? 0,
-    }, options.controller);
+    }, options.controller, args);
 
     stack.push(_dialog);
   }
 
-  showFromModel(model) {
+  showFromModel(model, args) {
     const _dialog = this._show({
       title: model.title || '',
       content: model.body,
@@ -46,12 +46,12 @@ export default class Dialog {
       backdrop: model.backdrop ?? true,
       transition: model.transition ?? 0,
       backdropTransition: model.backdropTransition ?? 0,
-    }, model.controller);
+    }, model.controller, args);
 
     stack.push(_dialog);
   }
 
-  _show(options, controller) {
+  _show(options, controller, args) {
     if (originalBodyPad === null) {
       originalBodyPad = document.body.style.paddingRight;
     }
@@ -59,7 +59,7 @@ export default class Dialog {
     const _modal = new Modal(options);
 
     if (controller) {
-      (new (window.require(controller))(_modal));
+      (new (window.require(controller))(_modal, ...args));
     }
 
     const self = this;
