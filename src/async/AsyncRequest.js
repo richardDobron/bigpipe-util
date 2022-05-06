@@ -1,6 +1,8 @@
 import emptyFunction from "fbjs/lib/emptyFunction";
 import AsyncResponse from "./AsyncResponse";
 
+let requests = 0;
+
 function serialize(obj, prefix) {
   const str = [];
   for(const p in obj) {
@@ -152,7 +154,13 @@ AsyncRequest.prototype.send = function () {
   };
 
   request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-  if (!(this.data instanceof FormData)) {
+
+  requests++;
+
+  if (this.data instanceof FormData) {
+    this.data.append('__req', requests);
+  } else {
+    data.__req = requests;
     data = serialize(data);
 
     if (method === "POST") {

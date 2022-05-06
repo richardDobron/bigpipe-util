@@ -106,10 +106,6 @@ if (OH_NOES_WE_NEED_TO_CANCEL_RIGHT_NOW_OR_ELSE) {
    rel="dialog">Open Modal</a>
 ```
 
-## Credits
-
-- [Richard Dobroň][link-author]
-
 ## Inspiration
 
 BigPipe is inspired by the concept behind Facebook's BigPipe. For more details
