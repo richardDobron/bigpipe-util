@@ -15,6 +15,11 @@ export default class AsyncDOM {
         node = (node || document.documentElement).querySelector(selector);
       }
 
+      if (!node) {
+        console.error(`Selector '${selector}' does not match anything!`)
+        continue;
+      }
+
       switch (type) {
         case "eval":
           (new Function(content)).apply(node);
