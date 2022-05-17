@@ -30,3 +30,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Fixed
 - Arguments for non-method require calls
+
+## v0.2.0 - 2022-05-17
+
+### Added
+- Shield to prevent "JSON Hijacking"
+- Invalid node checking for AsyncDOM
+
+### Fixed
+- Backdrop for 2+ opened dialogs
