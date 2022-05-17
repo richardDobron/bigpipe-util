@@ -83,15 +83,17 @@ export default class Dialog {
     }).show();
   }
 
-  _fixBackdrop(content) {
+  _fixBackdrop() {
     const backdrops = document.querySelectorAll('.modal-backdrop');
+    let shown = false;
 
     backdrops.forEach((backdrop, index) => {
-      if (index > 0 && index === backdrops.length - 1) {
+      if (shown || index > 0 && index === backdrops.length - 1) {
         backdrop.style.display = 'none';
       } else {
         backdrop.style.zIndex = zIndex - 1;
         backdrop.style.display = '';
+        shown = true;
       }
     });
   }
