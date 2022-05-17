@@ -121,6 +121,17 @@ AsyncRequest.prototype.abort = function () {
   }
 };
 
+AsyncRequest.prototype._unshieldResponseText = function (text) {
+  const shield = "for (;;);";
+  const shieldLength = shield.length;
+
+  if (text.length <= shieldLength) {
+    throw new Error("Response too short on async to " + this.getURI());
+  }
+
+  return text.substring(shieldLength);
+};
+
 AsyncRequest.prototype.send = function () {
   const {uri, method} = this;
   let { data } = this;
@@ -140,7 +151,8 @@ AsyncRequest.prototype.send = function () {
     if (this.status >= 200 && this.status < 400) {
       let response;
       try {
-        response = eval("(" + this.responseText + ")");
+        const safeJson = self._unshieldResponseText(this.responseText);
+        response = eval("(" + safeJson + ")");
       } catch (e) {
         throw new Error("Failed to handle response: " + e.message + "\n" + this.responseText);
       }
