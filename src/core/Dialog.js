@@ -8,6 +8,16 @@ let modalId = 1;
 let zIndex;
 let originalBodyPad = null;
 
+Modal.prototype._handleKeydownEvent = function(e) {
+  if (e.which === 27 && this._options.keyboard) {
+    const currentModal = stack[stack.length - 1];
+    if (currentModal.el.isEqualNode(this.el)) {
+      this.emit('dismiss', this, e, null);
+      this.hide();
+    }
+  }
+}
+
 export default class Dialog {
   close() {
     stack.forEach((dialog) => dialog.hide())
