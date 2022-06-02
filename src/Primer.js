@@ -19,6 +19,11 @@ export default function Primer() {
     let relationship = linkNodeOnClicked.rel && linkNodeOnClicked.rel.match(RELATIONSHIP_REGEX);
     relationship = relationship && relationship[0];
 
+    if (linkNodeOnClicked.classList.contains('async-saving')) {
+      event.preventDefault();
+      return;
+    }
+
     switch (relationship) {
       case "async":
       case "async-post":
@@ -26,6 +31,15 @@ export default function Primer() {
 
         (new AsyncRequest(linkNodeOnClicked.getAttribute("ajaxify")))
           .setRelative(linkNodeOnClicked)
+          .setInitialHandler(() => {
+            linkNodeOnClicked.classList.add("async-saving");
+          })
+          .setHandler(() => {
+            linkNodeOnClicked.classList.remove("async-saving");
+          })
+          .setErrorHandler(() => {
+            linkNodeOnClicked.classList.remove("async-saving");
+          })
           .setMethod(relationship === "async-post" ? "POST" : "GET")
           .send();
         break;
@@ -34,6 +48,15 @@ export default function Primer() {
 
         (new AsyncRequest(linkNodeOnClicked.getAttribute("ajaxify")))
           .setRelative(linkNodeOnClicked)
+          .setInitialHandler(() => {
+            linkNodeOnClicked.classList.add("async-saving");
+          })
+          .setHandler(() => {
+            linkNodeOnClicked.classList.remove("async-saving");
+          })
+          .setErrorHandler(() => {
+            linkNodeOnClicked.classList.remove("async-saving");
+          })
           .setMethod("POST")
           .send();
         break;
