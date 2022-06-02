@@ -29,6 +29,7 @@ export default class Dialog {
     const _dialog = this._show({
       el: document.getElementById(this.id),
       animate: false,
+      keyboard: options.keyboard ?? true,
       backdrop: options.backdrop ?? true,
       transition: options.transition ?? 0,
       backdropTransition: options.backdropTransition ?? 0,
@@ -43,6 +44,7 @@ export default class Dialog {
       content: model.body,
       footer: model.footer || false,
       animate: false,
+      keyboard: model.keyboard ?? true,
       backdrop: model.backdrop ?? true,
       transition: model.transition ?? 0,
       backdropTransition: model.backdropTransition ?? 0,
