@@ -39,3 +39,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Fixed
 - Backdrop for 2+ opened dialogs
+
+## v0.2.1 - 2022-06-02
+
+### Added
+- Prevent links from being double-clicked
+- Support for keyboard (close by escape)
+
+### Fixed
+- Closing dialogs with [esc] in the correct order
