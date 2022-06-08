@@ -3,7 +3,7 @@ import DOM from "./DOM";
 
 const DEFAULT_Z_INDEX = 1040;
 
-const stack = [];
+let stack = [];
 let modalId = 1;
 let zIndex;
 let originalBodyPad = null;
@@ -81,7 +81,9 @@ export default class Dialog {
       el.style.zIndex = zIndex;
       setTimeout(() => document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1);
     }).on('showBackdrop', this._fixBackdrop).on('hidden', function ({el}) {
-      stack.pop();
+      stack = stack.filter((modal) => {
+        return ! modal.el.isEqualNode(el);
+      });
 
       if (stack.length) {
         document.body.classList.add('modal-open');
