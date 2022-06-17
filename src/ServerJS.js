@@ -21,7 +21,8 @@ export default class ServerJS {
         replaceTransportMarkers(this._relativeTo, marker);
       }
 
-      const context = new (window.require(modulePath));
+      const factory = window.require(modulePath);
+      const context = typeof factory === 'function' ? new factory : factory;
 
       if (!context[method]) {
         throw new TypeError(`Module ${modulePath} has no method "${method}"`);
