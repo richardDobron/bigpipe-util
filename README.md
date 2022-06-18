@@ -58,7 +58,7 @@ export default class ServerJS extends ServerJSImpl {
 ```javascript
 import AsyncRequest from 'bigpipe-util/src/AsyncRequest';
 
-const request = AsyncRequest('/ajax/remove.php')
+const request = (new AsyncRequest('/ajax/remove.php'))
   // or .setURI('/ajax/remove.php')
   .setMethod('POST')
   .setData({
