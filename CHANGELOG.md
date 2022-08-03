@@ -4,32 +4,20 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## v0.1.1 - 2022-03-27
-
-### Added
-- Part of BigPipe implementation for Webpack.
-
-## v0.1.2 - 2022-04-14
-
-### Added
-- Dialogs support.
-
-## v0.1.3 - 2022-04-27
-
-### Added
-- Method to close only current dialog
+## v0.2.2 - 2022-08-03
 
 ### Fixed
-- Dialog z-index
+- calls for modules without constructor
+- dialog opening when using instant closing
 
-## v0.1.4 - 2022-05-06
+## v0.2.1 - 2022-06-02
 
 ### Added
-- Async requests counter
-- Support for extra arguments in dialog controller
+- Prevent links from being double-clicked
+- Support for keyboard (close by escape)
 
 ### Fixed
-- Arguments for non-method require calls
+- Closing dialogs with [esc] in the correct order
 
 ## v0.2.0 - 2022-05-17
 
@@ -40,11 +28,29 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ### Fixed
 - Backdrop for 2+ opened dialogs
 
-## v0.2.1 - 2022-06-02
+## v0.1.4 - 2022-05-06
 
 ### Added
-- Prevent links from being double-clicked
-- Support for keyboard (close by escape)
+- Async requests counter
+- Support for extra arguments in dialog controller
 
 ### Fixed
-- Closing dialogs with [esc] in the correct order
+- Arguments for non-method require calls
+
+## v0.1.3 - 2022-04-27
+
+### Added
+- Method to close only current dialog
+
+### Fixed
+- Dialog z-index
+
+## v0.1.2 - 2022-04-14
+
+### Added
+- Dialogs support.
+
+## v0.1.1 - 2022-03-27
+
+### Added
+- Part of BigPipe implementation for Webpack.
