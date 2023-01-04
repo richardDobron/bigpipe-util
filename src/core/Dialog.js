@@ -4,15 +4,15 @@ import DOM from "./DOM";
 const DEFAULT_Z_INDEX = 1040;
 
 let stack = [];
-let modalId = 1;
+let dialogId = 1;
 let zIndex;
 let originalBodyPad = null;
 
-Modal.prototype._handleKeydownEvent = function(e) {
-  if (e.which === 27 && this._options.keyboard) {
+Modal.prototype._handleKeydownEvent = function(event) {
+  if (event.which === 27 && this._options.keyboard) {
     const currentModal = stack[stack.length - 1];
     if (currentModal.el.isEqualNode(this.el)) {
-      this.emit('dismiss', this, e, null);
+      this.emit('dismiss', this, event, null);
       this.hide();
     }
   }
@@ -34,9 +34,9 @@ export default class Dialog {
   render(options, args) {
     DOM.appendContent(document.body, this._makeDialog(options.content));
 
-    modalId++;
+    dialogId++;
 
-    const _dialog = this._show({
+    const dialog = this._show({
       el: document.getElementById(this.id),
       animate: false,
       keyboard: options.keyboard ?? true,
@@ -45,11 +45,13 @@ export default class Dialog {
       backdropTransition: options.backdropTransition ?? 0,
     }, options.controller, args);
 
-    stack.push(_dialog);
+    stack.push(dialog);
+
+    return dialog;
   }
 
   showFromModel(model, args) {
-    const _dialog = this._show({
+    const dialog = this._show({
       title: model.title || '',
       content: model.body,
       footer: model.footer || false,
@@ -60,7 +62,9 @@ export default class Dialog {
       backdropTransition: model.backdropTransition ?? 0,
     }, model.controller, args);
 
-    stack.push(_dialog);
+    stack.push(dialog);
+
+    return dialog;
   }
 
   _show(options, controller, args) {
@@ -71,7 +75,13 @@ export default class Dialog {
     const _modal = new Modal(options);
 
     if (controller) {
-      (new (window.require(controller))(_modal, ...args));
+      if (typeof controller === 'string') {
+        controller = new (window.require(controller));
+      }
+
+      if (typeof controller === 'function') {
+        controller(_modal, ...args);
+      }
     }
 
     const self = this;
@@ -113,7 +123,7 @@ export default class Dialog {
   }
 
   _makeDialog(content) {
-    this.id = `js_${modalId.toString(16)}`;
+    this.id = `js_${dialogId.toString(16)}`;
     return `<div id="${this.id}" class="modal fade" tabindex="-1" role="dialog">
   ${content}
 </div>`;
