@@ -26,179 +26,181 @@ function validateResponseHandler(handler) {
   return valid;
 }
 
-export default function AsyncRequest(uri) {
-  this.method = "POST";
-  this.uri = "";
-  this.relative = null;
-  this.data = {};
-  this.headers = {};
-  this.initialHandler = emptyFunction;
-  this.handler = null;
-  this.finallyHandler = emptyFunction;
-  this.errorHandler = emptyFunction;
+export default class AsyncRequest {
+  constructor(uri) {
+    this.method = "POST";
+    this.uri = "";
+    this.relative = null;
+    this.data = {};
+    this.headers = {};
+    this.initialHandler = emptyFunction;
+    this.handler = null;
+    this.finallyHandler = emptyFunction;
+    this.errorHandler = emptyFunction;
 
-  if (uri !== undefined) {
-    this.setURI(uri);
-  }
-}
-
-AsyncRequest.prototype.setMethod = function (method) {
-  this.method = method.toString().toUpperCase();
-  return this;
-};
-
-AsyncRequest.prototype.getMethod = function () {
-  return this.method;
-};
-
-AsyncRequest.prototype.setRelative = function (relative) {
-  this.relative = relative;
-  return this;
-};
-
-AsyncRequest.prototype.getRelative = function () {
-  return this.relative;
-};
-
-AsyncRequest.prototype.setData = function (obj) {
-  this.data = obj;
-  return this;
-};
-
-AsyncRequest.prototype.getData = function () {
-  return this.data;
-};
-
-AsyncRequest.prototype.setRequestHeader = function (name, value) {
-  this.headers[name] = value;
-  return this;
-};
-
-AsyncRequest.prototype.setURI = function (uri) {
-  this.uri = uri;
-
-  return this;
-};
-AsyncRequest.prototype.getURI = function () {
-  return this.uri;
-};
-
-AsyncRequest.prototype.setInitialHandler = function (fn) {
-  this.initialHandler = fn;
-  return this;
-};
-
-AsyncRequest.prototype.getInitialHandler = function () {
-  return this.initialHandler || emptyFunction;
-};
-
-AsyncRequest.prototype.setHandler = function (fn) {
-  if (validateResponseHandler(fn)) {
-    this.handler = fn;
-  }
-  return this;
-};
-
-AsyncRequest.prototype.setFinallyHandler = function (fn) {
-  this.finallyHandler = fn;
-  return this;
-};
-
-AsyncRequest.prototype.getFinallyHandler = function () {
-  return this.finallyHandler || emptyFunction;
-};
-
-AsyncRequest.prototype.getHandler = function () {
-  return this.handler || emptyFunction;
-};
-
-AsyncRequest.prototype.setErrorHandler = function (fn) {
-  if (validateResponseHandler(fn)) {
-    this.errorHandler = fn;
-  }
-  return this;
-};
-
-AsyncRequest.prototype.getErrorHandler = function () {
-  return this.errorHandler || emptyFunction;
-};
-
-AsyncRequest.prototype.abort = function () {
-  const transport = this.transport;
-
-  if (transport) {
-    transport.abort();
-  }
-};
-
-AsyncRequest.prototype._unshieldResponseText = function (text) {
-  const shield = "for (;;);";
-  const shieldLength = shield.length;
-
-  if (text.length <= shieldLength) {
-    throw new Error("Response too short on async to " + this.getURI());
+    if (uri !== undefined) {
+      this.setURI(uri);
+    }
   }
 
-  return text.substring(shieldLength);
-};
+  setMethod(method) {
+    this.method = method.toString().toUpperCase();
+    return this;
+  }
 
-AsyncRequest.prototype.send = function () {
-  const {uri, method} = this;
-  let { data } = this;
+  getMethod() {
+    return this.method;
+  }
 
-  const handler = this.getHandler();
-  const errorHandler = this.getErrorHandler();
-  const initialHandler = this.getInitialHandler();
-  const getFinallyHandler = this.getFinallyHandler();
+  setRelative(relative) {
+    this.relative = relative;
+    return this;
+  }
 
-  initialHandler();
+  getRelative() {
+    return this.relative;
+  }
 
-  const request = new XMLHttpRequest();
-  const self = this;
+  setData(obj) {
+    this.data = obj;
+    return this;
+  }
 
-  request.open(method, uri, true);
+  getData() {
+    return this.data;
+  }
 
-  request.onload = function () {
-    if (this.status >= 200 && this.status < 400) {
-      let response;
-      try {
-        const safeJson = self._unshieldResponseText(this.responseText);
-        response = eval("(" + safeJson + ")");
-      } catch (e) {
-        throw new Error("Failed to handle response: " + e.message + "\n" + this.responseText);
+  setRequestHeader(name, value) {
+    this.headers[name] = value;
+    return this;
+  }
+
+  setURI(uri) {
+    this.uri = uri;
+
+    return this;
+  }
+  getURI() {
+    return this.uri;
+  }
+
+  setInitialHandler(fn) {
+    this.initialHandler = fn;
+    return this;
+  }
+
+  getInitialHandler() {
+    return this.initialHandler || emptyFunction;
+  }
+
+  setHandler(fn) {
+    if (validateResponseHandler(fn)) {
+      this.handler = fn;
+    }
+    return this;
+  }
+
+  setFinallyHandler(fn) {
+    this.finallyHandler = fn;
+    return this;
+  }
+
+  getFinallyHandler() {
+    return this.finallyHandler || emptyFunction;
+  }
+
+  getHandler() {
+    return this.handler || emptyFunction;
+  }
+
+  setErrorHandler(fn) {
+    if (validateResponseHandler(fn)) {
+      this.errorHandler = fn;
+    }
+    return this;
+  }
+
+  getErrorHandler() {
+    return this.errorHandler || emptyFunction;
+  }
+
+  abort() {
+    const transport = this.transport;
+
+    if (transport) {
+      transport.abort();
+    }
+  }
+
+  _unshieldResponseText(text) {
+    const shield = "for (;;);";
+    const shieldLength = shield.length;
+
+    if (text.length <= shieldLength) {
+      throw new Error("Response too short on async to " + this.getURI());
+    }
+
+    return text.substring(shieldLength);
+  }
+
+  send() {
+    const {uri, method} = this;
+    let { data } = this;
+
+    const handler = this.getHandler();
+    const errorHandler = this.getErrorHandler();
+    const initialHandler = this.getInitialHandler();
+    const getFinallyHandler = this.getFinallyHandler();
+
+    initialHandler();
+
+    const request = new XMLHttpRequest();
+    const self = this;
+
+    request.open(method, uri, true);
+
+    request.onload = function () {
+      if (this.status >= 200 && this.status < 400) {
+        let response;
+        try {
+          const safeJson = self._unshieldResponseText(this.responseText);
+          response = eval("(" + safeJson + ")");
+        } catch (e) {
+          throw new Error("Failed to handle response: " + e.message + "\n" + this.responseText);
+        }
+
+        (new AsyncResponse).handle(response, self.relative);
+
+        handler(response);
+      } else {
+        errorHandler(this);
       }
 
-      (new AsyncResponse).handle(response, self.relative);
+      getFinallyHandler(this);
+    }
 
-      handler(response);
+    request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+    requests++;
+
+    if (data instanceof FormData) {
+      data.append('__req', requests);
     } else {
-      errorHandler(this);
+      data.__req = requests;
+      data = serialize(data);
+
+      if (method === "POST") {
+        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      }
     }
 
-    getFinallyHandler(this);
-  };
+    Object.keys(this.headers).forEach((name) => {
+      request.setRequestHeader(name, this.headers[name]);
+    });
 
-  request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    request.onerror = errorHandler;
+    request.send(data);
 
-  requests++;
-
-  if (data instanceof FormData) {
-    data.append('__req', requests);
-  } else {
-    data.__req = requests;
-    data = serialize(data);
-
-    if (method === "POST") {
-      request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    }
+    return request;
   }
-
-  Object.keys(this.headers).forEach((name) => {
-    request.setRequestHeader(name, this.headers[name]);
-  });
-
-  request.onerror = errorHandler;
-  request.send(data);
-
-  return request;
 };
