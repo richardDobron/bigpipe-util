@@ -34,6 +34,7 @@ export default function AsyncRequest(uri) {
   this.headers = {};
   this.initialHandler = emptyFunction;
   this.handler = null;
+  this.finallyHandler = emptyFunction;
   this.errorHandler = emptyFunction;
 
   if (uri !== undefined) {
@@ -98,6 +99,15 @@ AsyncRequest.prototype.setHandler = function (fn) {
   return this;
 };
 
+AsyncRequest.prototype.setFinallyHandler = function (fn) {
+  this.finallyHandler = fn;
+  return this;
+};
+
+AsyncRequest.prototype.getFinallyHandler = function () {
+  return this.finallyHandler || emptyFunction;
+};
+
 AsyncRequest.prototype.getHandler = function () {
   return this.handler || emptyFunction;
 };
@@ -139,6 +149,7 @@ AsyncRequest.prototype.send = function () {
   const handler = this.getHandler();
   const errorHandler = this.getErrorHandler();
   const initialHandler = this.getInitialHandler();
+  const getFinallyHandler = this.getFinallyHandler();
 
   initialHandler();
 
@@ -163,14 +174,16 @@ AsyncRequest.prototype.send = function () {
     } else {
       errorHandler(this);
     }
+
+    getFinallyHandler(this);
   };
 
   request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
   requests++;
 
-  if (this.data instanceof FormData) {
-    this.data.append('__req', requests);
+  if (data instanceof FormData) {
+    data.append('__req', requests);
   } else {
     data.__req = requests;
     data = serialize(data);
