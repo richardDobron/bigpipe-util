@@ -1,4 +1,4 @@
-<img src="bigpipe.svg">
+<img src="bigpipe.svg" alt="BigPipe logo">
 
 This library currently implements small part of [Facebook BigPipe][blog] so far, but the advantage is to efficiently insert/replace content and work with the DOM. It is also possible to easily call JavaScript modules from PHP.
 
@@ -8,7 +8,6 @@ Try the app with [live demo](http://bigpipe.xf.cz).
 
 ## Requirements
 * PHP 7.1 or higher
-* Node 8, 10+.
 * Webpack
 
 ## Installation
@@ -72,6 +71,9 @@ const request = (new AsyncRequest('/ajax/remove.php'))
   })
   .setErrorHandler((xhr) => {
       // A function to be called if the request fails
+  })
+  .setFinallyHandler((xhr) => {
+      // after request callback function
   })
   .send();
 
