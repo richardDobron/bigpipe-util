@@ -76,7 +76,7 @@ export default class Dialog {
 
     if (controller) {
       if (typeof controller === 'string') {
-        (new (window.require(controller, ...args)));
+        (new (window.require(controller))(_modal, ...args));
       } else if (typeof controller === 'function') {
         controller(_modal, ...args);
       }
