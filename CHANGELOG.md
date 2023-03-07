@@ -4,11 +4,30 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v0.2.5 - 2023-03-07
+
+### Added
+- Added `Arbiter.js` event system
+- Added methods `byClass`, `byAttribute`, `find` to `Parent.js`
+
+### Fixed
+- Fixed controller calling
+
+## v0.2.4 - 2023-02-03
+
+### Fixed
+- Fixed controller calling
+
+## v0.2.3 - 2023-02-04
+
+### Added
+- Added setFinallyHandler for AsyncRequest
+
 ## v0.2.2 - 2022-08-03
 
 ### Fixed
-- calls for modules without constructor
-- dialog opening when using instant closing
+- Calls for modules without constructor
+- Dialog opening when using instant closing
 
 ## v0.2.1 - 2022-06-02
 

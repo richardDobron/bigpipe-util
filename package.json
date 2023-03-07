@@ -1,7 +1,7 @@
 {
   "name": "bigpipe-util",
   "description": "This library currently implements small part of Facebook BigPipe so far, but the advantage is to efficiently insert/replace content and work with the DOM. It is also possible to easily call JavaScript modules from PHP.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "keywords": [
     "bigpipe",
     "xhr",
