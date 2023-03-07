@@ -39,10 +39,10 @@ export default class Dialog {
     const dialog = this._show({
       el: document.getElementById(this.id),
       animate: false,
-      keyboard: options.keyboard ?? true,
-      backdrop: options.backdrop ?? true,
-      transition: options.transition ?? 0,
-      backdropTransition: options.backdropTransition ?? 0,
+      keyboard: options.keyboard !== null && options.keyboard !== undefined ? options.keyboard : true,
+      backdrop: options.backdrop !== null && options.backdrop !== undefined ? options.backdrop : true,
+      transition: options.transition !== null && options.transition !== undefined ? options.transition : 0,
+      backdropTransition: options.backdropTransition !== null && options.backdropTransition !== undefined ? options.backdropTransition : 0,
     }, options.controller, args);
 
     stack.push(dialog);
@@ -56,10 +56,10 @@ export default class Dialog {
       content: model.body,
       footer: model.footer || false,
       animate: false,
-      keyboard: model.keyboard ?? true,
-      backdrop: model.backdrop ?? true,
-      transition: model.transition ?? 0,
-      backdropTransition: model.backdropTransition ?? 0,
+      keyboard: model.keyboard !== null && model.keyboard !== undefined ? model.keyboard : true,
+      backdrop: model.backdrop !== null && model.backdrop !== undefined ? model.backdrop : true,
+      transition: model.transition !== null && model.transition !== undefined ? model.transition : 0,
+      backdropTransition: model.backdropTransition !== null && model.backdropTransition !== undefined ? model.backdropTransition : 0,
     }, model.controller, args);
 
     stack.push(dialog);
