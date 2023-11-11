@@ -32,13 +32,13 @@ export default class Dialog {
   }
 
   render(options, args) {
-    DOM.appendContent(document.body, this._makeDialog(options.content));
+    DOM.appendContent(document.body, this._makeDialog(options.content, options.dialogClassName));
 
     dialogId++;
 
     const dialog = this._show({
       el: document.getElementById(this.id),
-      animate: false,
+      animate: options.animate !== null && options.animate !== undefined ? options.animate : false,
       keyboard: options.keyboard !== null && options.keyboard !== undefined ? options.keyboard : true,
       backdrop: options.backdrop !== null && options.backdrop !== undefined ? options.backdrop : true,
       transition: options.transition !== null && options.transition !== undefined ? options.transition : 0,
@@ -55,7 +55,7 @@ export default class Dialog {
       title: model.title || '',
       content: model.body,
       footer: model.footer || false,
-      animate: false,
+      animate: model.animate !== null && model.animate !== undefined ? model.animate : false,
       keyboard: model.keyboard !== null && model.keyboard !== undefined ? model.keyboard : true,
       backdrop: model.backdrop !== null && model.backdrop !== undefined ? model.backdrop : true,
       transition: model.transition !== null && model.transition !== undefined ? model.transition : 0,
@@ -120,9 +120,9 @@ export default class Dialog {
     });
   }
 
-  _makeDialog(content) {
+  _makeDialog(content, dialogClassName) {
     this.id = `js_${dialogId.toString(16)}`;
-    return `<div id="${this.id}" class="modal fade" tabindex="-1" role="dialog">
+    return `<div id="${this.id}" class="modal fade ${dialogClassName || ''}" tabindex="-1" role="dialog">
   ${content}
 </div>`;
   }
