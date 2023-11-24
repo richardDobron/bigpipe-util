@@ -16,8 +16,19 @@ export default function Primer() {
       return;
     }
 
+    const ajaxHref = linkNodeOnClicked.getAttribute("ajaxify")
+    const realHref = linkNodeOnClicked.href
     let relationship = linkNodeOnClicked.rel && linkNodeOnClicked.rel.match(RELATIONSHIP_REGEX);
     relationship = relationship && relationship[0];
+
+    if (ajaxHref && realHref && !/#$/.test(realHref)) {
+      const isMiddleMouseButton = event.which && event.which === 2;
+      const hasModifierKey = event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
+
+      if (isMiddleMouseButton || hasModifierKey) {
+        return;
+      }
+    }
 
     if (linkNodeOnClicked.classList.contains('async-saving')) {
       event.preventDefault();
@@ -29,7 +40,7 @@ export default function Primer() {
       case "async-post":
         event.preventDefault();
 
-        (new AsyncRequest(linkNodeOnClicked.getAttribute("ajaxify")))
+        (new AsyncRequest(ajaxHref))
           .setRelative(linkNodeOnClicked)
           .setInitialHandler(() => {
             linkNodeOnClicked.classList.add("async-saving");
@@ -80,6 +91,8 @@ export default function Primer() {
         .setRelative(eventTarget)
         .setData(new FormData(eventTarget))
         .setInitialHandler(function () {
+          eventTarget.classList.add("async-saving");
+
           if (!eventTarget.classList.contains("disable-prevent-form")) {
             activeControls.forEach(function (control) {
               control.setAttribute("readonly", "readonly");
@@ -99,6 +112,8 @@ export default function Primer() {
           }
         })
         .setHandler(function (response) {
+          eventTarget.classList.remove("async-saving");
+
           activeControls.forEach(function (control) {
             control.removeAttribute("readonly");
           });
@@ -116,6 +131,8 @@ export default function Primer() {
           }
         })
         .setErrorHandler(function () {
+          eventTarget.classList.add("async-saving");
+
           activeControls.forEach(function (control) {
             control.removeAttribute("readonly");
           });
