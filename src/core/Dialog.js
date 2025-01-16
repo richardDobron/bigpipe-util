@@ -19,12 +19,18 @@ Modal.prototype._handleKeydownEvent = function(event) {
 }
 
 export default class Dialog {
-  close() {
-    stack.forEach((dialog) => dialog.hide())
+  close(limit = -1) {
+    let modals;
+    if (limit > -1) {
+      modals = stack.slice(-limit);
+    } else {
+      modals = stack
+    }
+    modals.forEach((dialog) => dialog.hide())
   }
 
   closeCurrent() {
-    const dialog = stack[stack.length - 1];
+    const dialog = stack.pop();
 
     if (dialog) {
       dialog.hide();

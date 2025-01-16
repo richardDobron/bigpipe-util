@@ -83,8 +83,8 @@ export default function Primer() {
       eventTarget.getAttribute("rel") === "async") {
       event.preventDefault();
 
-      const submitter = event.submitter || eventTarget.querySelector("button[type='submit']"),
-        activeControls = eventTarget.querySelectorAll("input:not([readonly]),select:not([readonly]),textarea:not([readonly])");
+      const submitter = event.submitter || eventTarget.querySelector("button[type='submit']");
+      const activeControls = eventTarget.querySelectorAll("input:not([readonly]),select:not([readonly]),textarea:not([readonly])");
 
       (new AsyncRequest(eventTarget.getAttribute("ajaxify") || eventTarget.getAttribute("action")))
         .setMethod(eventTarget.method || "POST")
