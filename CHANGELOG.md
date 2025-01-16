@@ -4,6 +4,11 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v0.2.6 - 2025-01-16
+
+### Added
+- Added `limit` parameter to `Dialog.js` for limiting the number of closed dialogs
+
 ## v0.2.5 - 2023-03-07
 
 ### Added
