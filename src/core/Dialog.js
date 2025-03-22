@@ -42,18 +42,26 @@ export default class Dialog {
 
     dialogId++;
 
-    const dialog = this._show({
-      el: document.getElementById(this.id),
-      animate: options.animate !== null && options.animate !== undefined ? options.animate : false,
-      keyboard: options.keyboard !== null && options.keyboard !== undefined ? options.keyboard : true,
-      backdrop: options.backdrop !== null && options.backdrop !== undefined ? options.backdrop : true,
-      transition: options.transition !== null && options.transition !== undefined ? options.transition : 0,
-      backdropTransition: options.backdropTransition !== null && options.backdropTransition !== undefined ? options.backdropTransition : 0,
-    }, options.controller, args);
+    const renderDialog = () => {
+      const dialog = this._show({
+        el: document.getElementById(this.id),
+        animate: options.animate !== null && options.animate !== undefined ? options.animate : false,
+        keyboard: options.keyboard !== null && options.keyboard !== undefined ? options.keyboard : true,
+        backdrop: options.backdrop !== null && options.backdrop !== undefined ? options.backdrop : true,
+        transition: options.transition !== null && options.transition !== undefined ? options.transition : 0,
+        backdropTransition: options.backdropTransition !== null && options.backdropTransition !== undefined ? options.backdropTransition : 0,
+      }, options.controller, args);
 
-    stack.push(dialog);
+      stack.push(dialog);
 
-    return dialog;
+      return dialog;
+    };
+
+    if (options.timeout && typeof options.timeout === 'number') {
+      return new Promise(resolve => setTimeout(() => resolve(renderDialog()), options.timeout));
+    }
+
+    return renderDialog();
   }
 
   showFromModel(model, args) {
