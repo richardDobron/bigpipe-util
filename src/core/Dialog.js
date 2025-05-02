@@ -8,7 +8,7 @@ let dialogId = 1;
 let zIndex;
 let originalBodyPad = null;
 
-Modal.prototype._handleKeydownEvent = function(event) {
+Modal.prototype._handleKeydownEvent = function (event) {
   if (event.which === 27 && this._options.keyboard) {
     const currentModal = stack[stack.length - 1];
     if (currentModal.el.isEqualNode(this.el)) {
@@ -52,9 +52,7 @@ export default class Dialog {
         backdropTransition: options.backdropTransition !== null && options.backdropTransition !== undefined ? options.backdropTransition : 0,
       }, options.controller, args);
 
-      stack.push(dialog);
-
-      return dialog;
+      return stack.push(dialog);
     };
 
     if (options.timeout && typeof options.timeout === 'number') {
@@ -65,20 +63,26 @@ export default class Dialog {
   }
 
   showFromModel(model, args) {
-    const dialog = this._show({
-      title: model.title || '',
-      content: model.body,
-      footer: model.footer || false,
-      animate: model.animate !== null && model.animate !== undefined ? model.animate : false,
-      keyboard: model.keyboard !== null && model.keyboard !== undefined ? model.keyboard : true,
-      backdrop: model.backdrop !== null && model.backdrop !== undefined ? model.backdrop : true,
-      transition: model.transition !== null && model.transition !== undefined ? model.transition : 0,
-      backdropTransition: model.backdropTransition !== null && model.backdropTransition !== undefined ? model.backdropTransition : 0,
-    }, model.controller, args);
+    const renderDialog = () => {
+      const dialog = this._show({
+        title: model.title || '',
+        content: model.body,
+        footer: model.footer || false,
+        animate: model.animate !== null && model.animate !== undefined ? model.animate : false,
+        keyboard: model.keyboard !== null && model.keyboard !== undefined ? model.keyboard : true,
+        backdrop: model.backdrop !== null && model.backdrop !== undefined ? model.backdrop : true,
+        transition: model.transition !== null && model.transition !== undefined ? model.transition : 0,
+        backdropTransition: model.backdropTransition !== null && model.backdropTransition !== undefined ? model.backdropTransition : 0,
+      }, model.controller, args);
 
-    stack.push(dialog);
+      return stack.push(dialog);
+    };
 
-    return dialog;
+    if (model.timeout && typeof model.timeout === 'number') {
+      return new Promise(resolve => setTimeout(() => resolve(renderDialog()), model.timeout));
+    }
+
+    return renderDialog();
   }
 
   _show(options, controller, args) {
