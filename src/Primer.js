@@ -111,7 +111,7 @@ export default function Primer() {
             }
           }
         })
-        .setHandler(function (response) {
+        .setHandler(function () {
           eventTarget.classList.remove("async-saving");
 
           activeControls.forEach(function (control) {

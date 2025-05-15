@@ -3,11 +3,7 @@ import DOM from "../core/DOM";
 export default class AsyncDOM {
   invoke(domOps, element) {
     for (let i = 0; i < domOps.length; ++i) {
-      let domOp = domOps[i],
-        type = domOp[0],
-        selector = domOp[1],
-        enableTarget = domOp[2],
-        content = domOp[3];
+      let [type, selector, enableTarget, content] = domOps[i];
 
       let node = enableTarget && element || null;
 
