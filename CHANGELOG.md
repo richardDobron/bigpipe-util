@@ -4,6 +4,12 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v0.2.10 - 2025-05-15
+- Added `onAfterLoad.js`, `waitForLoad.js`
+
+### Added
+- Added `timeout` to open dialog with a delay in method `showFromModel`
+
 ## v0.2.8 - 2025-05-02
 
 ### Added
