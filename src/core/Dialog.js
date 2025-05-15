@@ -42,47 +42,40 @@ export default class Dialog {
 
     dialogId++;
 
-    const renderDialog = () => {
-      const dialog = this._show({
-        el: document.getElementById(this.id),
-        animate: options.animate !== null && options.animate !== undefined ? options.animate : false,
-        keyboard: options.keyboard !== null && options.keyboard !== undefined ? options.keyboard : true,
-        backdrop: options.backdrop !== null && options.backdrop !== undefined ? options.backdrop : true,
-        transition: options.transition !== null && options.transition !== undefined ? options.transition : 0,
-        backdropTransition: options.backdropTransition !== null && options.backdropTransition !== undefined ? options.backdropTransition : 0,
-      }, options.controller, args);
-
-      return stack.push(dialog);
-    };
-
-    if (options.timeout && typeof options.timeout === 'number') {
-      return new Promise(resolve => setTimeout(() => resolve(renderDialog()), options.timeout));
-    }
-
-    return renderDialog();
+    return this._maybeWithTimeout(options.timeout, () => this._show({
+      el: document.getElementById(this.id),
+      animate: this._getOption(options, 'animate', false),
+      keyboard: this._getOption(options, 'keyboard', true),
+      backdrop: this._getOption(options, 'backdrop', true),
+      transition: this._getOption(options, 'transition', 0),
+      backdropTransition: this._getOption(options, 'backdropTransition', 0)
+    }, options.controller, args));
   }
 
   showFromModel(model, args) {
-    const renderDialog = () => {
-      const dialog = this._show({
-        title: model.title || '',
-        content: model.body,
-        footer: model.footer || false,
-        animate: model.animate !== null && model.animate !== undefined ? model.animate : false,
-        keyboard: model.keyboard !== null && model.keyboard !== undefined ? model.keyboard : true,
-        backdrop: model.backdrop !== null && model.backdrop !== undefined ? model.backdrop : true,
-        transition: model.transition !== null && model.transition !== undefined ? model.transition : 0,
-        backdropTransition: model.backdropTransition !== null && model.backdropTransition !== undefined ? model.backdropTransition : 0,
-      }, model.controller, args);
+    return this._maybeWithTimeout(model.timeout, () => this._show({
+      title: model.title || '',
+      content: model.body,
+      footer: model.footer || false,
+      animate: this._getOption(model, 'animate', false),
+      keyboard: this._getOption(model, 'keyboard', true),
+      backdrop: this._getOption(model, 'backdrop', true),
+      transition: this._getOption(model, 'transition', 0),
+      backdropTransition: this._getOption(model, 'backdropTransition', 0)
+    }, model.controller, args));
+  }
 
-      return stack.push(dialog);
-    };
-
-    if (model.timeout && typeof model.timeout === 'number') {
-      return new Promise(resolve => setTimeout(() => resolve(renderDialog()), model.timeout));
+  _maybeWithTimeout(timeout, callback) {
+    if (typeof timeout === 'number') {
+      return new Promise(resolve => setTimeout(() => resolve(callback()), timeout));
     }
+    return callback();
+  }
 
-    return renderDialog();
+  _getOption(obj, key, defaultVal) {
+    return model[key] !== null && model[key] !== undefined
+      ? model[key]
+      : defaultVal;
   }
 
   _show(options, controller, args) {
@@ -91,6 +84,7 @@ export default class Dialog {
     }
 
     const _modal = new Modal(options);
+    stack.push(_modal);
 
     if (controller) {
       if (typeof controller === 'string') {
@@ -128,7 +122,7 @@ export default class Dialog {
     let shown = false;
 
     backdrops.forEach((backdrop, index) => {
-      if (shown || index > 0 && index === backdrops.length - 1) {
+      if (shown || (index > 0 && index === backdrops.length - 1)) {
         backdrop.style.display = 'none';
       } else {
         backdrop.style.zIndex = zIndex - 1;
@@ -138,9 +132,10 @@ export default class Dialog {
     });
   }
 
-  _makeDialog(content, dialogClassName) {
+  _makeDialog(content, className = '') {
     this.id = `js_${dialogId.toString(16)}`;
-    return `<div id="${this.id}" class="modal fade ${dialogClassName || ''}" tabindex="-1" role="dialog">
+    return `
+      <div id="${this.id}" class="modal fade ${className}" tabindex="-1" role="dialog">
   ${content}
 </div>`;
   }
