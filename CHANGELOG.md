@@ -4,10 +4,15 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v0.2.8 - 2025-05-02
+
+### Added
+- Added `timeout` to open dialog with a delay in method `showFromModel`
+
 ## v0.2.7 - 2025-03-22
 
 ### Added
-- Added `timeout` to open dialog with a delay
+- Added `timeout` to open dialog with a delay in method `render`
 
 ## v0.2.6 - 2025-01-16
 
