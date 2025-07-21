@@ -3,6 +3,10 @@ import AsyncResponse from "./AsyncResponse";
 
 let requests = 0;
 
+export function incrementRequests() {
+  return requests++;
+}
+
 function serialize(obj, prefix) {
   const str = [];
   for(const p in obj) {
@@ -181,7 +185,7 @@ export default class AsyncRequest {
 
     request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
-    requests++;
+    incrementRequests();
 
     if (data instanceof FormData) {
       data.append('__req', requests);
