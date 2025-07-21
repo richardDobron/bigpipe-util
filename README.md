@@ -42,11 +42,11 @@ window.require = (modulePath) => {
 ### 4. Add these lines to the page footer:
 ```html
 <script>
-    (new (require("bigpipe-util/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
 </script>
 ```
 
-## Request API
+## 🛜 Request API
 
 ```javascript
 import AsyncRequest from 'bigpipe-util/src/AsyncRequest';
@@ -119,6 +119,6 @@ We welcome contributions! If you'd like to help improve this project, feel free 
 
 ## 📜 License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
 
 [blog]: https://www.facebook.com/notes/facebook-engineering/bigpipe-pipelining-web-pages-for-high-performance/389414033919
