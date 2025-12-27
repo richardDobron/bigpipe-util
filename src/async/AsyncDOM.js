@@ -11,7 +11,7 @@ export default class AsyncDOM {
         node = (node || document.documentElement).querySelector(selector);
       }
 
-      if (!node) {
+      if (__DEV__ && !node) {
         console.error(`Selector '${selector}' does not match anything!`)
         continue;
       }
