@@ -136,11 +136,15 @@ export default function Primer() {
           }
         })
         .setErrorHandler(function () {
-          eventTarget.classList.add("async-saving");
+          eventTarget.classList.remove("async-saving");
 
           activeControls.forEach(function (control) {
             control.removeAttribute("readonly");
           });
+
+          if (submitter) {
+            submitter.disabled = false;
+          }
 
           if (eventTarget) {
             const loader = eventTarget.querySelector(".small-loader");

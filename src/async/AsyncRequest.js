@@ -154,7 +154,7 @@ export default class AsyncRequest {
     const handler = this.getHandler();
     const errorHandler = this.getErrorHandler();
     const initialHandler = this.getInitialHandler();
-    const getFinallyHandler = this.getFinallyHandler();
+    const finallyHandler = this.getFinallyHandler();
 
     initialHandler();
 
@@ -168,7 +168,7 @@ export default class AsyncRequest {
         let response;
         try {
           const safeJson = self._unshieldResponseText(this.responseText);
-          response = eval("(" + safeJson + ")");
+          response = JSON.parse(safeJson);
         } catch (e) {
           throw new Error("Failed to handle response: " + e.message + "\n" + this.responseText);
         }
@@ -180,7 +180,7 @@ export default class AsyncRequest {
         errorHandler(this);
       }
 
-      getFinallyHandler(this);
+      finallyHandler(this);
     }
 
     request.setRequestHeader("X-Requested-With", "XMLHttpRequest");

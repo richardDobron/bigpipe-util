@@ -46,6 +46,7 @@ export default class AsyncDOM {
           break;
         case "replace":
           DOM.replace(node, content.__html);
+          break;
       }
     }
   }

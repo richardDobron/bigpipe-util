@@ -2,7 +2,7 @@ import replaceTransportMarkers from "./core/replaceTransportMarkers";
 
 function handler(dependencies, guard, context) {
   return dependencies.map(function (args) {
-    guard.apply(context, args);
+    return guard.apply(context, args);
   });
 }
 

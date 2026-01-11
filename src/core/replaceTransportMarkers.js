@@ -18,7 +18,7 @@ export default function replaceTransportMarkers(markerValue, markers, key) {
       } else if (marker.__set) {
         markers[key] = new Set(marker.__set);
       } else {
-        for (let value in marker) {
+        for (const value in marker) {
           replaceTransportMarkers(markerValue, marker, value);
         }
       }
