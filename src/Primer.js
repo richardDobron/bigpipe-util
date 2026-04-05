@@ -87,7 +87,7 @@ export default function Primer() {
       const submitter = event.submitter || eventTarget.querySelector("button[type='submit']");
       const activeControls = eventTarget.querySelectorAll("input:not([readonly]),select:not([readonly]),textarea:not([readonly])");
 
-      if (submitter.name) {
+      if (submitter && submitter.name) {
         formData.append(submitter.name, submitter.value);
       }
 

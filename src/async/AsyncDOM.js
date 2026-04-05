@@ -11,8 +11,10 @@ export default class AsyncDOM {
         node = (node || document.documentElement).querySelector(selector);
       }
 
-      if (__DEV__ && !node) {
-        console.error(`Selector '${selector}' does not match anything!`)
+      if (!node) {
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.error(`Selector '${selector}' does not match anything!`)
+        }
         continue;
       }
 
