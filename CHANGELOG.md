@@ -4,6 +4,10 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v0.2.13 - 2026-04-05
+### Fixed
+- submitter and \_\_DEV\_\_ checks
+
 ## v0.2.12 - 2026-01-12
 ### Added
 - Added `Pagelet.js`, `BigPipe.js`
