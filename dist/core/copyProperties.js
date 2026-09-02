@@ -17,15 +17,17 @@
  * NOTE: `arguments` has a very significant performance penalty, which is why
  * we don't support unlimited arguments.
  */
-export default function copyProperties(obj, a, b, c, d, e, f) {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = copyProperties;
+function copyProperties(obj, a, b, c, d, e, f) {
   obj = obj || {};
-
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
     if (f) {
       throw new Error('Too many arguments passed to copyProperties');
     }
   }
-
   var args = [a, b, c, d, e];
   var ii = 0,
     v;
@@ -37,14 +39,9 @@ export default function copyProperties(obj, a, b, c, d, e, f) {
 
     // IE ignores toString in object iteration.. See:
     // webreflection.blogspot.com/2007/07/quick-fix-internet-explorer-and.html
-    if (
-      Object.prototype.hasOwnProperty.call(v, 'toString') &&
-      typeof v.toString !== 'undefined' &&
-      obj.toString !== v.toString
-    ) {
+    if (Object.prototype.hasOwnProperty.call(v, 'toString') && typeof v.toString !== 'undefined' && obj.toString !== v.toString) {
       obj.toString = v.toString;
     }
   }
-
   return obj;
 }

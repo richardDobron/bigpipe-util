@@ -1,8 +1,13 @@
-import $ from './$';
+"use strict";
 
-export default function replaceTransportMarkers(markerValue, markers, key) {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = replaceTransportMarkers;
+var _$ = _interopRequireDefault(require("./$"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+function replaceTransportMarkers(markerValue, markers, key) {
   const marker = typeof key !== 'undefined' ? markers[key] : markers;
-
   if (Array.isArray(marker)) {
     for (let i = 0; i < marker.length; i++) {
       replaceTransportMarkers(markerValue, marker, i);
@@ -12,7 +17,7 @@ export default function replaceTransportMarkers(markerValue, markers, key) {
       if (marker.__m) {
         markers[key] = window.require(marker.__m);
       } else if (marker.__e) {
-        markers[key] = $(marker.__e);
+        markers[key] = (0, _$.default)(marker.__e);
       } else if (marker.__map) {
         markers[key] = new Map(marker.__map);
       } else if (marker.__set) {

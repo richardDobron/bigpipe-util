@@ -1,4 +1,4 @@
-import CSSCore from "fbjs/lib/CSSCore";
+import CSSCore from 'fbjs/lib/CSSCore';
 
 export function byTag(node, tagName) {
   tagName = tagName.toUpperCase();

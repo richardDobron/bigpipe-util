@@ -1,5 +1,5 @@
-import Modal from "modal-vanilla/lib/modal";
-import DOM from "./DOM";
+import Modal from 'modal-vanilla/lib/modal';
+import DOM from './DOM';
 
 const DEFAULT_Z_INDEX = 1040;
 
@@ -16,7 +16,7 @@ Modal.prototype._handleKeydownEvent = function (event) {
       this.hide();
     }
   }
-}
+};
 
 export default class Dialog {
   close(limit = -1) {
@@ -24,9 +24,9 @@ export default class Dialog {
     if (limit > -1) {
       modals = stack.slice(-limit);
     } else {
-      modals = stack
+      modals = stack;
     }
-    modals.forEach((dialog) => dialog.hide())
+    modals.forEach(dialog => dialog.hide());
   }
 
   closeCurrent() {
@@ -42,27 +42,39 @@ export default class Dialog {
 
     dialogId++;
 
-    return this._maybeWithTimeout(options.timeout, () => this._show({
-      el: document.getElementById(this.id),
-      animate: this._getOption(options, 'animate', false),
-      keyboard: this._getOption(options, 'keyboard', true),
-      backdrop: this._getOption(options, 'backdrop', true),
-      transition: this._getOption(options, 'transition', 0),
-      backdropTransition: this._getOption(options, 'backdropTransition', 0)
-    }, options.controller, args));
+    return this._maybeWithTimeout(options.timeout, () =>
+      this._show(
+        {
+          el: document.getElementById(this.id),
+          animate: this._getOption(options, 'animate', false),
+          keyboard: this._getOption(options, 'keyboard', true),
+          backdrop: this._getOption(options, 'backdrop', true),
+          transition: this._getOption(options, 'transition', 0),
+          backdropTransition: this._getOption(options, 'backdropTransition', 0)
+        },
+        options.controller,
+        args
+      )
+    );
   }
 
   showFromModel(model, args) {
-    return this._maybeWithTimeout(model.timeout, () => this._show({
-      title: model.title || '',
-      content: model.body,
-      footer: model.footer || false,
-      animate: this._getOption(model, 'animate', false),
-      keyboard: this._getOption(model, 'keyboard', true),
-      backdrop: this._getOption(model, 'backdrop', true),
-      transition: this._getOption(model, 'transition', 0),
-      backdropTransition: this._getOption(model, 'backdropTransition', 0)
-    }, model.controller, args));
+    return this._maybeWithTimeout(model.timeout, () =>
+      this._show(
+        {
+          title: model.title || '',
+          content: model.body,
+          footer: model.footer || false,
+          animate: this._getOption(model, 'animate', false),
+          keyboard: this._getOption(model, 'keyboard', true),
+          backdrop: this._getOption(model, 'backdrop', true),
+          transition: this._getOption(model, 'transition', 0),
+          backdropTransition: this._getOption(model, 'backdropTransition', 0)
+        },
+        model.controller,
+        args
+      )
+    );
   }
 
   _maybeWithTimeout(timeout, callback) {
@@ -73,9 +85,7 @@ export default class Dialog {
   }
 
   _getOption(obj, key, defaultVal) {
-    return obj[key] !== null && obj[key] !== undefined
-      ? obj[key]
-      : defaultVal;
+    return obj[key] !== null && obj[key] !== undefined ? obj[key] : defaultVal;
   }
 
   _show(options, controller, args) {
@@ -88,7 +98,7 @@ export default class Dialog {
 
     if (controller) {
       if (typeof controller === 'string') {
-        (new (window.require(controller))(_modal, ...args));
+        new (window.require(controller))(_modal, ...args);
       } else if (typeof controller === 'function') {
         controller(_modal, ...args);
       }
@@ -96,25 +106,29 @@ export default class Dialog {
 
     const self = this;
 
-    return _modal.on('shown', function ({el}) {
-      zIndex = DEFAULT_Z_INDEX + (10 * stack.length);
-      el.style.zIndex = zIndex;
-      setTimeout(() => document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1);
-    }).on('showBackdrop', this._fixBackdrop).on('hidden', function ({el}) {
-      stack = stack.filter((modal) => {
-        return ! modal.el.isEqualNode(el);
-      });
+    return _modal
+      .on('shown', function ({ el }) {
+        zIndex = DEFAULT_Z_INDEX + 10 * stack.length;
+        el.style.zIndex = zIndex;
+        setTimeout(() => (document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1));
+      })
+      .on('showBackdrop', this._fixBackdrop)
+      .on('hidden', function ({ el }) {
+        stack = stack.filter(modal => {
+          return !modal.el.isEqualNode(el);
+        });
 
-      if (stack.length) {
-        document.body.classList.add('modal-open');
-      }
+        if (stack.length) {
+          document.body.classList.add('modal-open');
+        }
 
-      document.body.style.paddingRight = originalBodyPad;
+        document.body.style.paddingRight = originalBodyPad;
 
-      zIndex -= 10;
-      self._fixBackdrop();
-      DOM.remove(el);
-    }).show();
+        zIndex -= 10;
+        self._fixBackdrop();
+        DOM.remove(el);
+      })
+      .show();
   }
 
   _fixBackdrop() {

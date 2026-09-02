@@ -1,23 +1,25 @@
-import DOM from '../core/DOM';
+"use strict";
 
-export default class AsyncDOM {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _DOM = _interopRequireDefault(require("../core/DOM"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+class AsyncDOM {
   invoke(domOps, element) {
     for (let i = 0; i < domOps.length; ++i) {
       let [type, selector, enableTarget, content] = domOps[i];
-
-      let node = (enableTarget && element) || null;
-
+      let node = enableTarget && element || null;
       if (selector) {
         node = (node || document.documentElement).querySelector(selector);
       }
-
       if (!node) {
         if (typeof __DEV__ !== 'undefined' && __DEV__) {
           console.error(`Selector '${selector}' does not match anything!`);
         }
         continue;
       }
-
       switch (type) {
         case 'eval':
           new Function(content).apply(node);
@@ -29,27 +31,28 @@ export default class AsyncDOM {
           node.style.display = '';
           break;
         case 'setContent':
-          DOM.setContent(node, content.__html);
+          _DOM.default.setContent(node, content.__html);
           break;
         case 'appendContent':
-          DOM.appendContent(node, content.__html);
+          _DOM.default.appendContent(node, content.__html);
           break;
         case 'prependContent':
-          DOM.prependContent(node, content.__html);
+          _DOM.default.prependContent(node, content.__html);
           break;
         case 'insertAfter':
-          DOM.insertAfter(node, content.__html);
+          _DOM.default.insertAfter(node, content.__html);
           break;
         case 'insertBefore':
-          DOM.insertBefore(node, content.__html);
+          _DOM.default.insertBefore(node, content.__html);
           break;
         case 'remove':
-          DOM.remove(node);
+          _DOM.default.remove(node);
           break;
         case 'replace':
-          DOM.replace(node, content.__html);
+          _DOM.default.replace(node, content.__html);
           break;
       }
     }
   }
 }
+exports.default = AsyncDOM;

@@ -28,7 +28,7 @@ $ npm install bigpipe-util
 
 ### 3. Add the following to /path/to/resources/js/app.js:
 ```javascript
-import Primer from 'bigpipe-util/src/Primer';
+import Primer from 'bigpipe-util/dist/Primer';
 
 Primer();
 
@@ -42,14 +42,14 @@ window.require = (modulePath) => {
 ### 4. Add these lines to the page footer:
 ```html
 <script>
-    (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    (new (require("bigpipe-util/dist/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
 </script>
 ```
 
 ## 🛜 Request API
 
 ```javascript
-import AsyncRequest from 'bigpipe-util/src/AsyncRequest';
+import AsyncRequest from 'bigpipe-util/dist/AsyncRequest';
 
 const request = (new AsyncRequest('/ajax/remove.php'))
   // or .setURI('/ajax/remove.php')
