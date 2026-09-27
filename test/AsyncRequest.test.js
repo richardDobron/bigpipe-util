@@ -33,8 +33,7 @@ function send(request, h) {
 }
 
 describe('request data', () => {
-  // Known bug: the data of GET requests is sent in the body, which browsers ignore.
-  it.fails('sends the data of GET requests in the query string', () => {
+  it('sends the data of GET requests in the query string', () => {
     new AsyncRequest('/search').setMethod('get').setData({ q: 'pipe', page: 2 }).send();
 
     const [xhr] = requests;
@@ -44,8 +43,7 @@ describe('request data', () => {
     expect(xhr.headers['Content-Type']).toBeUndefined();
   });
 
-  // Known bug: the data of GET requests is sent in the body, which browsers ignore.
-  it.fails('keeps the existing query string and hash of GET requests', () => {
+  it('keeps the existing query string and hash of GET requests', () => {
     new AsyncRequest('/search?sort=asc#results').setMethod('GET').setData({ q: 'pipe' }).send();
 
     expect(requests[0].url).toMatch(/^\/search\?sort=asc&q=pipe&__req=\d+#results$/);
@@ -62,8 +60,7 @@ describe('request data', () => {
     expect(xhr.headers['X-Requested-With']).toBe('XMLHttpRequest');
   });
 
-  // Known bug: __req is added to the object passed to setData().
-  it.fails('does not modify the data object', () => {
+  it('does not modify the data object', () => {
     const data = { id: 1 };
 
     new AsyncRequest('/save').setData(data).send();
@@ -84,8 +81,7 @@ describe('request data', () => {
     expect(xhr.headers['Content-Type']).toBeUndefined();
   });
 
-  // Known bug: __req is added to the FormData passed to setData().
-  it.fails('does not modify the FormData', () => {
+  it('does not modify the FormData', () => {
     const formData = new FormData();
     formData.append('name', 'value');
 
@@ -94,8 +90,7 @@ describe('request data', () => {
     expect(formData.has('__req')).toBe(false);
   });
 
-  // Known bug: the data of GET requests is sent in the body, which browsers ignore.
-  it.fails('sends the FormData of GET requests in the query string', () => {
+  it('sends the FormData of GET requests in the query string', () => {
     const formData = new FormData();
     formData.append('q', 'pipe');
 
@@ -139,8 +134,7 @@ describe('responses', () => {
     expect(h.finally).toHaveBeenCalledOnce();
   });
 
-  // Known bug: an invalid response throws in onload, so the error and finally handlers aren't called.
-  it.fails('calls the error and finally handlers for responses that are not valid', () => {
+  it('calls the error and finally handlers for responses that are not valid', () => {
     vi.useFakeTimers();
     const h = handlers();
 
@@ -153,8 +147,7 @@ describe('responses', () => {
     expect(() => vi.runAllTimers()).toThrow(/Failed to handle response/);
   });
 
-  // Known bug: the finally handler is skipped when the handler throws.
-  it.fails('calls the finally handler when the handler throws', () => {
+  it('calls the finally handler when the handler throws', () => {
     const h = handlers();
     h.success.mockImplementation(() => {
       throw new Error('handler failed');
@@ -178,8 +171,7 @@ describe('responses', () => {
 });
 
 describe('abort', () => {
-  // Known bug: abort() reads this.transport, which is never set, so it does nothing.
-  it.fails('aborts the sent request and calls the finally handler', () => {
+  it('aborts the sent request and calls the finally handler', () => {
     const h = handlers();
     const request = new AsyncRequest('/save');
 

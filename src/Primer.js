@@ -132,7 +132,7 @@ export default function Primer() {
           }
 
           if (eventTarget) {
-            const loader = eventTarget.querySelector('.small-loader');
+            const loader = eventTarget.querySelector('.form-loader');
 
             if (loader) {
               loader.classList.remove('loading');
@@ -151,7 +151,7 @@ export default function Primer() {
           }
 
           if (eventTarget) {
-            const loader = eventTarget.querySelector('.small-loader');
+            const loader = eventTarget.querySelector('.form-loader');
 
             if (loader) {
               loader.classList.remove('loading');

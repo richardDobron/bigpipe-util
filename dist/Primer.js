@@ -92,7 +92,7 @@ function Primer() {
           submitter.disabled = false;
         }
         if (eventTarget) {
-          const loader = eventTarget.querySelector('.small-loader');
+          const loader = eventTarget.querySelector('.form-loader');
           if (loader) {
             loader.classList.remove('loading');
           }
@@ -106,7 +106,7 @@ function Primer() {
           submitter.disabled = false;
         }
         if (eventTarget) {
-          const loader = eventTarget.querySelector('.small-loader');
+          const loader = eventTarget.querySelector('.form-loader');
           if (loader) {
             loader.classList.remove('loading');
           }

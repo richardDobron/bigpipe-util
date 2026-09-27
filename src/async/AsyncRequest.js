@@ -21,6 +21,29 @@ function serialize(obj, prefix) {
   return str.join('&');
 }
 
+function copyFormData(formData) {
+  const copy = new FormData();
+  formData.forEach((value, key) => copy.append(key, value));
+  return copy;
+}
+
+function appendQueryString(uri, query) {
+  if (!query) {
+    return uri;
+  }
+
+  const [path, hash] = uri.split('#', 2);
+  const separator = path.includes('?') ? '&' : '?';
+
+  return path + separator + query + (hash !== undefined ? '#' + hash : '');
+}
+
+function reportError(error) {
+  setTimeout(() => {
+    throw error;
+  }, 0);
+}
+
 function validateResponseHandler(handler) {
   const valid = !handler || typeof handler === 'function';
 
@@ -151,8 +174,8 @@ export default class AsyncRequest {
   }
 
   send() {
-    const { uri, method } = this;
-    let { data } = this;
+    const { method } = this;
+    let { uri, data } = this;
 
     const handler = this.getHandler();
     const errorHandler = this.getErrorHandler();
@@ -161,44 +184,60 @@ export default class AsyncRequest {
 
     initialHandler();
 
+    incrementRequests();
+
+    if (data instanceof FormData) {
+      data = copyFormData(data);
+      data.append('__req', requests);
+    } else {
+      data = serialize({ ...data, __req: requests });
+    }
+
+    if (['GET', 'HEAD'].includes(method)) {
+      uri = appendQueryString(
+        uri,
+        data instanceof FormData ? new URLSearchParams(data).toString() : data
+      );
+      data = null;
+    }
+
     const request = new XMLHttpRequest();
     const self = this;
+
+    this.transport = request;
 
     request.open(method, uri, true);
 
     request.onload = function () {
-      if (this.status >= 200 && this.status < 400) {
-        let response;
-        try {
-          const safeJson = self._unshieldResponseText(this.responseText);
-          response = JSON.parse(safeJson);
-        } catch (e) {
-          throw new Error('Failed to handle response: ' + e.message + '\n' + this.responseText);
+      try {
+        if (this.status >= 200 && this.status < 400) {
+          let response;
+          try {
+            const safeJson = self._unshieldResponseText(this.responseText);
+            response = JSON.parse(safeJson);
+          } catch (e) {
+            errorHandler(this);
+            reportError(
+              new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
+            );
+            return;
+          }
+
+          new AsyncResponse().handle(response, self.relative);
+
+          handler(response);
+        } else {
+          errorHandler(this);
         }
-
-        new AsyncResponse().handle(response, self.relative);
-
-        handler(response);
-      } else {
-        errorHandler(this);
+      } finally {
+        finallyHandler(this);
       }
-
-      finallyHandler(this);
     };
 
     request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-    incrementRequests();
-
-    if (data instanceof FormData) {
-      data.append('__req', requests);
-    } else {
-      data.__req = requests;
-      data = serialize(data);
-
-      if (method === 'POST') {
-        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-      }
+    if (typeof data === 'string' && method === 'POST') {
+      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     }
 
     Object.keys(this.headers).forEach(name => {
@@ -209,6 +248,11 @@ export default class AsyncRequest {
       errorHandler(this);
       finallyHandler(this);
     };
+
+    request.onabort = function () {
+      finallyHandler(this);
+    };
+
     request.send(data);
 
     return request;

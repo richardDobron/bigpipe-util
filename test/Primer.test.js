@@ -36,7 +36,7 @@ describe('links', () => {
   });
 
   it.each([
-    ['get', 'GET', /^\/ajax\/remove\.php\?id=1/],
+    ['get', 'GET', /^\/ajax\/remove\.php\?id=1&__req=\d+$/],
     ['post', 'POST', /^\/ajax\/like\.php$/],
     ['dialog', 'POST', /^\/ajax\/dialog\.php$/]
   ])('sends a request for the rel of #%s', (id, method, url) => {
@@ -66,7 +66,7 @@ describe('links', () => {
     expect(link.classList.contains('async-saving')).toBe(false);
   });
 
-  it.fails('unmarks the link when the response is not valid', () => {
+  it('unmarks the link when the response is not valid', () => {
     vi.useFakeTimers();
     const link = document.getElementById('get');
 
@@ -102,7 +102,7 @@ describe('forms', () => {
     expect(requests[0].body.get('plan')).toBe('free');
   });
 
-  it.fails('submits the data of GET forms in the query string', () => {
+  it('submits the data of GET forms in the query string', () => {
     form.setAttribute('method', 'GET');
     submit(form, form.querySelector('button'));
 
@@ -139,7 +139,7 @@ describe('forms', () => {
     expect(form.querySelector('.form-loader').classList.contains('loading')).toBe(true);
   });
 
-  it.fails('hides the loader after the request', () => {
+  it('hides the loader after the request', () => {
     submit(form, form.querySelector('button'));
     requests[0].respond(200, asyncResponse({}));
 
