@@ -2,3 +2,9 @@
 node_modules
 .npm-debug.log
 package-lock.json
+
+# documentation build artifacts
+website/build/
+website/node_modules
+website/.docusaurus
+!website/package-lock.json
