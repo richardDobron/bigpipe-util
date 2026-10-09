@@ -1,5 +1,3 @@
-import CSSCore from 'fbjs/lib/CSSCore';
-
 export function byTag(node, tagName) {
   tagName = tagName.toUpperCase();
   node = find(node, function (el) {
@@ -11,7 +9,7 @@ export function byTag(node, tagName) {
 
 export function byClass(node, className) {
   node = find(node, function (el) {
-    return el instanceof Element && CSSCore.hasClass(el, className);
+    return el instanceof Element && el.classList.contains(className);
   });
 
   return node instanceof Element ? node : null;

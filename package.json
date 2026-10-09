@@ -35,7 +35,6 @@
     }
   },
   "dependencies": {
-    "fbjs": "^3.0.4",
     "modal-vanilla": "^0.9.0"
   },
   "scripts": {

@@ -1,4 +1,4 @@
-import emptyFunction from 'fbjs/lib/emptyFunction';
+import emptyFunction from '../core/emptyFunction';
 import warning from '../core/warning';
 import AsyncResponse from './AsyncResponse';
 
