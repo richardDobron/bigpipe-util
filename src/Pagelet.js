@@ -47,29 +47,21 @@ export default class Pagelet {
       return;
     }
 
-    if (this.css.length > 0) {
-      this.css.forEach(cssFile => {
-        const cssResource = this.bigPipe.pageletResourceFactory(cssFile, 'css');
-        this.attachCssResource(cssResource);
-      });
-    }
+    this.css.forEach(cssFile => {
+      this.attachCssResource(this.bigPipe.pageletResourceFactory(cssFile, 'css'));
+    });
 
-    if (this.js.length > 0) {
-      this.js.forEach(jsFile => {
-        const jsResource = this.bigPipe.pageletResourceFactory(jsFile, 'js');
-        this.attachJsResource(jsResource);
-      });
-    }
+    this.js.forEach(jsFile => {
+      this.attachJsResource(this.bigPipe.pageletResourceFactory(jsFile, 'js'));
+    });
 
-    if (this.cssResources.size > 0) {
-      this.setPhase(PAGELET_PHASE.LOADING_CSS);
-      this.cssResources.forEach(resource => {
-        resource.startLoading();
-      });
-    } else {
-      this.setContent();
-      this.onJsFinished();
-    }
+    this.setPhase(PAGELET_PHASE.LOADING_CSS);
+    this.cssResources.forEach(resource => {
+      resource.startLoading();
+    });
+
+    // A stylesheet that another pagelet already loaded will not call back again.
+    this.onCssFinished();
   }
 
   attachCssResource(resource) {
@@ -82,8 +74,12 @@ export default class Pagelet {
     this.jsResources.set(resource.file, resource);
   }
 
+  /**
+   * Runs the jsmods once the JS files of the pagelet are loaded. BigPipe calls it when it starts
+   * loading the JS of all pagelets, and every JS file calls it when it is loaded.
+   */
   onJsFinished() {
-    if (this.isComplete()) {
+    if (this.phase !== PAGELET_PHASE.DISPLAY_END) {
       return;
     }
 
@@ -101,7 +97,7 @@ export default class Pagelet {
   }
 
   onCssFinished() {
-    if (!areAllResourcesLoaded(this.cssResources)) {
+    if (this.phase !== PAGELET_PHASE.LOADING_CSS || !areAllResourcesLoaded(this.cssResources)) {
       return;
     }
 

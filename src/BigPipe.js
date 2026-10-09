@@ -39,22 +39,18 @@ export default class BigPipe {
     this.pagelets.set(pagelet.id, pagelet);
   }
 
-  areAllPageletsReady() {
+  areAllPageletsDisplayed() {
     if (this.pagelets.size === 0) {
       return false;
     }
 
     return Array.from(this.pagelets.values()).every(
-      pagelet => pagelet.phase >= PAGELET_PHASE.ARRIVE_END
+      pagelet => pagelet.phase >= PAGELET_PHASE.DISPLAY_END
     );
   }
 
   pageletDisplayed() {
-    if (!this.areAllPageletsReady()) {
-      return;
-    }
-
-    if (this.phase === BIGPIPE_PHASE.READY_FOR_JS) {
+    if (this.phase === BIGPIPE_PHASE.READY_FOR_JS && this.areAllPageletsDisplayed()) {
       this.loadJSResources();
     }
   }
@@ -66,32 +62,11 @@ export default class BigPipe {
   loadJSResources() {
     this.setPhase(BIGPIPE_PHASE.LOADING_JS);
 
-    const jsResources = this.getResourcesByType('js');
-
-    jsResources.forEach(resource => {
+    this.getResourcesByType('js').forEach(resource => {
       resource.startLoading();
     });
 
-    this.notifyPageletsWithoutResources();
-
-    if (jsResources.length === 0) {
-      this.notifyAllPagelets();
-    }
-  }
-
-  getResourcesByType(type) {
-    return Array.from(this.pageletResources.values()).filter(resource => resource.type === type);
-  }
-
-  notifyPageletsWithoutResources() {
-    this.pagelets.forEach(pagelet => {
-      if (pagelet.jsResources.size === 0) {
-        pagelet.onJsFinished();
-      }
-    });
-  }
-
-  notifyAllPagelets() {
+    // Pagelets without JS files (or with files already loaded) get no callback from a resource.
     this.pagelets.forEach(pagelet => {
       pagelet.onJsFinished();
     });
@@ -103,6 +78,15 @@ export default class BigPipe {
     } catch (e) {
       return file;
     }
+  }
+
+  getResourcesByType(type) {
+    return Array.from(this.pageletResources.values()).filter(resource => resource.type === type);
+  }
+
+  extractFilename(filePath) {
+    const match = /([^/]+)$/.exec(filePath);
+    return match ? match[1] : filePath;
   }
 
   pageletResourceFactory(file, type) {

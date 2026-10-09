@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BigPipe, { BIGPIPE_PHASE, PAGELET_PHASE } from '../BigPipe';
 import Pagelet from '../Pagelet';
 
@@ -28,7 +28,7 @@ describe('BigPipe', () => {
     expect(pagelet.bigPipe).toBe(bigPipe);
     expect(pagelet.phase).toBe(PAGELET_PHASE.ARRIVE_END);
     expect(document.getElementById('slot').innerHTML).toBe('<b>new</b>');
-    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.READY_FOR_JS);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.LOADING_JS);
   });
 
   it('still exports the phases for existing imports', async () => {
@@ -119,6 +119,84 @@ describe('errors', () => {
 
     delete window.require;
     vi.useRealTimers();
+  });
+});
+
+describe('lifecycle', () => {
+  let bigPipe;
+  let calls;
+
+  // BigPipe is a singleton: every test gets a fresh module so pagelets do not leak between tests.
+  beforeEach(async () => {
+    vi.resetModules();
+    const { default: FreshBigPipe } = await import('../BigPipe');
+    bigPipe = new FreshBigPipe();
+
+    calls = [];
+    window.require = name => ({ init: () => calls.push(name) });
+    document.head.innerHTML = '';
+    document.body.innerHTML = '<div id="a"></div><div id="b"></div>';
+  });
+
+  afterEach(() => {
+    delete window.require;
+  });
+
+  function arrive(id, { css = [], js = [], isLast = false } = {}) {
+    bigPipe.onPageletArrive({
+      id,
+      css,
+      js,
+      domops: [['setContent', '#' + id, false, { __html: id.toUpperCase() }]],
+      jsmods: { require: [[id + 'Module', 'init']] },
+      ...(isLast ? { is_last: true } : {})
+    });
+  }
+
+  const load = selector => document.querySelector(selector).onload();
+  const content = id => document.getElementById(id).innerHTML;
+
+  it('displays a pagelet once its stylesheet is loaded and then runs its jsmods', () => {
+    arrive('a', { css: ['/a.css'], isLast: true });
+    expect(content('a')).toBe('');
+
+    load('link[href="/a.css"]');
+
+    expect(content('a')).toBe('A');
+    expect(calls).toEqual(['aModule']);
+  });
+
+  it('loads the JS files only after every pagelet is displayed', () => {
+    arrive('a', { js: ['/a.js'] });
+    arrive('b', { css: ['/b.css'], isLast: true });
+    expect(document.querySelector('script[src="/a.js"]')).toBeNull();
+
+    load('link[href="/b.css"]');
+    expect(document.querySelector('script[src="/a.js"]')).not.toBeNull();
+    expect(calls).toEqual(['bModule']);
+
+    load('script[src="/a.js"]');
+    expect(calls).toEqual(['bModule', 'aModule']);
+  });
+
+  it('runs the jsmods only after the last pagelet arrived, in arrival order', () => {
+    arrive('a');
+    expect(content('a')).toBe('A');
+    expect(calls).toEqual([]);
+
+    arrive('b', { isLast: true });
+    expect(calls).toEqual(['aModule', 'bModule']);
+  });
+
+  it('displays a pagelet whose stylesheet another pagelet already loaded', () => {
+    arrive('a', { css: ['/shared.css'] });
+    load('link[href="/shared.css"]');
+
+    arrive('b', { css: ['/shared.css'], isLast: true });
+
+    expect(document.querySelectorAll('link').length).toBe(1);
+    expect(content('b')).toBe('B');
+    expect(calls).toEqual(['aModule', 'bModule']);
   });
 });
 
