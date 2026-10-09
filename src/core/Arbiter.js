@@ -1,3 +1,5 @@
+import reportError from './reportError';
+
 const _events = Object.create(null);
 
 export default class Arbiter {
@@ -15,9 +17,7 @@ export default class Arbiter {
       try {
         list[i].apply(this, args);
       } catch (e) {
-        window.setTimeout(() => {
-          throw e;
-        }, 0);
+        reportError(e);
       }
     }
     return this;

@@ -1,4 +1,5 @@
 import emptyFunction from '../core/emptyFunction';
+import reportError from '../core/reportError';
 import requireModule, { isModuleDefined } from '../core/requireModule';
 import warning from '../core/warning';
 import AsyncResponse from './AsyncResponse';
@@ -97,12 +98,6 @@ function createNetworkError(transport) {
     description: 'Check your internet connection and try again.',
     isTransient: true
   });
-}
-
-function reportError(error) {
-  setTimeout(() => {
-    throw error;
-  }, 0);
 }
 
 export const CSRF_TOKEN_MODULE = 'CSRFToken';
