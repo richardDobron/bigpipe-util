@@ -1,5 +1,6 @@
 import { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
 import Pagelet from './Pagelet';
+import getCSPNonce from './core/getCSPNonce';
 
 export { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE };
 
@@ -133,20 +134,26 @@ export default class BigPipe {
 
         this.phase = RESOURCE_PHASE.LOADING;
 
+        let element;
         if (type === 'css') {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = file;
-          link.onload = () => self.fileLoaded(name);
-          link.onerror = () => self.fileLoaded(name);
-          document.head.appendChild(link);
+          element = document.createElement('link');
+          element.rel = 'stylesheet';
+          element.href = file;
         } else if (type === 'js') {
-          const script = document.createElement('script');
-          script.src = file;
-          script.onload = () => self.fileLoaded(name);
-          script.onerror = () => self.fileLoaded(name);
-          document.body.appendChild(script);
+          element = document.createElement('script');
+          element.src = file;
+        } else {
+          return;
         }
+
+        const nonce = getCSPNonce();
+        if (nonce) {
+          element.setAttribute('nonce', nonce);
+        }
+
+        element.onload = () => self.fileLoaded(name);
+        element.onerror = () => self.fileLoaded(name);
+        (type === 'css' ? document.head : document.body).appendChild(element);
       },
 
       onComplete() {

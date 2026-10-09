@@ -65,6 +65,32 @@ describe('resources', () => {
 
     expect(document.querySelectorAll('link')).toHaveLength(1);
   });
+
+  it('adds the CSP nonce of the page to the stylesheets and scripts it loads', () => {
+    document.head.innerHTML = '<script nonce="r4nd0m"></script>';
+    const bigPipe = new BigPipe();
+
+    arriveWithCss(bigPipe, 'nonce', ['/nonce/a.css']);
+    bigPipe.pageletResourceFactory('/nonce/a.js', 'js').startLoading();
+
+    expect(document.querySelector('link[href="/nonce/a.css"]').getAttribute('nonce')).toBe(
+      'r4nd0m'
+    );
+    expect(document.querySelector('script[src="/nonce/a.js"]').getAttribute('nonce')).toBe(
+      'r4nd0m'
+    );
+  });
+
+  it('adds no nonce when the page has none', () => {
+    document.head.innerHTML = '';
+    const bigPipe = new BigPipe();
+
+    arriveWithCss(bigPipe, 'no-nonce', ['/no-nonce/a.css']);
+
+    expect(document.querySelector('link[href="/no-nonce/a.css"]').hasAttribute('nonce')).toBe(
+      false
+    );
+  });
 });
 
 describe('errors', () => {

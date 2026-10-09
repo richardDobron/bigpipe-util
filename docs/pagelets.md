@@ -38,3 +38,8 @@ pagelets, makes them display progressively.
 The phases are exported as `BIGPIPE_PHASE`, `PAGELET_PHASE` and `RESOURCE_PHASE` from
 `bigpipe-util/dist/BigPipe`. `BigPipe` is a singleton, so `new BigPipe()` always returns the same instance with
 the registered `pagelets`.
+
+## Content Security Policy
+
+With a nonce-based policy, `BigPipe` adds the nonce of the page to the stylesheets and scripts it loads. It takes the
+nonce from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
