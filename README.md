@@ -11,7 +11,7 @@ https://richarddobron.github.io/bigpipe-php/
 
 ## ℹ️ Requirements
 * PHP 7.1 or higher
-* Webpack
+* A bundler: [webpack](https://webpack.js.org/), [Vite](https://vite.dev/) or similar
 
 ## 📦 Installation
 Follow these steps to install and set up:
@@ -29,22 +29,40 @@ $ npm install bigpipe-util
 ### 3. Add the following to /path/to/resources/js/app.js:
 ```javascript
 import Primer from 'bigpipe-util/dist/Primer';
+import { setModuleLoader } from 'bigpipe-util/dist/ModuleRegistry';
 
 Primer();
-
-window.require = (modulePath) => {
-  return modulePath.startsWith('bigpipe-util/')
-    ? require('bigpipe-util/dist/' + modulePath.replace(/^bigpipe-util\/(src|dist)\//, '') + '.js').default
-    : require('./' + modulePath).default;
-};
 ```
+
+Then tell BigPipe how to load your modules by name (the server calls e.g. `require('UserLoggedInAlert')`):
+
+**webpack**
+```javascript
+setModuleLoader(modulePath => require('./' + modulePath).default);
+```
+
+**Vite**
+```javascript
+const modules = import.meta.glob(['./**/*.js', '!./app.js'], { eager: true });
+
+setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
+```
+
+> Vite needs an alias for the `events` module used by dialogs, see the
+> [documentation](https://richarddobron.github.io/bigpipe-php/).
+
+> Already using your own `window.require`? It keeps working, see the
+> [documentation](https://richarddobron.github.io/bigpipe-php/).
 
 ### 4. Add these lines to the page footer:
 ```html
 <script>
-    (new (require("bigpipe-util/dist/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    document.addEventListener('DOMContentLoaded', function () {
+        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    });
 </script>
 ```
+`DOMContentLoaded` is needed because Vite loads the entrypoint as a deferred module script.
 
 ## 🛜 Request API
 
