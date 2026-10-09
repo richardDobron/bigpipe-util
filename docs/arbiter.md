@@ -10,20 +10,21 @@ subscribers, so a module can inform others without a reference to them.
 ```javascript
 import Arbiter from 'bigpipe-util/dist/core/Arbiter';
 
-const onOrderReady = (order) => console.log(order);
-
-new Arbiter().subscribe('ORDER/READY', onOrderReady);
+const subscription = new Arbiter().subscribe('ORDER/READY', (order) => console.log(order));
 
 // Somewhere else
 new Arbiter().inform('ORDER/READY', {
   orderId: 12300,
   total: 100.99,
 });
+
+// When the callback is no longer needed, e.g. the component is removed
+subscription.remove();
 ```
 
 | Method                           | Description                                                          |
 |----------------------------------|----------------------------------------------------------------------|
-| `subscribe(event, callback)`     | Calls the callback with the arguments of every `inform()`.           |
+| `subscribe(event, callback)`     | Calls the callback with the arguments of every `inform()`. Returns a subscription, `remove()` removes it. |
 | `unsubscribe(event, callback)`   | Removes the callback.                                                |
 | `inform(event, ...args)`         | Calls the subscribers of the event.                                  |
 | `clearSubscribers(event)`        | Removes all subscribers of the event.                                |

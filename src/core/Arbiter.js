@@ -35,9 +35,17 @@ export default class Arbiter {
   }
 
   subscribe(toWhat, withWhat) {
-    const list = this.getSubscribers(toWhat);
-    list.push(withWhat);
-    return this;
+    this.getSubscribers(toWhat).push(withWhat);
+
+    let subscribed = true;
+    return {
+      remove: () => {
+        if (subscribed) {
+          subscribed = false;
+          this.unsubscribe(toWhat, withWhat);
+        }
+      }
+    };
   }
 
   unsubscribe(toWhat, withWhat) {
