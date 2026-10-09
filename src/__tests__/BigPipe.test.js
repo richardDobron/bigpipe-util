@@ -39,6 +39,34 @@ describe('BigPipe', () => {
   });
 });
 
+describe('resources', () => {
+  function arriveWithCss(bigPipe, id, css) {
+    bigPipe.onPageletArrive({ id, css, js: [], domops: [], jsmods: { require: [] } });
+  }
+
+  it('loads files with the same name from different paths', () => {
+    document.head.innerHTML = '';
+    const bigPipe = new BigPipe();
+
+    arriveWithCss(bigPipe, 'feed', ['/feed/main.css']);
+    arriveWithCss(bigPipe, 'chat', ['/chat/main.css']);
+
+    expect(
+      Array.from(document.querySelectorAll('link'), link => link.getAttribute('href'))
+    ).toEqual(['/feed/main.css', '/chat/main.css']);
+  });
+
+  it('loads the same file only once, also when written differently', () => {
+    document.head.innerHTML = '';
+    const bigPipe = new BigPipe();
+
+    arriveWithCss(bigPipe, 'header', ['/shared/base.css']);
+    arriveWithCss(bigPipe, 'footer', [window.location.origin + '/shared/base.css']);
+
+    expect(document.querySelectorAll('link')).toHaveLength(1);
+  });
+});
+
 describe('errors', () => {
   it('finishes a pagelet whose module calls fail', () => {
     vi.useFakeTimers();

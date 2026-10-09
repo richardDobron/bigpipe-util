@@ -96,13 +96,16 @@ export default class BigPipe {
     });
   }
 
-  extractFilename(filePath) {
-    const match = /([^/]+)$/.exec(filePath);
-    return match ? match[1] : filePath;
+  resolveResourceName(file) {
+    try {
+      return new URL(file, document.baseURI).href;
+    } catch (e) {
+      return file;
+    }
   }
 
   pageletResourceFactory(file, type) {
-    const name = this.extractFilename(file);
+    const name = this.resolveResourceName(file);
 
     let resource = this.pageletResources.get(name);
     if (!resource) {
