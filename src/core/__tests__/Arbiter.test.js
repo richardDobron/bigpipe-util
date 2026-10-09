@@ -39,4 +39,15 @@ describe('Arbiter', () => {
     expect(callback).toHaveBeenCalledOnce();
     expect(() => vi.runAllTimers()).toThrow('subscriber failed');
   });
+
+  it.each(['toString', 'constructor', '__proto__'])(
+    'handles an event named after an Object property (%s)',
+    name => {
+      const callback = vi.fn();
+
+      new Arbiter().subscribe(name, callback).inform(name, 1).clearSubscribers(name);
+
+      expect(callback).toHaveBeenCalledWith(1);
+    }
+  );
 });

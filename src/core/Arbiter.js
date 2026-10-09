@@ -1,4 +1,4 @@
-const _events = {};
+const _events = Object.create(null);
 
 export default class Arbiter {
   constructor() {
