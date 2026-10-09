@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BigPipe, { BIGPIPE_PHASE, PAGELET_PHASE } from '../BigPipe';
 import Pagelet from '../Pagelet';
 
@@ -36,6 +36,35 @@ describe('BigPipe', () => {
 
     expect(BIGPIPE_PHASE).toBe(phases.BIGPIPE_PHASE);
     expect(PAGELET_PHASE).toBe(phases.PAGELET_PHASE);
+  });
+});
+
+describe('errors', () => {
+  it('finishes a pagelet whose module calls fail', () => {
+    vi.useFakeTimers();
+    const init = vi.fn();
+    window.require = name => (name === 'Widget' ? { init } : {});
+    const bigPipe = new BigPipe();
+
+    bigPipe.onPageletArrive({
+      id: 'failing',
+      css: [],
+      js: [],
+      domops: [],
+      jsmods: {
+        require: [
+          ['Broken', 'init'],
+          ['Widget', 'init']
+        ]
+      }
+    });
+
+    expect(bigPipe.pagelets.get('failing').phase).toBe(PAGELET_PHASE.ARRIVE_END);
+    expect(init).toHaveBeenCalledOnce();
+    expect(() => vi.runAllTimers()).toThrow('Module Broken has no method "init"');
+
+    delete window.require;
+    vi.useRealTimers();
   });
 });
 

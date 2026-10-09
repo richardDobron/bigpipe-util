@@ -33,6 +33,19 @@ function handle(jsmods) {
   new ServerJS().handle(jsmods);
 }
 
+function reportedError(callback) {
+  vi.useFakeTimers();
+  try {
+    expect(callback).not.toThrow();
+    vi.runAllTimers();
+  } catch (error) {
+    return error.message;
+  } finally {
+    vi.useRealTimers();
+  }
+  return null;
+}
+
 describe('instances', () => {
   it('creates the instance once and shares it between calls and module markers', () => {
     handle({
@@ -70,7 +83,7 @@ describe('instances', () => {
   it('rejects an instance defined twice', () => {
     handle({ instances: [['__inst_twice', 'Chart', []]] });
 
-    expect(() => handle({ instances: [['__inst_twice', 'Chart', []]] })).toThrow(
+    expect(reportedError(() => handle({ instances: [['__inst_twice', 'Chart', []]] }))).toBe(
       'BigPipe: instance "__inst_twice" is already defined.'
     );
   });
@@ -78,7 +91,7 @@ describe('instances', () => {
   it('explains when the module is not a class', () => {
     handle({ instances: [['__inst_object', 'Settings', []]] });
 
-    expect(() => handle({ require: [['__inst_object']] })).toThrow(
+    expect(reportedError(() => handle({ require: [['__inst_object']] }))).toBe(
       'BigPipe: instance "__inst_object" needs a class, module "Settings" is not one.'
     );
   });
@@ -86,9 +99,41 @@ describe('instances', () => {
   it('detects an instance that requires itself', () => {
     handle({ instances: [['__inst_loop', 'Chart', [{ __m: '__inst_loop' }]]] });
 
-    expect(() => handle({ require: [['__inst_loop']] })).toThrow(
+    expect(reportedError(() => handle({ require: [['__inst_loop']] }))).toBe(
       'BigPipe: instance "__inst_loop" requires itself.'
     );
+  });
+});
+
+describe('errors', () => {
+  it('reports a failing call and still runs the others', () => {
+    vi.useFakeTimers();
+
+    handle({
+      require: [
+        ['Dashboard', 'missing'],
+        ['Missing', 'init'],
+        ['Dashboard', 'add', ['still called']]
+      ]
+    });
+
+    expect(modules.Dashboard.add).toHaveBeenCalledWith('still called');
+    expect(() => vi.runAllTimers()).toThrow('Module Dashboard has no method "missing"');
+    vi.useRealTimers();
+  });
+
+  it('still runs the calls when a define or an instance fails', () => {
+    vi.useFakeTimers();
+    handle({ instances: [['__inst_failing', 'Chart', []]] });
+
+    handle({
+      instances: [['__inst_failing', 'Chart', []]],
+      require: [['Dashboard', 'add', ['after the failure']]]
+    });
+
+    expect(modules.Dashboard.add).toHaveBeenCalledWith('after the failure');
+    expect(() => vi.runAllTimers()).toThrow('already defined');
+    vi.useRealTimers();
   });
 });
 

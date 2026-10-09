@@ -116,11 +116,13 @@ describe('jsmods', () => {
     expect(ready).toHaveBeenCalledWith({ id: 1 });
   });
 
-  it('throws for methods that do not exist', () => {
+  it('reports methods that do not exist', () => {
+    vi.useFakeTimers();
     window.require = () => ({});
 
-    expect(() => handle({ jsmods: { require: [['OrderEvents', 'missing']] } })).toThrow(
-      /has no method "missing"/
-    );
+    handle({ jsmods: { require: [['OrderEvents', 'missing']] } });
+
+    expect(() => vi.runAllTimers()).toThrow(/has no method "missing"/);
+    vi.useRealTimers();
   });
 });

@@ -103,6 +103,12 @@ $response->bigPipe()->define('SiteData', [
 ]);
 ```
 
+## Errors
+
+Every define, instance and call runs on its own: when one fails, e.g. a module that doesn't exist or a method that
+throws, the others still run and the pagelet still finishes. The error is thrown again asynchronously, so it shows
+in the console and reaches `window.onerror` and error trackers.
+
 ## Transport markers
 
 Arguments are JSON, so values that JSON can't express are sent as markers and replaced before the module is

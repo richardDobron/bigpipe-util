@@ -1,10 +1,15 @@
 import invariant from './core/invariant';
 import replaceTransportMarkers from './core/replaceTransportMarkers';
+import reportError from './core/reportError';
 import requireModule, { defineInstance, defineModule } from './core/requireModule';
 
 function handler(dependencies, guard, context) {
-  return dependencies.map(function (args) {
-    return guard.apply(context, args);
+  dependencies.forEach(args => {
+    try {
+      guard.apply(context, args);
+    } catch (error) {
+      reportError(error);
+    }
   });
 }
 
