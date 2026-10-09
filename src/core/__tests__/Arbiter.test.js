@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Arbiter from '../src/core/Arbiter';
+import Arbiter from '../Arbiter';
 
 afterEach(() => {
   new Arbiter().clearSubscribers('ORDER/READY');

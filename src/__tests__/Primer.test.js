@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import Primer from '../src/Primer';
-import { asyncResponse, installFakeXHR } from './fakeXHR';
+import Primer from '../Primer';
+import { asyncResponse, installFakeXHR } from '../__testutils__/fakeXHR';
 
 let requests;
 

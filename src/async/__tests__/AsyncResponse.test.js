@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AsyncResponse from '../src/async/AsyncResponse';
+import AsyncResponse from '../AsyncResponse';
 
 beforeEach(() => {
   document.body.innerHTML = `

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AsyncRequest from '../src/async/AsyncRequest';
-import { asyncResponse, installFakeXHR } from './fakeXHR';
+import AsyncRequest from '../AsyncRequest';
+import { asyncResponse, installFakeXHR } from '../../__testutils__/fakeXHR';
 
 let requests;
 
