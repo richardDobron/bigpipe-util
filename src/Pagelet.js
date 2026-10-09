@@ -1,6 +1,7 @@
-import BigPipe, { RESOURCE_PHASE, PAGELET_PHASE } from './BigPipe';
+import { RESOURCE_PHASE, PAGELET_PHASE } from './BigPipePhases';
 import ServerJS from './ServerJS';
 import AsyncDOM from './async/AsyncDOM';
+import invariant from './core/invariant';
 
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
@@ -15,16 +16,14 @@ function areAllResourcesLoaded(resources) {
 }
 
 export default class Pagelet {
-  cssResources = new Map();
+  constructor(pageletData, bigPipe) {
+    invariant(
+      bigPipe,
+      'Pagelet "%s" has to be created by BigPipe.onPageletArrive().',
+      pageletData.id
+    );
 
-  jsResources = new Map();
-
-  id = '';
-
-  phase = PAGELET_PHASE.ARRIVE_START;
-
-  constructor(pageletData) {
-    this.bigPipe = new BigPipe();
+    this.bigPipe = bigPipe;
     this.id = pageletData.id;
     this.phase = PAGELET_PHASE.ARRIVE_START;
     this.domops = pageletData.domops;

@@ -1,25 +1,7 @@
+import { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
 import Pagelet from './Pagelet';
 
-export const BIGPIPE_PHASE = Object.freeze({
-  WAITING: 0,
-  READY_FOR_JS: 1,
-  LOADING_JS: 2,
-  COMPLETE: 3
-});
-
-export const RESOURCE_PHASE = Object.freeze({
-  PENDING: 0,
-  LOADING: 1,
-  LOADED: 2
-});
-
-export const PAGELET_PHASE = Object.freeze({
-  ARRIVE_START: 0,
-  LOADING_CSS: 1,
-  DISPLAY_START: 2,
-  DISPLAY_END: 3,
-  ARRIVE_END: 4
-});
+export { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE };
 
 let instance = null;
 
@@ -40,7 +22,7 @@ export default class BigPipe {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
     }
 
-    const pagelet = new Pagelet(pageletData);
+    const pagelet = new Pagelet(pageletData, this);
     this.registerPagelet(pagelet);
     pagelet.start();
   }

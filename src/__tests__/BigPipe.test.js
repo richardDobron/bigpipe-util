@@ -30,4 +30,19 @@ describe('BigPipe', () => {
     expect(document.getElementById('slot').innerHTML).toBe('<b>new</b>');
     expect(bigPipe.phase).toBe(BIGPIPE_PHASE.READY_FOR_JS);
   });
+
+  it('still exports the phases for existing imports', async () => {
+    const phases = await import('../BigPipePhases');
+
+    expect(BIGPIPE_PHASE).toBe(phases.BIGPIPE_PHASE);
+    expect(PAGELET_PHASE).toBe(phases.PAGELET_PHASE);
+  });
+});
+
+describe('Pagelet', () => {
+  it('requires the BigPipe that received it', () => {
+    expect(() => new Pagelet({ id: 'orphan' })).toThrow(
+      'Pagelet "orphan" has to be created by BigPipe.onPageletArrive().'
+    );
+  });
 });
