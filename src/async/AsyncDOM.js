@@ -20,6 +20,11 @@ export default class AsyncDOM {
 
       switch (type) {
         case 'eval':
+          warning(
+            false,
+            'The eval DOM operation is deprecated: a Content Security Policy without ' +
+              "'unsafe-eval' blocks it. Call a module with jsmods instead."
+          );
           new Function(content).apply(node);
           break;
         case 'hide':

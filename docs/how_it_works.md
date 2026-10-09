@@ -41,7 +41,8 @@ Each operation is an array `[type, selector, targetRelative, content]`:
 ```
 
 - `type`: one of `setContent`, `appendContent`, `prependContent`, `insertAfter`, `insertBefore`, `replace`,
-  `remove`, `hide`, `show` and `eval`.
+  `remove`, `hide`, `show` and `eval` (deprecated: a Content Security Policy without `'unsafe-eval'` blocks it, call
+  a module with [jsmods](server_js.md) instead).
 - `selector`: a CSS selector of the element to change.
 - `targetRelative`: when `true`, the operation targets the element that sent the request (the clicked link or the
   submitted form), or the element matching `selector` inside it. The PHP library sets it when the selector is

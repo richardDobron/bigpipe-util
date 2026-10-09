@@ -58,6 +58,19 @@ describe('domops', () => {
     expect(document.getElementById('card').dataset.done).toBe('yes');
   });
 
+  it('warns in development that eval is deprecated', () => {
+    vi.stubGlobal('__DEV__', true);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    handle({ domops: [['eval', '#card', false, '']] });
+
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('The eval DOM operation is deprecated')
+    );
+    consoleError.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
   it('targets the relative element', () => {
     const form = document.getElementById('form');
 
