@@ -449,7 +449,7 @@ export default class AsyncRequest {
 
     request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-    if (typeof data === 'string' && method === 'POST') {
+    if (typeof data === 'string') {
       request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     }
 

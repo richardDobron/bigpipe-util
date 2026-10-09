@@ -71,6 +71,13 @@ describe('request data', () => {
     );
   });
 
+  it.each(['PUT', 'PATCH', 'DELETE'])('sends the data of %s requests URL-encoded too', method => {
+    new AsyncRequest('/posts/1').setMethod(method).setData({ title: 'Hi' }).send();
+
+    expect(requests[0].body).toMatch(/^title=Hi&__req=\d+$/);
+    expect(requests[0].headers['Content-Type']).toBe('application/x-www-form-urlencoded');
+  });
+
   it('sends booleans as 1 and 0, so false is falsy in PHP', () => {
     new AsyncRequest('/save').setData({ active: true, archived: false }).send();
 
