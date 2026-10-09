@@ -54,6 +54,12 @@ export default class AsyncDOM {
         case 'replace':
           DOM.replace(node, content.__html);
           break;
+        case 'morph':
+          DOM.morph(node, content.__html);
+          break;
+        case 'morphContent':
+          DOM.morphContent(node, content.__html);
+          break;
       }
     }
   }
