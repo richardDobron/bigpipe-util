@@ -10,6 +10,16 @@ export function incrementRequests() {
   return requests++;
 }
 
+function serializeValue(value) {
+  if (value === null) {
+    return '';
+  }
+  if (typeof value === 'boolean') {
+    return value ? '1' : '0';
+  }
+  return value;
+}
+
 function serialize(obj, prefix) {
   const str = [];
   for (const p in obj) {
@@ -26,7 +36,7 @@ function serialize(obj, prefix) {
         str.push(nested);
       }
     } else {
-      str.push(encodeURIComponent(k) + '=' + encodeURIComponent(v === null ? '' : v));
+      str.push(encodeURIComponent(k) + '=' + encodeURIComponent(serializeValue(v)));
     }
   }
   return str.join('&');

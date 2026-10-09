@@ -71,6 +71,12 @@ describe('request data', () => {
     );
   });
 
+  it('sends booleans as 1 and 0, so false is falsy in PHP', () => {
+    new AsyncRequest('/save').setData({ active: true, archived: false }).send();
+
+    expect(requests[0].body).toMatch(/^active=1&archived=0&__req=\d+$/);
+  });
+
   it('does not modify the data object', () => {
     const data = { id: 1 };
 
