@@ -1,4 +1,5 @@
 import DOM from '../core/DOM';
+import warning from '../core/warning';
 
 export default class AsyncDOM {
   invoke(domOps, element) {
@@ -11,10 +12,9 @@ export default class AsyncDOM {
         node = (node || document.documentElement).querySelector(selector);
       }
 
+      warning(node, "Selector '%s' does not match anything!", selector);
+
       if (!node) {
-        if (typeof __DEV__ !== 'undefined' && __DEV__) {
-          console.error(`Selector '${selector}' does not match anything!`);
-        }
         continue;
       }
 

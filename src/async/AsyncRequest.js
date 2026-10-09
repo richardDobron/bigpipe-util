@@ -1,4 +1,5 @@
 import emptyFunction from 'fbjs/lib/emptyFunction';
+import warning from '../core/warning';
 import AsyncResponse from './AsyncResponse';
 
 let requests = 0;
@@ -47,11 +48,10 @@ function reportError(error) {
 function validateResponseHandler(handler) {
   const valid = !handler || typeof handler === 'function';
 
-  if (!valid) {
-    console.error(
-      'AsyncRequest response handlers must be functions. Pass a function, or use bind() to build one.'
-    );
-  }
+  warning(
+    valid,
+    'AsyncRequest response handlers must be functions. Pass a function, or use bind() to build one.'
+  );
 
   return valid;
 }

@@ -1,3 +1,5 @@
+import invariant from './invariant';
+
 const BUILTIN_PREFIX = /^bigpipe-util\/(?:(?:src|dist)\/)?/;
 
 const registered = new Map();
@@ -33,9 +35,11 @@ export default function requireModule(name) {
 
   if (loader) {
     const resolved = loader(name);
-    if (resolved === undefined || resolved === null) {
-      throw new Error(`BigPipe: module "${name}" was not found by the module loader.`);
-    }
+    invariant(
+      resolved !== undefined && resolved !== null,
+      'BigPipe: module "%s" was not found by the module loader.',
+      name
+    );
     return resolved;
   }
 
@@ -45,8 +49,10 @@ export default function requireModule(name) {
     }
   }
 
-  throw new Error(
-    `BigPipe: cannot resolve module "${name}". Call setModuleLoader() from ` +
-      `'bigpipe-util/dist/ModuleRegistry' (or define window.require) first.`
+  invariant(
+    false,
+    'BigPipe: cannot resolve module "%s". Call setModuleLoader() from ' +
+      "'bigpipe-util/dist/ModuleRegistry' (or define window.require) first.",
+    name
   );
 }
