@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import getCSPNonce from '../getCSPNonce';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import getCSPNonce, { CSP_NONCE_MODULE } from '../getCSPNonce';
+import { defineModule } from '../requireModule';
 
 beforeEach(() => {
   document.head.innerHTML = '';
@@ -27,5 +28,25 @@ describe('getCSPNonce', () => {
     document.head.innerHTML = '<script src="/a.js"></script>';
 
     expect(getCSPNonce()).toBeNull();
+  });
+});
+
+describe('getCSPNonce with the nonce the server defines', () => {
+  afterEach(() => {
+    defineModule(CSP_NONCE_MODULE, () => null);
+  });
+
+  it('prefers the CSPNonce module to the scripts of the page', () => {
+    document.head.innerHTML = '<script nonce="from-page"></script>';
+    defineModule(CSP_NONCE_MODULE, () => 'from-server');
+
+    expect(getCSPNonce()).toBe('from-server');
+  });
+
+  it('falls back to the scripts of the page when the module is empty', () => {
+    document.head.innerHTML = '<script nonce="from-page"></script>';
+    defineModule(CSP_NONCE_MODULE, () => null);
+
+    expect(getCSPNonce()).toBe('from-page');
   });
 });

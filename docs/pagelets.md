@@ -42,4 +42,5 @@ the registered `pagelets`.
 ## Content Security Policy
 
 With a nonce-based policy, `BigPipe` adds the nonce of the page to the stylesheets and scripts it loads. It takes the
-nonce from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
+nonce from the `CSPNonce` module, which the PHP library defines in the page script after `BigPipe::setNonce()`, or
+else from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
