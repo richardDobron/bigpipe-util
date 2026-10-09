@@ -4,7 +4,6 @@ import AsyncDOM from './async/AsyncDOM';
 
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
-const bigPipe = new BigPipe();
 
 export { PAGELET_PHASE };
 
@@ -25,7 +24,7 @@ export default class Pagelet {
   phase = PAGELET_PHASE.ARRIVE_START;
 
   constructor(pageletData) {
-    this.bigPipe = bigPipe;
+    this.bigPipe = new BigPipe();
     this.id = pageletData.id;
     this.phase = PAGELET_PHASE.ARRIVE_START;
     this.domops = pageletData.domops;

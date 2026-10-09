@@ -1,3 +1,5 @@
+import Pagelet from './Pagelet';
+
 export const BIGPIPE_PHASE = Object.freeze({
   WAITING: 0,
   READY_FOR_JS: 1,
@@ -34,8 +36,6 @@ export default class BigPipe {
   }
 
   onPageletArrive(pageletData) {
-    const Pagelet = require('./Pagelet').default;
-
     if (pageletData.is_last) {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
     }

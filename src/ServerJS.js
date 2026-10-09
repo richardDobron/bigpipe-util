@@ -8,8 +8,8 @@ function handler(dependencies, guard, context) {
 }
 
 export default class ServerJS {
-  constructor() {
-    this._relativeTo = document.body;
+  get _relativeTo() {
+    return document.body;
   }
 
   handle(jsMods) {
