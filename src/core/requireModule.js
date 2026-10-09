@@ -5,6 +5,7 @@ const BUILTIN_PREFIX = /^bigpipe-util\/(?:(?:src|dist)\/)?/;
 const registered = new Map();
 const builtins = new Map();
 const instances = new Map();
+const defined = new Map();
 let loader = null;
 
 export function setModuleLoader(fn) {
@@ -22,26 +23,32 @@ export function registerBuiltins(modules) {
   Object.keys(modules).forEach(name => builtins.set(name, modules[name]));
 }
 
-export function defineInstance(id, create) {
-  invariant(!instances.has(id), 'BigPipe: instance "%s" is already defined.', id);
-  instances.set(id, { create, creating: false, created: false, value: undefined });
+function lazy(create) {
+  return { create, creating: false, created: false, value: undefined };
 }
 
-function resolveInstance(id) {
-  const instance = instances.get(id);
+export function defineInstance(id, create) {
+  invariant(!instances.has(id), 'BigPipe: instance "%s" is already defined.', id);
+  instances.set(id, lazy(create));
+}
 
-  if (!instance.created) {
-    invariant(!instance.creating, 'BigPipe: instance "%s" requires itself.', id);
-    instance.creating = true;
+export function defineModule(name, create) {
+  defined.set(name, lazy(create));
+}
+
+function resolve(entry, kind, name) {
+  if (!entry.created) {
+    invariant(!entry.creating, 'BigPipe: %s "%s" requires itself.', kind, name);
+    entry.creating = true;
     try {
-      instance.value = instance.create();
-      instance.created = true;
+      entry.value = entry.create();
+      entry.created = true;
     } finally {
-      instance.creating = false;
+      entry.creating = false;
     }
   }
 
-  return instance.value;
+  return entry.value;
 }
 
 export default function requireModule(name) {
@@ -50,7 +57,11 @@ export default function requireModule(name) {
   }
 
   if (instances.has(name)) {
-    return resolveInstance(name);
+    return resolve(instances.get(name), 'instance', name);
+  }
+
+  if (defined.has(name)) {
+    return resolve(defined.get(name), 'module', name);
   }
 
   if (BUILTIN_PREFIX.test(name)) {

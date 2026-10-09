@@ -78,6 +78,31 @@ $chart->call('render');
 $response->bigPipe()->require("require('Dashboard').add()", [$chart]);
 ```
 
+## Defining modules
+
+The server can send data as a module, e.g. the configuration of the page or the current user, in `jsmods.define`, a
+list of `[name, exports]`:
+
+```json
+{
+  "define": [["SiteData", {"locale": "sk_SK", "user": {"id": 7}}]]
+}
+```
+
+The module is required like any other, `requireModule('SiteData')`, or passed to a call with a `__m`
+[transport marker](#transport-markers). Its transport markers are replaced when it is required for the first time.
+Defines are handled before the instances and calls of the same `jsmods`, and a module defined again, e.g. by a later
+response, replaces the previous one.
+
+In PHP:
+
+```php
+$response->bigPipe()->define('SiteData', [
+    'locale' => 'sk_SK',
+    'user' => ['id' => 7],
+]);
+```
+
 ## Transport markers
 
 Arguments are JSON, so values that JSON can't express are sent as markers and replaced before the module is

@@ -1,6 +1,6 @@
 import invariant from './core/invariant';
 import replaceTransportMarkers from './core/replaceTransportMarkers';
-import requireModule, { defineInstance } from './core/requireModule';
+import requireModule, { defineInstance, defineModule } from './core/requireModule';
 
 function handler(dependencies, guard, context) {
   return dependencies.map(function (args) {
@@ -14,8 +14,17 @@ export default class ServerJS {
   }
 
   handle(jsMods) {
+    handler(jsMods.define || [], this._handleDefine, this);
     handler(jsMods.instances || [], this._handleInstance, this);
     handler(jsMods.require || [], this._handleRequire, this);
+  }
+
+  _handleDefine(name, exports) {
+    defineModule(name, () => {
+      const holder = [exports];
+      replaceTransportMarkers(this._relativeTo, holder);
+      return holder[0];
+    });
   }
 
   _handleInstance(id, modulePath, marker) {

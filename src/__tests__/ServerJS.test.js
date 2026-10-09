@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ServerJS from '../ServerJS';
+import requireModule from '../core/requireModule';
 
 let created;
 let modules;
@@ -88,5 +89,46 @@ describe('instances', () => {
     expect(() => handle({ require: [['__inst_loop']] })).toThrow(
       'BigPipe: instance "__inst_loop" requires itself.'
     );
+  });
+});
+
+describe('define', () => {
+  it('defines a module the server sends', () => {
+    handle({ define: [['SiteData', { locale: 'sk_SK', user: { id: 7 } }]] });
+
+    expect(requireModule('SiteData')).toEqual({ locale: 'sk_SK', user: { id: 7 } });
+  });
+
+  it('passes a defined module to calls and module markers', () => {
+    handle({
+      define: [['DashboardConfig', { columns: 3 }]],
+      require: [['Dashboard', 'add', [{ __m: 'DashboardConfig' }]]]
+    });
+
+    expect(modules.Dashboard.add).toHaveBeenCalledWith({ columns: 3 });
+  });
+
+  it('replaces the markers of the exports when the module is first required', () => {
+    handle({
+      define: [
+        ['ChartConfig', { container: { __e: 'chart' }, chart: { __m: '__inst_config' } }],
+        ['ChartContainer', { __e: 'chart' }]
+      ],
+      instances: [['__inst_config', 'Chart', []]]
+    });
+    expect(created).toHaveLength(0);
+
+    const config = requireModule('ChartConfig');
+    expect(config.container).toBe(document.getElementById('chart'));
+    expect(config.chart).toBe(created[0]);
+    expect(requireModule('ChartContainer')).toBe(document.getElementById('chart'));
+  });
+
+  it('replaces a module defined again, e.g. by a later response', () => {
+    handle({ define: [['TokenData', { token: 'first' }]] });
+    expect(requireModule('TokenData').token).toBe('first');
+
+    handle({ define: [['TokenData', { token: 'second' }]] });
+    expect(requireModule('TokenData').token).toBe('second');
   });
 });
