@@ -9,5 +9,20 @@
         "modules": "commonjs"
       }
     ]
-  ]
+  ],
+  "env": {
+    "esm": {
+      "presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              "browsers": ["> 0.5%", "last 2 versions", "Firefox ESR", "not dead", "not ie 11"]
+            },
+            "modules": false
+          }
+        ]
+      ]
+    }
+  }
 }
