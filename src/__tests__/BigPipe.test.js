@@ -94,31 +94,37 @@ describe('resources', () => {
 });
 
 describe('errors', () => {
-  it('finishes a pagelet whose module calls fail', () => {
+  it('finishes a pagelet whose module calls fail', async () => {
+    vi.resetModules();
+    const { default: FreshBigPipe } = await import('../BigPipe');
     vi.useFakeTimers();
     const init = vi.fn();
     window.require = name => (name === 'Widget' ? { init } : {});
-    const bigPipe = new BigPipe();
 
-    bigPipe.onPageletArrive({
-      id: 'failing',
-      css: [],
-      js: [],
-      domops: [],
-      jsmods: {
-        require: [
-          ['Broken', 'init'],
-          ['Widget', 'init']
-        ]
-      }
-    });
+    try {
+      const bigPipe = new FreshBigPipe();
 
-    expect(bigPipe.pagelets.get('failing').phase).toBe(PAGELET_PHASE.ARRIVE_END);
-    expect(init).toHaveBeenCalledOnce();
-    expect(() => vi.runAllTimers()).toThrow('Module Broken has no method "init"');
+      bigPipe.onPageletArrive({
+        id: 'failing',
+        css: [],
+        js: [],
+        domops: [],
+        jsmods: {
+          require: [
+            ['Broken', 'init'],
+            ['Widget', 'init']
+          ]
+        },
+        is_last: true
+      });
 
-    delete window.require;
-    vi.useRealTimers();
+      expect(bigPipe.pagelets.get('failing').phase).toBe(PAGELET_PHASE.ARRIVE_END);
+      expect(init).toHaveBeenCalledOnce();
+      expect(() => vi.runAllTimers()).toThrow('Module Broken has no method "init"');
+    } finally {
+      delete window.require;
+      vi.useRealTimers();
+    }
   });
 });
 
