@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Arbiter from '../Arbiter';
 
 afterEach(() => {
-  new Arbiter().clearSubscribers('ORDER/READY');
+  new Arbiter().clearSubscribers('ORDER/READY').clearState('ORDER/READY');
   vi.useRealTimers();
 });
 
@@ -76,4 +76,67 @@ describe('Arbiter', () => {
       expect(callback).toHaveBeenCalledWith(1);
     }
   );
+});
+
+describe('state', () => {
+  it('calls a callback subscribed after the state was informed', () => {
+    const early = vi.fn();
+    const late = vi.fn();
+    const arbiter = new Arbiter();
+
+    arbiter.subscribe('ORDER/READY', early);
+    arbiter.informState('ORDER/READY', { id: 1 });
+    arbiter.subscribe('ORDER/READY', late);
+
+    expect(early).toHaveBeenCalledWith({ id: 1 });
+    expect(late).toHaveBeenCalledWith({ id: 1 });
+  });
+
+  it('calls later subscribers with the last state', () => {
+    const late = vi.fn();
+    const arbiter = new Arbiter();
+
+    arbiter.informState('ORDER/READY', 1);
+    arbiter.informState('ORDER/READY', 2);
+    arbiter.subscribe('ORDER/READY', late);
+
+    expect(late).toHaveBeenCalledOnce();
+    expect(late).toHaveBeenCalledWith(2);
+  });
+
+  it('does not remember events informed with inform()', () => {
+    const late = vi.fn();
+    const arbiter = new Arbiter();
+
+    arbiter.inform('ORDER/READY', 1);
+    arbiter.subscribe('ORDER/READY', late);
+
+    expect(late).not.toHaveBeenCalled();
+  });
+
+  it('forgets a cleared state', () => {
+    const late = vi.fn();
+    const arbiter = new Arbiter();
+
+    arbiter.informState('ORDER/READY', 1).clearState('ORDER/READY');
+    arbiter.subscribe('ORDER/READY', late);
+
+    expect(late).not.toHaveBeenCalled();
+  });
+
+  it('reports a late subscriber that throws and still subscribes it', () => {
+    vi.useFakeTimers();
+    const arbiter = new Arbiter();
+    const callback = vi.fn(() => {
+      throw new Error('late subscriber failed');
+    });
+
+    arbiter.informState('ORDER/READY', 1);
+    const subscription = arbiter.subscribe('ORDER/READY', callback);
+    arbiter.inform('ORDER/READY', 2);
+
+    expect(callback).toHaveBeenCalledTimes(2);
+    expect(typeof subscription.remove).toBe('function');
+    expect(() => vi.runAllTimers()).toThrow('late subscriber failed');
+  });
 });

@@ -1,6 +1,15 @@
 import reportError from './reportError';
 
 const _events = Object.create(null);
+const _states = Object.create(null);
+
+function call(context, callback, args) {
+  try {
+    callback.apply(context, args);
+  } catch (e) {
+    reportError(e);
+  }
+}
 
 export default class Arbiter {
   constructor() {
@@ -8,18 +17,17 @@ export default class Arbiter {
   }
 
   inform(what, ...args) {
-    const list = [...this.getSubscribers(what)];
-    for (let i = 0; i < list.length; i++) {
-      if (list[i] === null) {
-        continue;
-      }
+    [...this.getSubscribers(what)].forEach(callback => call(this, callback, args));
+    return this;
+  }
 
-      try {
-        list[i].apply(this, args);
-      } catch (e) {
-        reportError(e);
-      }
-    }
+  informState(what, ...args) {
+    _states[what] = args;
+    return this.inform(what, ...args);
+  }
+
+  clearState(what) {
+    delete _states[what];
     return this;
   }
 
@@ -36,6 +44,10 @@ export default class Arbiter {
 
   subscribe(toWhat, withWhat) {
     this.getSubscribers(toWhat).push(withWhat);
+
+    if (_states[toWhat]) {
+      call(this, withWhat, _states[toWhat]);
+    }
 
     let subscribed = true;
     return {

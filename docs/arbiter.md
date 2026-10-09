@@ -27,11 +27,26 @@ subscription.remove();
 | `subscribe(event, callback)`     | Calls the callback with the arguments of every `inform()`. Returns a subscription, `remove()` removes it. |
 | `unsubscribe(event, callback)`   | Removes the callback.                                                |
 | `inform(event, ...args)`         | Calls the subscribers of the event.                                  |
+| `informState(event, ...args)`    | Like `inform()`, and callbacks subscribed later are called right away with these arguments. |
+| `clearState(event)`              | Forgets the arguments of `informState()`.                            |
 | `clearSubscribers(event)`        | Removes all subscribers of the event.                                |
 | `getSubscribers(event)`          | Returns the subscribers of the event.                                |
 
 An error thrown by a subscriber doesn't stop the others. It's rethrown asynchronously, so it still shows in the
 console.
+
+## State
+
+An event that happens once, like "the user is logged in", is easy to miss: a module that subscribes after it was
+informed would wait forever. Inform it with `informState()` instead, and later subscribers are called right away
+with the last arguments:
+
+```javascript
+new Arbiter().informState('USER/LOGGED_IN', user);
+
+// Later, e.g. in a module loaded afterwards
+new Arbiter().subscribe('USER/LOGGED_IN', (user) => greet(user)); // called right away
+```
 
 Combined with [ServerJS](server_js.md), the server can inform your modules too:
 
