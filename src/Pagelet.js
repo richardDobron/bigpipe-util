@@ -28,6 +28,7 @@ export default class Pagelet {
     this.phase = PAGELET_PHASE.ARRIVE_START;
     this.domops = pageletData.domops;
     this.jsmods = pageletData.jsmods;
+    this.onafterload = pageletData.onafterload;
     this.css = pageletData.css;
     this.js = pageletData.js;
     this.cssResources = new Map();
@@ -90,10 +91,21 @@ export default class Pagelet {
     this.processJsMods();
 
     this.setPhase(PAGELET_PHASE.ARRIVE_END);
+    this.bigPipe.pageletFinished(this);
   }
 
   processJsMods() {
     serverJS.handle(this.jsmods);
+  }
+
+  /**
+   * Handles the `onafterload` jsmods, which BigPipe runs once every pagelet has run its jsmods and
+   * the window has loaded.
+   */
+  processAfterLoadJsMods() {
+    if (this.onafterload) {
+      serverJS.handle(this.onafterload);
+    }
   }
 
   onCssFinished() {

@@ -17,6 +17,7 @@ The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library
   js: ["/js/sidebar.js"],
   domops: [["setContent", "#sidebar", false, {"__html": "..."}]],
   jsmods: {"require": [["Sidebar", "init", []]]},
+  onafterload: {"require": [["SidebarPrefetch", "start", []]]},
   is_last: true,
 });
 ```
@@ -34,6 +35,10 @@ pagelets, makes them display progressively.
 3. **Load JS.** When the last pagelet (`is_last`) has arrived and all pagelets are displayed, the JS files of all
    pagelets start loading.
 4. **Run.** When the JS files of a pagelet are loaded, its `jsmods` are handled by [ServerJS](server_js.md).
+   Pagelets run their `jsmods` in the order they arrived.
+5. **After load.** When every pagelet has run its `jsmods` and the window has loaded, the optional `onafterload`
+   jsmods of the pagelets are handled. Use them for work that must not compete with the page, like prefetching or
+   analytics.
 
 The phases are exported as `BIGPIPE_PHASE`, `PAGELET_PHASE` and `RESOURCE_PHASE` from
 `bigpipe-util/dist/BigPipe`. `BigPipe` is a singleton, so `new BigPipe()` always returns the same instance with

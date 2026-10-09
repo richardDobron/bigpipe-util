@@ -1,5 +1,6 @@
 import { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
 import Pagelet from './Pagelet';
+import onAfterLoad from './core/onAfterLoad';
 import getCSPNonce from './core/getCSPNonce';
 
 export { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE };
@@ -53,6 +54,24 @@ export default class BigPipe {
     if (this.phase === BIGPIPE_PHASE.READY_FOR_JS && this.areAllPageletsDisplayed()) {
       this.loadJSResources();
     }
+  }
+
+  pageletFinished() {
+    if (this.phase !== BIGPIPE_PHASE.LOADING_JS) {
+      return;
+    }
+
+    if (!Array.from(this.pagelets.values()).every(pagelet => pagelet.isComplete())) {
+      return;
+    }
+
+    this.setPhase(BIGPIPE_PHASE.COMPLETE);
+
+    onAfterLoad(() => {
+      this.pagelets.forEach(pagelet => {
+        pagelet.processAfterLoadJsMods();
+      });
+    });
   }
 
   setPhase(newPhase) {

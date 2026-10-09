@@ -28,7 +28,7 @@ describe('BigPipe', () => {
     expect(pagelet.bigPipe).toBe(bigPipe);
     expect(pagelet.phase).toBe(PAGELET_PHASE.ARRIVE_END);
     expect(document.getElementById('slot').innerHTML).toBe('<b>new</b>');
-    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.LOADING_JS);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
   });
 
   it('still exports the phases for existing imports', async () => {
@@ -136,19 +136,24 @@ describe('lifecycle', () => {
     window.require = name => ({ init: () => calls.push(name) });
     document.head.innerHTML = '';
     document.body.innerHTML = '<div id="a"></div><div id="b"></div>';
+    vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading');
   });
 
   afterEach(() => {
+    // Flushes the load listeners of this test, so they cannot fire in the next one.
+    window.dispatchEvent(new Event('load'));
+    vi.restoreAllMocks();
     delete window.require;
   });
 
-  function arrive(id, { css = [], js = [], isLast = false } = {}) {
+  function arrive(id, { css = [], js = [], isLast = false, afterLoad = false } = {}) {
     bigPipe.onPageletArrive({
       id,
       css,
       js,
       domops: [['setContent', '#' + id, false, { __html: id.toUpperCase() }]],
       jsmods: { require: [[id + 'Module', 'init']] },
+      ...(afterLoad ? { onafterload: { require: [[id + 'AfterLoad', 'init']] } } : {}),
       ...(isLast ? { is_last: true } : {})
     });
   }
@@ -197,6 +202,32 @@ describe('lifecycle', () => {
     expect(document.querySelectorAll('link').length).toBe(1);
     expect(content('b')).toBe('B');
     expect(calls).toEqual(['aModule', 'bModule']);
+  });
+
+  it('runs the onafterload jsmods after all jsmods, once the window has loaded', () => {
+    arrive('a', { js: ['/a.js'], afterLoad: true });
+    arrive('b', { isLast: true, afterLoad: true });
+    window.dispatchEvent(new Event('load'));
+    expect(calls).toEqual(['bModule']);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.LOADING_JS);
+
+    load('script[src="/a.js"]');
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
+    expect(calls).toEqual(['bModule', 'aModule']);
+
+    window.dispatchEvent(new Event('load'));
+    expect(calls).toEqual(['bModule', 'aModule', 'aAfterLoad', 'bAfterLoad']);
+  });
+
+  it('runs the onafterload jsmods right away when the window is already loaded', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete');
+
+    arrive('a', { isLast: true, afterLoad: true });
+    expect(calls).toEqual(['aModule']);
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(calls).toEqual(['aModule', 'aAfterLoad']);
   });
 });
 
