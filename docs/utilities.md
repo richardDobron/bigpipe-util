@@ -14,6 +14,17 @@ import onAfterLoad from 'bigpipe-util/dist/core/onAfterLoad';
 onAfterLoad(() => console.log('The page is loaded.'));
 ```
 
+## onVisible
+
+Calls the callback once, when the element comes within `buffer` pixels of the viewport, e.g. to load content right
+before the user scrolls to it. `remove()` of the returned subscription stops waiting.
+
+```javascript
+import onVisible from 'bigpipe-util/dist/core/onVisible';
+
+const subscription = onVisible(element, () => console.log('Almost visible.'), { buffer: 300 });
+```
+
 ## waitForLoad
 
 Clicks made before the page is loaded would be lost, because the handlers aren't attached yet. `waitForLoad` defers

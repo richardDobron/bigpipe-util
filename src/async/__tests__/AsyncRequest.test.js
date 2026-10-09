@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AsyncRequest from '../AsyncRequest';
+import AsyncRequest, { ERROR_TYPE } from '../AsyncRequest';
 import { asyncResponse, installFakeXHR } from '../../__testutils__/fakeXHR';
 
 let requests;
@@ -130,7 +130,7 @@ describe('responses', () => {
     requests[0].respond(500, 'Internal Server Error');
 
     expect(h.success).not.toHaveBeenCalled();
-    expect(h.error).toHaveBeenCalledWith(requests[0]);
+    expect(h.error).toHaveBeenCalledWith(requests[0], expect.objectContaining({ type: 'http' }));
     expect(h.finally).toHaveBeenCalledOnce();
   });
 
@@ -167,6 +167,331 @@ describe('responses', () => {
 
     expect(h.error).toHaveBeenCalledOnce();
     expect(h.finally).toHaveBeenCalledOnce();
+  });
+});
+
+describe('errors', () => {
+  function errorOf(respond) {
+    const h = handlers();
+    send(new AsyncRequest('/save'), h);
+    respond(requests[0]);
+
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledOnce();
+    expect(h.error.mock.calls[0][0]).toBe(requests[0]);
+    expect(h.finally).toHaveBeenCalledOnce();
+
+    return h.error.mock.calls[0][1];
+  }
+
+  it('passes the error the server sent', () => {
+    const error = errorOf(xhr =>
+      xhr.respond(
+        200,
+        asyncResponse({
+          payload: { field: 'title' },
+          error: 1001,
+          errorSummary: 'Could not save',
+          errorDescription: 'The title is too long.',
+          errorIsWarning: true,
+          isTransient: false
+        })
+      )
+    );
+
+    expect(error).toEqual({
+      type: ERROR_TYPE.SERVER,
+      code: 1001,
+      status: 200,
+      summary: 'Could not save',
+      description: 'The title is too long.',
+      isWarning: true,
+      isTransient: false,
+      payload: { field: 'title' }
+    });
+  });
+
+  it('still applies the DOM operations of an error response', () => {
+    document.body.innerHTML = '<p class="status"></p>';
+
+    errorOf(xhr =>
+      xhr.respond(
+        200,
+        asyncResponse({
+          error: 1,
+          errorSummary: 'Invalid',
+          domops: [['setContent', '.status', false, { __html: 'Too long' }]]
+        })
+      )
+    );
+
+    expect(document.querySelector('.status').innerHTML).toBe('Too long');
+  });
+
+  it.each([
+    [500, true],
+    [503, true],
+    [429, true],
+    [404, false]
+  ])('describes HTTP status %i (transient: %s)', (status, isTransient) => {
+    const error = errorOf(xhr => xhr.respond(status, 'Error'));
+
+    expect(error).toMatchObject({
+      type: ERROR_TYPE.HTTP,
+      code: status,
+      status,
+      summary: 'Request failed',
+      description: `The server responded with status ${status}.`,
+      isTransient
+    });
+  });
+
+  it('describes a response that is not a BigPipe response', () => {
+    vi.useFakeTimers();
+
+    const error = errorOf(xhr => xhr.respond(200, '<html>Fatal error</html>'));
+
+    expect(error).toMatchObject({ type: ERROR_TYPE.INVALID_RESPONSE, summary: 'Invalid response' });
+    expect(() => vi.runAllTimers()).toThrow(/Failed to handle response/);
+  });
+
+  it('describes a network error as transient', () => {
+    const error = errorOf(xhr => {
+      xhr.status = 0;
+      xhr.fail();
+    });
+
+    expect(error).toMatchObject({ type: ERROR_TYPE.NETWORK, status: 0, isTransient: true });
+  });
+
+  it('tells when the browser is offline', () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+    const error = errorOf(xhr => xhr.fail());
+
+    expect(error.summary).toBe('No network connection');
+    vi.restoreAllMocks();
+  });
+});
+
+describe('status element', () => {
+  let button;
+
+  beforeEach(() => {
+    document.body.innerHTML = '<button>Save</button>';
+    button = document.querySelector('button');
+  });
+
+  it.each([
+    ['a response', xhr => xhr.respond(200, asyncResponse({}))],
+    ['an error status', xhr => xhr.respond(500, 'Error')],
+    ['a network error', xhr => xhr.fail()],
+    ['an abort', xhr => xhr.abort()]
+  ])('has the status class until %s', (_, finish) => {
+    new AsyncRequest('/save').setStatusElement(button).send();
+    expect(button.className).toBe('async-saving');
+
+    finish(requests[0]);
+    expect(button.className).toBe('');
+  });
+
+  it('uses a custom status class', () => {
+    new AsyncRequest('/save').setStatusElement(button).setStatusClass('is-loading').send();
+    expect(button.className).toBe('is-loading');
+
+    requests[0].respond(200, asyncResponse({}));
+    expect(button.className).toBe('');
+  });
+
+  it('removes the status class when the handler throws', () => {
+    new AsyncRequest('/save')
+      .setStatusElement(button)
+      .setHandler(() => {
+        throw new Error('handler failed');
+      })
+      .send();
+
+    expect(() => requests[0].respond(200, asyncResponse({}))).toThrow('handler failed');
+    expect(button.className).toBe('');
+  });
+});
+
+describe('upload progress', () => {
+  it('passes the upload progress events to the handler', () => {
+    const progress = vi.fn();
+
+    new AsyncRequest('/upload').setData(new FormData()).setUploadProgressHandler(progress).send();
+    const event = { loaded: 512, total: 1024 };
+    requests[0].upload.onprogress(event);
+
+    expect(progress).toHaveBeenCalledWith(event);
+  });
+
+  it('does not listen to upload events without a handler', () => {
+    new AsyncRequest('/save').send();
+
+    expect(requests[0].upload.onprogress).toBeUndefined();
+  });
+});
+
+describe('transport error handler', () => {
+  function sendWithBoth() {
+    const errorHandler = vi.fn();
+    const transportErrorHandler = vi.fn();
+
+    new AsyncRequest('/save')
+      .setErrorHandler(errorHandler)
+      .setTransportErrorHandler(transportErrorHandler)
+      .send();
+
+    return { errorHandler, transportErrorHandler };
+  }
+
+  it.each([
+    ['http', xhr => xhr.respond(500, 'Error')],
+    ['invalid_response', xhr => xhr.respond(200, '<html>Fatal error</html>')],
+    ['network', xhr => xhr.fail()]
+  ])('handles %s errors instead of the error handler', (type, fail) => {
+    vi.useFakeTimers();
+    const { errorHandler, transportErrorHandler } = sendWithBoth();
+
+    fail(requests[0]);
+
+    expect(transportErrorHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type })
+    );
+    expect(errorHandler).not.toHaveBeenCalled();
+    vi.clearAllTimers();
+  });
+
+  it('handles timeouts without a timeout handler', () => {
+    vi.useFakeTimers();
+    const transportErrorHandler = vi.fn();
+
+    new AsyncRequest('/slow')
+      .setTransportErrorHandler(transportErrorHandler)
+      .setTimeoutHandler(1000)
+      .send();
+    vi.advanceTimersByTime(1000);
+
+    expect(transportErrorHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.TIMEOUT })
+    );
+  });
+
+  it('leaves the errors the server sent to the error handler', () => {
+    const { errorHandler, transportErrorHandler } = sendWithBoth();
+
+    requests[0].respond(200, asyncResponse({ error: 1, errorSummary: 'Invalid' }));
+
+    expect(errorHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.SERVER })
+    );
+    expect(transportErrorHandler).not.toHaveBeenCalled();
+  });
+});
+
+describe('timeout', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  it('aborts the request and calls the timeout handler', () => {
+    const h = handlers();
+    const timeoutHandler = vi.fn();
+
+    send(new AsyncRequest('/slow').setTimeoutHandler(1000, timeoutHandler), h);
+    vi.advanceTimersByTime(999);
+    expect(requests[0].aborted).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(requests[0].aborted).toBe(true);
+    expect(timeoutHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.TIMEOUT, isTransient: true })
+    );
+    expect(h.error).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
+  it('calls the error handler without a timeout handler', () => {
+    const h = handlers();
+
+    send(new AsyncRequest('/slow').setTimeoutHandler(1000), h);
+    vi.advanceTimersByTime(1000);
+
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.TIMEOUT, summary: 'Request timed out' })
+    );
+  });
+
+  it('does not fire after the response', () => {
+    const h = handlers();
+
+    send(new AsyncRequest('/fast').setTimeoutHandler(1000), h);
+    requests[0].respond(200, asyncResponse({}));
+    vi.advanceTimersByTime(1000);
+
+    expect(requests[0].aborted).toBe(false);
+    expect(h.error).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
+  it('is not an error when the request is aborted on purpose', () => {
+    const h = handlers();
+
+    const request = new AsyncRequest('/slow').setTimeoutHandler(1000);
+    send(request, h);
+    request.abort();
+    vi.advanceTimersByTime(1000);
+
+    expect(h.error).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+});
+
+describe('default error handler', () => {
+  afterEach(() => {
+    AsyncRequest.setDefaultErrorHandler(null);
+  });
+
+  it('handles the errors of requests without an error handler', () => {
+    const defaultHandler = vi.fn();
+    AsyncRequest.setDefaultErrorHandler(defaultHandler);
+
+    new AsyncRequest('/save').send();
+    requests[0].respond(500, 'Error');
+
+    expect(defaultHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.HTTP })
+    );
+  });
+
+  it('is replaced by the error handler of the request', () => {
+    const defaultHandler = vi.fn();
+    const ownHandler = vi.fn();
+    AsyncRequest.setDefaultErrorHandler(defaultHandler);
+
+    new AsyncRequest('/save').setErrorHandler(ownHandler).send();
+    requests[0].respond(500, 'Error');
+
+    expect(ownHandler).toHaveBeenCalledOnce();
+    expect(defaultHandler).not.toHaveBeenCalled();
+  });
+
+  it('is not called for successful requests', () => {
+    const defaultHandler = vi.fn();
+    AsyncRequest.setDefaultErrorHandler(defaultHandler);
+
+    new AsyncRequest('/save').send();
+    requests[0].respond(200, asyncResponse({}));
+
+    expect(defaultHandler).not.toHaveBeenCalled();
   });
 });
 

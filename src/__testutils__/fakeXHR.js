@@ -13,6 +13,7 @@ export function installFakeXHR() {
     constructor() {
       this.headers = {};
       this.aborted = false;
+      this.upload = {};
       requests.push(this);
     }
 

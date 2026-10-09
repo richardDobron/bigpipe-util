@@ -39,6 +39,65 @@ function appendQueryString(uri, query) {
   return path + separator + query + (hash !== undefined ? '#' + hash : '');
 }
 
+export const ERROR_TYPE = Object.freeze({
+  // The server sent an error, see AsyncResponse::setError() in the PHP library.
+  SERVER: 'server',
+  // The server answered with an HTTP error status.
+  HTTP: 'http',
+  // The response is not a BigPipe response.
+  INVALID_RESPONSE: 'invalid_response',
+  // There is no response at all, e.g. the browser is offline.
+  NETWORK: 'network',
+  // There was no response in time, see setTimeoutHandler().
+  TIMEOUT: 'timeout'
+});
+
+function createError(type, transport, fields) {
+  return {
+    type,
+    code: null,
+    status: transport.status,
+    summary: '',
+    description: '',
+    isWarning: false,
+    isTransient: false,
+    payload: null,
+    ...fields
+  };
+}
+
+function createServerError(transport, response) {
+  return createError(ERROR_TYPE.SERVER, transport, {
+    code: response.error,
+    summary: response.errorSummary || '',
+    description: response.errorDescription || '',
+    isWarning: Boolean(response.errorIsWarning),
+    isTransient: Boolean(response.isTransient),
+    payload: response.payload === undefined ? null : response.payload
+  });
+}
+
+function createHttpError(transport) {
+  const { status } = transport;
+
+  return createError(ERROR_TYPE.HTTP, transport, {
+    code: status,
+    summary: 'Request failed',
+    description: `The server responded with status ${status}.`,
+    isTransient: status >= 500 || status === 429
+  });
+}
+
+function createNetworkError(transport) {
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+  return createError(ERROR_TYPE.NETWORK, transport, {
+    summary: offline ? 'No network connection' : 'Network error',
+    description: 'Check your internet connection and try again.',
+    isTransient: true
+  });
+}
+
 function reportError(error) {
   setTimeout(() => {
     throw error;
@@ -56,7 +115,19 @@ function validateResponseHandler(handler) {
   return valid;
 }
 
+let defaultErrorHandler = null;
+
 export default class AsyncRequest {
+  /**
+   * Handles the errors of requests that have no error handler, e.g. shows them in a dialog.
+   * Pass null to remove it.
+   */
+  static setDefaultErrorHandler(fn) {
+    if (fn === null || validateResponseHandler(fn)) {
+      defaultErrorHandler = fn;
+    }
+  }
+
   constructor(uri) {
     this.method = 'POST';
     this.uri = '';
@@ -66,7 +137,13 @@ export default class AsyncRequest {
     this.initialHandler = emptyFunction;
     this.handler = null;
     this.finallyHandler = emptyFunction;
-    this.errorHandler = emptyFunction;
+    this.errorHandler = null;
+    this.statusElement = null;
+    this.statusClass = 'async-saving';
+    this.timeout = 0;
+    this.timeoutHandler = null;
+    this.transportErrorHandler = null;
+    this.uploadProgressHandler = null;
 
     if (uri !== undefined) {
       this.setURI(uri);
@@ -151,7 +228,33 @@ export default class AsyncRequest {
   }
 
   getErrorHandler() {
-    return this.errorHandler || emptyFunction;
+    return this.errorHandler || defaultErrorHandler || emptyFunction;
+  }
+
+  /**
+   * Handles the failures without a BigPipe response (`http`, `invalid_response`, `network` and
+   * `timeout` errors), e.g. to offer to try again. The error handler handles them without it.
+   */
+  setTransportErrorHandler(fn) {
+    if (validateResponseHandler(fn)) {
+      this.transportErrorHandler = fn;
+    }
+    return this;
+  }
+
+  getTransportErrorHandler() {
+    return this.transportErrorHandler || this.getErrorHandler();
+  }
+
+  /**
+   * Called with the `ProgressEvent` of the upload (`loaded` and `total` bytes) while the data is
+   * sent, e.g. to show the progress of a file upload.
+   */
+  setUploadProgressHandler(fn) {
+    if (validateResponseHandler(fn)) {
+      this.uploadProgressHandler = fn;
+    }
+    return this;
   }
 
   abort() {
@@ -160,6 +263,36 @@ export default class AsyncRequest {
     if (transport) {
       transport.abort();
     }
+  }
+
+  /**
+   * The element gets the status class while the request is running, e.g. to show a spinner or to
+   * disable a button.
+   */
+  setStatusElement(element) {
+    this.statusElement = element;
+    return this;
+  }
+
+  getStatusElement() {
+    return this.statusElement;
+  }
+
+  setStatusClass(className) {
+    this.statusClass = className;
+    return this;
+  }
+
+  /**
+   * Aborts the request when it takes longer than `timeout` milliseconds, and calls `handler`, or
+   * the transport error handler when there is none, with a `timeout` error.
+   */
+  setTimeoutHandler(timeout, handler = null) {
+    if (validateResponseHandler(handler)) {
+      this.timeout = timeout;
+      this.timeoutHandler = handler;
+    }
+    return this;
   }
 
   _unshieldResponseText(text) {
@@ -179,10 +312,27 @@ export default class AsyncRequest {
 
     const handler = this.getHandler();
     const errorHandler = this.getErrorHandler();
+    const transportErrorHandler = this.getTransportErrorHandler();
     const initialHandler = this.getInitialHandler();
     const finallyHandler = this.getFinallyHandler();
+    const { statusElement, statusClass, timeout } = this;
+    const timeoutHandler = this.timeoutHandler || transportErrorHandler;
+    let timer = null;
+    let timedOut = false;
+
+    function finish(transport) {
+      clearTimeout(timer);
+      if (statusElement) {
+        statusElement.classList.remove(statusClass);
+      }
+      finallyHandler(transport);
+    }
 
     initialHandler();
+
+    if (statusElement) {
+      statusElement.classList.add(statusClass);
+    }
 
     incrementRequests();
 
@@ -208,6 +358,12 @@ export default class AsyncRequest {
 
     request.open(method, uri, true);
 
+    // Listening to upload events must start before send(), see XMLHttpRequest.upload.
+    if (this.uploadProgressHandler && request.upload) {
+      const uploadProgressHandler = this.uploadProgressHandler;
+      request.upload.onprogress = event => uploadProgressHandler(event);
+    }
+
     request.onload = function () {
       try {
         if (this.status >= 200 && this.status < 400) {
@@ -216,21 +372,32 @@ export default class AsyncRequest {
             const safeJson = self._unshieldResponseText(this.responseText);
             response = JSON.parse(safeJson);
           } catch (e) {
-            errorHandler(this);
+            transportErrorHandler(
+              this,
+              createError(ERROR_TYPE.INVALID_RESPONSE, this, {
+                summary: 'Invalid response',
+                description: e.message
+              })
+            );
             reportError(
               new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
             );
             return;
           }
 
+          // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
           new AsyncResponse().handle(response, self.relative);
 
-          handler(response);
+          if (response.error) {
+            errorHandler(this, createServerError(this, response));
+          } else {
+            handler(response);
+          }
         } else {
-          errorHandler(this);
+          transportErrorHandler(this, createHttpError(this));
         }
       } finally {
-        finallyHandler(this);
+        finish(this);
       }
     };
 
@@ -245,15 +412,38 @@ export default class AsyncRequest {
     });
 
     request.onerror = function () {
-      errorHandler(this);
-      finallyHandler(this);
+      try {
+        transportErrorHandler(this, createNetworkError(this));
+      } finally {
+        finish(this);
+      }
     };
 
     request.onabort = function () {
-      finallyHandler(this);
+      try {
+        if (timedOut) {
+          timeoutHandler(
+            this,
+            createError(ERROR_TYPE.TIMEOUT, this, {
+              summary: 'Request timed out',
+              description: 'The server did not respond in time. Try again.',
+              isTransient: true
+            })
+          );
+        }
+      } finally {
+        finish(this);
+      }
     };
 
     request.send(data);
+
+    if (timeout > 0) {
+      timer = setTimeout(() => {
+        timedOut = true;
+        request.abort();
+      }, timeout);
+    }
 
     return request;
   }

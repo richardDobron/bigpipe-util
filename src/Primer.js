@@ -35,42 +35,15 @@ export default function Primer() {
       return;
     }
 
-    switch (relationship) {
-      case 'async':
-      case 'async-post':
-        event.preventDefault();
+    if (relationship) {
+      event.preventDefault();
 
-        new AsyncRequest(ajaxHref)
-          .setRelative(linkNodeOnClicked)
-          .setInitialHandler(() => {
-            linkNodeOnClicked.classList.add('async-saving');
-          })
-          .setHandler(() => {
-            linkNodeOnClicked.classList.remove('async-saving');
-          })
-          .setErrorHandler(() => {
-            linkNodeOnClicked.classList.remove('async-saving');
-          })
-          .setMethod(relationship === 'async-post' ? 'POST' : 'GET')
-          .send();
-        break;
-      case 'dialog':
-        event.preventDefault();
-
-        new AsyncRequest(linkNodeOnClicked.getAttribute('ajaxify'))
-          .setRelative(linkNodeOnClicked)
-          .setInitialHandler(() => {
-            linkNodeOnClicked.classList.add('async-saving');
-          })
-          .setHandler(() => {
-            linkNodeOnClicked.classList.remove('async-saving');
-          })
-          .setErrorHandler(() => {
-            linkNodeOnClicked.classList.remove('async-saving');
-          })
-          .setMethod('POST')
-          .send();
-        break;
+      // No error handler: errors go to the default one, see AsyncRequest.setDefaultErrorHandler().
+      new AsyncRequest(ajaxHref)
+        .setRelative(linkNodeOnClicked)
+        .setStatusElement(linkNodeOnClicked)
+        .setMethod(relationship === 'async' ? 'GET' : 'POST')
+        .send();
     }
   });
 
@@ -99,9 +72,8 @@ export default function Primer() {
         .setMethod(eventTarget.method || 'POST')
         .setRelative(eventTarget)
         .setData(formData)
+        .setStatusElement(eventTarget)
         .setInitialHandler(function () {
-          eventTarget.classList.add('async-saving');
-
           if (!eventTarget.classList.contains('disable-prevent-form')) {
             activeControls.forEach(function (control) {
               control.setAttribute('readonly', 'readonly');
@@ -120,28 +92,7 @@ export default function Primer() {
             }
           }
         })
-        .setHandler(function () {
-          eventTarget.classList.remove('async-saving');
-
-          activeControls.forEach(function (control) {
-            control.removeAttribute('readonly');
-          });
-
-          if (submitter) {
-            submitter.disabled = false;
-          }
-
-          if (eventTarget) {
-            const loader = eventTarget.querySelector('.form-loader');
-
-            if (loader) {
-              loader.classList.remove('loading');
-            }
-          }
-        })
-        .setErrorHandler(function () {
-          eventTarget.classList.remove('async-saving');
-
+        .setFinallyHandler(function () {
           activeControls.forEach(function (control) {
             control.removeAttribute('readonly');
           });

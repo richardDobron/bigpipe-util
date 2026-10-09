@@ -60,6 +60,11 @@ ignored, which prevents double submits. Use it to show a spinner:
 }
 ```
 
+## Errors
+
+The requests of links and forms have no error handler of their own, so their errors go to the
+[default error handler](async_request.md#default-error-handler), e.g. to show them in a dialog.
+
 ## Relative targets
 
 The link or form becomes the relative element of the request. DOM operations with an empty selector target it,

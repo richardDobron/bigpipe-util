@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import Primer from '../Primer';
+import AsyncRequest from '../async/AsyncRequest';
 import { asyncResponse, installFakeXHR } from '../__testutils__/fakeXHR';
 
 let requests;
@@ -76,6 +77,20 @@ describe('links', () => {
     expect(link.classList.contains('async-saving')).toBe(false);
     expect(() => vi.runAllTimers()).toThrow(/Failed to handle response/);
   });
+
+  it('passes errors to the default error handler', () => {
+    const defaultHandler = vi.fn();
+    AsyncRequest.setDefaultErrorHandler(defaultHandler);
+
+    click(document.getElementById('post'));
+    requests[0].respond(200, asyncResponse({ error: 1, errorSummary: 'Not allowed' }));
+
+    expect(defaultHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ summary: 'Not allowed' })
+    );
+    AsyncRequest.setDefaultErrorHandler(null);
+  });
 });
 
 describe('forms', () => {
@@ -115,7 +130,8 @@ describe('forms', () => {
   it.each([
     ['a valid response', xhr => xhr.respond(200, asyncResponse({}))],
     ['an error status', xhr => xhr.respond(500, '')],
-    ['a network error', xhr => xhr.fail()]
+    ['a network error', xhr => xhr.fail()],
+    ['an abort', xhr => xhr.abort()]
   ])('locks the form while the request is running and unlocks it after %s', (_, finish) => {
     const input = form.querySelector('input');
     const button = form.querySelector('button');
