@@ -49,7 +49,8 @@ Each operation is an array `[type, selector, targetRelative, content]`:
 - `content`: HTML wrapped in the `__html` [transport marker](server_js.md#transport-markers), or JavaScript code
   for `eval`, which runs with `this` bound to the element.
 
-Operations whose selector matches nothing are skipped. With `__DEV__` defined and truthy, an error is logged to the
+Operations whose selector matches nothing are skipped. With `__DEV__` defined and truthy (see
+[Getting started](getting_started.md#optional-debug-messages)), an error is logged to the
 console.
 
 ## AsyncResponse

@@ -9,7 +9,9 @@ at the end of the page, the modules required while rendering it:
 
 ```php
 <script>
-    (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    document.addEventListener('DOMContentLoaded', function () {
+        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    });
 </script>
 ```
 
@@ -26,7 +28,8 @@ at the end of the page, the modules required while rendering it:
 }
 ```
 
-The module is loaded with `window.require(module)`, see [Getting started](getting_started.md#2-set-up-the-entrypoint).
+The module is resolved by the loader set with `setModuleLoader()`, see
+[Getting started](getting_started.md#2-set-up-the-entrypoint).
 
 - Without a method, the module is called as a constructor with the arguments: `new UserLoggedInAlert('Marvin')`.
 - With a method, a class is instantiated without arguments and the method is called with them:
@@ -51,7 +54,7 @@ called:
 | Marker    | Replaced with                                      | PHP                                   |
 |-----------|----------------------------------------------------|---------------------------------------|
 | `__e`     | The element with this `id`.                        | `TransportMarker::transportElement()` |
-| `__m`     | The module loaded with `window.require()`.         | `TransportMarker::transportModule()`  |
+| `__m`     | The module, resolved the same way as `require`.    | `TransportMarker::transportModule()`  |
 | `__map`   | A `Map` created from the list of `[key, value]`.   | `TransportMarker::transportMap()`     |
 | `__set`   | A `Set` created from the list of values.           | `TransportMarker::transportSet()`     |
 | `__html`  | Used for the HTML content of DOM operations.       | `TransportMarker::transportHtml()`    |

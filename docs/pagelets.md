@@ -21,6 +21,12 @@ The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library
 });
 ```
 
+Like the inline script of [ServerJS](server_js.md), it needs `require` to exist. When the entrypoint is loaded as
+`<script type="module">` (Vite), it runs after the page is parsed. Use `<script type="module">` for the inline
+scripts as well: they run in document order after the entrypoint, and the pagelets are displayed once the page has
+been parsed instead of while it streams. With a classic `<script src>` (webpack) the entrypoint, placed before the
+pagelets, makes them display progressively.
+
 ## Lifecycle
 
 1. **Arrive.** The CSS files of the pagelet start loading. Files shared by more pagelets are loaded once.

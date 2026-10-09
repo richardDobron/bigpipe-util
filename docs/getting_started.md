@@ -11,7 +11,9 @@ the [response format](how_it_works.md) works.
 
 ## Requirements
 
-- A bundler that supports dynamic `require()` with an expression, such as [webpack](https://webpack.js.org/).
+- A bundler, such as [webpack](https://webpack.js.org/) or [Vite](https://vite.dev/). `bigpipe-util` ships both
+  ES modules and CommonJS and doesn't depend on a specific bundler. Loading your own modules by name is up to your
+  application, see [step 2](#2-set-up-the-entrypoint).
 - A backend that answers with BigPipe responses, e.g. `richarddobron/bigpipe` for PHP 8.0+.
 
 ## 1. Install the package
@@ -22,34 +24,96 @@ npm install bigpipe-util
 
 ## 2. Set up the entrypoint
 
-In your entrypoint (e.g. `resources/js/app.js`), start the [Primer](primer.md) and define `window.require`. BigPipe
-calls it to load the modules that the server refers to by name:
+In your entrypoint (e.g. `resources/js/app.js`), start the [Primer](primer.md) and tell BigPipe how to load your
+modules. The server refers to them by name, e.g. `require('UserLoggedInAlert')`, and BigPipe calls the loader to
+get the module. The loader has to return the module itself (its default export) synchronously.
+
+**webpack**
 
 ```javascript title="resources/js/app.js"
 import Primer from 'bigpipe-util/dist/Primer';
+import { setModuleLoader } from 'bigpipe-util/dist/ModuleRegistry';
 
 Primer();
 
-window.require = (modulePath) => {
-  return modulePath.startsWith('bigpipe-util/')
-    ? require('bigpipe-util/dist/' + modulePath.replace(/^bigpipe-util\/(src|dist)\//, '') + '.js').default
-    : require('./' + modulePath).default;
-};
+setModuleLoader(modulePath => require('./' + modulePath).default);
 ```
 
-- Module names that start with `bigpipe-util/` are loaded from this package. The server may refer to them as
-  `bigpipe-util/src/...`, which is mapped to the published `dist` folder.
-- Any other name is loaded relative to the entrypoint, so `require('UserLoggedInAlert')` on the server loads
-  `resources/js/UserLoggedInAlert.js`.
+**Vite**
+
+```javascript title="resources/js/app.js"
+import Primer from 'bigpipe-util/dist/Primer';
+import { setModuleLoader } from 'bigpipe-util/dist/ModuleRegistry';
+
+Primer();
+
+// Eager, because modules are called synchronously. The entrypoint itself is excluded.
+const modules = import.meta.glob(['./**/*.js', '!./app.js'], { eager: true });
+
+setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
+```
+
+- Any name is loaded relative to the entrypoint, so `require('UserLoggedInAlert')` on the server loads
+  `resources/js/UserLoggedInAlert.js`. Names can contain folders, e.g. `Admin/Panel`.
+- A loader that returns nothing for a name makes BigPipe throw `module "..." was not found`.
+- Modules of this package are resolved automatically. The server may refer to them as `bigpipe-util/src/...` (or
+  `bigpipe-util/dist/...`); you don't need to handle them in the loader.
+- `setModuleLoader()` also defines `window.require`, which the inline script in the next step uses. Pass
+  `{ global: false }` as the second argument to prevent it.
+- Single modules can be registered under an exact name with `registerModules({ Name: module })`. They win over the
+  loader.
+
+### Vite: the `events` module
+
+[Dialogs](dialog.md) use `modal-vanilla`, which imports the Node.js module `events`. Vite doesn't polyfill Node.js
+modules for the browser, so loading fails with `Class extends value [object Object] is not a constructor or null`.
+Install the npm package of the same name and point the import to it (the trailing slash selects the package instead of
+the Node.js module):
+
+```shell
+npm install events
+```
+
+```javascript title="vite.config.js"
+export default defineConfig({
+  resolve: { alias: { events: 'events/' } }
+});
+```
+
+Restart Vite with `--force` to rebuild its dependency cache. webpack 5 picks the `events` package up on its own when
+it's installed.
+
+### Upgrading from `window.require`
+
+Defining `window.require` yourself still works when no loader is set, so existing setups don't have to change. The
+loader above replaces the `bigpipe-util/` branch of the old function: you only write the part for your own modules.
 
 ## 3. Handle the modules of the first page load
 
-At the end of the page, pass the modules required during the page render to [ServerJS](server_js.md):
+At the end of the page, pass the modules required during the page render to [ServerJS](server_js.md). Wait for
+`DOMContentLoaded`:
 
 ```php title="layout.php"
 <script>
-    (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    document.addEventListener('DOMContentLoaded', function () {
+        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
+    });
 </script>
+```
+
+Vite adds your entrypoint as `<script type="module">`, and module scripts are deferred: they run after the HTML is
+parsed, so an inline script at the end of the page would run before `window.require` exists. Module scripts run
+before `DOMContentLoaded`, so this works with every bundler.
+
+## Optional: debug messages
+
+Some warnings (e.g. a DOM operation that matches nothing) are logged only when `__DEV__` is defined and truthy. In
+webpack define it with `DefinePlugin`, in Vite with `define`:
+
+```javascript title="vite.config.js"
+export default defineConfig({
+  define: { __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production') }
+});
 ```
 
 ## 4. Write your first module
