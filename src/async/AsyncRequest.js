@@ -1,4 +1,5 @@
 import emptyFunction from '../core/emptyFunction';
+import requireModule, { isModuleDefined } from '../core/requireModule';
 import warning from '../core/warning';
 import AsyncResponse from './AsyncResponse';
 
@@ -102,6 +103,34 @@ function reportError(error) {
   setTimeout(() => {
     throw error;
   }, 0);
+}
+
+export const CSRF_TOKEN_MODULE = 'CSRFToken';
+
+const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+function isSameOrigin(uri) {
+  try {
+    return new URL(uri, window.location.href).origin === window.location.origin;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getCSRFToken(method, uri) {
+  if (SAFE_METHODS.includes(method) || !isModuleDefined(CSRF_TOKEN_MODULE)) {
+    return null;
+  }
+
+  if (!isSameOrigin(uri)) {
+    return null;
+  }
+
+  return requireModule(CSRF_TOKEN_MODULE);
+}
+
+function hasHeader(headers, name) {
+  return Object.keys(headers).some(header => header.toLowerCase() === name.toLowerCase());
 }
 
 function validateResponseHandler(handler) {
@@ -336,11 +365,15 @@ export default class AsyncRequest {
 
     incrementRequests();
 
+    const csrf = getCSRFToken(method, uri);
+    const csrfParam = csrf && csrf.param ? { [csrf.param]: csrf.token } : {};
+
     if (data instanceof FormData) {
       data = copyFormData(data);
+      Object.keys(csrfParam).forEach(name => data.append(name, csrfParam[name]));
       data.append('__req', requests);
     } else {
-      data = serialize({ ...data, __req: requests });
+      data = serialize({ ...data, ...csrfParam, __req: requests });
     }
 
     if (['GET', 'HEAD'].includes(method)) {
@@ -405,6 +438,10 @@ export default class AsyncRequest {
 
     if (typeof data === 'string' && method === 'POST') {
       request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    }
+
+    if (csrf && csrf.header && !hasHeader(this.headers, csrf.header)) {
+      request.setRequestHeader(csrf.header, csrf.token);
     }
 
     Object.keys(this.headers).forEach(name => {

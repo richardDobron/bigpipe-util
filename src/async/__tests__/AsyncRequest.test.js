@@ -58,6 +58,7 @@ describe('request data', () => {
     expect(xhr.body).toMatch(/^user%5Bname%5D=Jo%20%26%20Co&__req=\d+$/);
     expect(xhr.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
     expect(xhr.headers['X-Requested-With']).toBe('XMLHttpRequest');
+    expect(Object.keys(xhr.headers)).toHaveLength(2);
   });
 
   it('does not modify the data object', () => {

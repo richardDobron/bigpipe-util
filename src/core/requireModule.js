@@ -36,6 +36,10 @@ export function defineModule(name, create) {
   defined.set(name, lazy(create));
 }
 
+export function isModuleDefined(name) {
+  return registered.has(name) || defined.has(name);
+}
+
 function resolve(entry, kind, name) {
   if (!entry.created) {
     invariant(!entry.creating, 'BigPipe: %s "%s" requires itself.', kind, name);

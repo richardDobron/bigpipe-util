@@ -101,7 +101,19 @@ AsyncRequest.setDefaultErrorHandler((xhr, error) => {
 
 ## CSRF tokens
 
-Add the token to every request, e.g. in Laravel:
+When the server defines the `CSRFToken` module, e.g. with `BigPipe::setCSRFToken()` in PHP, every request that can
+change data (not `GET`, `HEAD` or `OPTIONS`) sends the token, but only to URLs of the same origin:
+
+```json
+{
+  "define": [["CSRFToken", {"token": "...", "header": "X-CSRF-TOKEN", "param": null}]]
+}
+```
+
+- `header`: the request header with the token, unless the request sets this header itself.
+- `param`: the field of the data with the token.
+
+A later response that defines the module again replaces the token. Without the module, add the token yourself:
 
 ```javascript
 const token = document.querySelector('meta[name=csrf-token]').getAttribute('content');
