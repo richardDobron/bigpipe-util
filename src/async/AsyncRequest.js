@@ -13,12 +13,20 @@ export function incrementRequests() {
 function serialize(obj, prefix) {
   const str = [];
   for (const p in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, p)) {
-      const k = prefix ? prefix + '[' + p + ']' : p,
-        v = obj[p];
-      str.push(
-        typeof v == 'object' ? serialize(v, k) : encodeURIComponent(k) + '=' + encodeURIComponent(v)
-      );
+    if (!Object.prototype.hasOwnProperty.call(obj, p) || obj[p] === undefined) {
+      continue;
+    }
+
+    const k = prefix ? prefix + '[' + p + ']' : p;
+    const v = obj[p];
+
+    if (v !== null && typeof v === 'object') {
+      const nested = serialize(v, k);
+      if (nested) {
+        str.push(nested);
+      }
+    } else {
+      str.push(encodeURIComponent(k) + '=' + encodeURIComponent(v === null ? '' : v));
     }
   }
   return str.join('&');

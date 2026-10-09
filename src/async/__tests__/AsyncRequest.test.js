@@ -61,6 +61,16 @@ describe('request data', () => {
     expect(Object.keys(xhr.headers)).toHaveLength(2);
   });
 
+  it('sends null as an empty value and leaves out undefined values and empty arrays', () => {
+    new AsyncRequest('/save')
+      .setData({ a: 1, b: null, c: undefined, d: [], e: { f: null, g: {} }, h: [1, 2] })
+      .send();
+
+    expect(decodeURIComponent(requests[0].body)).toMatch(
+      /^a=1&b=&e\[f\]=&h\[0\]=1&h\[1\]=2&__req=\d+$/
+    );
+  });
+
   it('does not modify the data object', () => {
     const data = { id: 1 };
 

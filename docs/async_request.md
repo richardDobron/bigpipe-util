@@ -30,7 +30,7 @@ All setters return the request, so they can be chained.
 |-----------------------------------|--------------------------------------------------------------------------------------|
 | `setURI(uri)`                     | The URL to call. It can also be passed to the constructor.                           |
 | `setMethod(method)`               | The HTTP method, `POST` by default.                                                  |
-| `setData(data)`                   | An object (sent URL-encoded, nested objects as `a[b]=c`) or a `FormData`.            |
+| `setData(data)`                   | An object (sent URL-encoded, nested objects as `a[b]=c`, `null` as an empty value, `undefined` and empty arrays left out) or a `FormData`. |
 | `setRequestHeader(name, value)`   | Adds a request header.                                                               |
 | `setRelative(element)`            | The element that sent the request, see [relative targets](primer.md#relative-targets). |
 | `setStatusElement(element)`      | The element gets the status class while the request is running.                      |
