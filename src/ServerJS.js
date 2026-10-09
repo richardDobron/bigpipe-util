@@ -1,5 +1,6 @@
+import invariant from './core/invariant';
 import replaceTransportMarkers from './core/replaceTransportMarkers';
-import requireModule from './core/requireModule';
+import requireModule, { defineInstance } from './core/requireModule';
 
 function handler(dependencies, guard, context) {
   return dependencies.map(function (args) {
@@ -13,7 +14,26 @@ export default class ServerJS {
   }
 
   handle(jsMods) {
+    handler(jsMods.instances || [], this._handleInstance, this);
     handler(jsMods.require || [], this._handleRequire, this);
+  }
+
+  _handleInstance(id, modulePath, marker) {
+    defineInstance(id, () => {
+      if (marker) {
+        replaceTransportMarkers(this._relativeTo, marker);
+      }
+
+      const Constructor = requireModule(modulePath);
+      invariant(
+        typeof Constructor === 'function',
+        'BigPipe: instance "%s" needs a class, module "%s" is not one.',
+        id,
+        modulePath
+      );
+
+      return new Constructor(...(marker || []));
+    });
   }
 
   _handleRequire(modulePath, method, marker) {
@@ -35,7 +55,11 @@ export default class ServerJS {
         replaceTransportMarkers(this._relativeTo, marker);
       }
 
-      new (requireModule(modulePath))(...(marker || []));
+      const factory = requireModule(modulePath);
+
+      if (typeof factory === 'function') {
+        new factory(...(marker || []));
+      }
     }
   }
 }

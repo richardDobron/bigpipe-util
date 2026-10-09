@@ -32,6 +32,7 @@ The module is resolved by the loader set with `setModuleLoader()`, see
 [Getting started](getting_started.md#2-set-up-the-entrypoint).
 
 - Without a method, the module is called as a constructor with the arguments: `new UserLoggedInAlert('Marvin')`.
+  An [instance](#instances) is only created, if it was not yet.
 - With a method, a class is instantiated without arguments and the method is called with them:
   `new ChartRenderer().render(element, [10, 20, 30])`. A module that exports an object has the method called on
   the object directly.
@@ -44,6 +45,37 @@ $response->bigPipe()->require("require('ChartRenderer').render()", [
     \dobron\BigPipe\TransportMarker::transportElement('chart'),
     [10, 20, 30],
 ]);
+```
+
+## Instances
+
+A call with a method creates a new object of a class every time. To keep one object and talk to it from more calls,
+the server defines an instance in `jsmods.instances`, a list of `[id, module, args]`:
+
+```json
+{
+  "instances": [["__inst_u_0_1", "ChartRenderer", [{"__e": "chart"}, [10, 20, 30]]]],
+  "require": [
+    ["__inst_u_0_1", "render"],
+    ["Dashboard", "add", [{"__m": "__inst_u_0_1"}]]
+  ]
+}
+```
+
+The instance is created with `new ChartRenderer(element, [10, 20, 30])` the first time something requires it, by its
+id in `require` or in a `__m` [transport marker](#transport-markers), and every later use gets the same object, also
+in the following responses.
+
+In PHP:
+
+```php
+$chart = $response->bigPipe()->instance('ChartRenderer', [
+    \dobron\BigPipe\TransportMarker::transportElement('chart'),
+    [10, 20, 30],
+]);
+
+$chart->call('render');
+$response->bigPipe()->require("require('Dashboard').add()", [$chart]);
 ```
 
 ## Transport markers

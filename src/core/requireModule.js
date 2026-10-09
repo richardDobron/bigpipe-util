@@ -4,6 +4,7 @@ const BUILTIN_PREFIX = /^bigpipe-util\/(?:(?:src|dist)\/)?/;
 
 const registered = new Map();
 const builtins = new Map();
+const instances = new Map();
 let loader = null;
 
 export function setModuleLoader(fn) {
@@ -21,9 +22,35 @@ export function registerBuiltins(modules) {
   Object.keys(modules).forEach(name => builtins.set(name, modules[name]));
 }
 
+export function defineInstance(id, create) {
+  invariant(!instances.has(id), 'BigPipe: instance "%s" is already defined.', id);
+  instances.set(id, { create, creating: false, created: false, value: undefined });
+}
+
+function resolveInstance(id) {
+  const instance = instances.get(id);
+
+  if (!instance.created) {
+    invariant(!instance.creating, 'BigPipe: instance "%s" requires itself.', id);
+    instance.creating = true;
+    try {
+      instance.value = instance.create();
+      instance.created = true;
+    } finally {
+      instance.creating = false;
+    }
+  }
+
+  return instance.value;
+}
+
 export default function requireModule(name) {
   if (registered.has(name)) {
     return registered.get(name);
+  }
+
+  if (instances.has(name)) {
+    return resolveInstance(name);
   }
 
   if (BUILTIN_PREFIX.test(name)) {
