@@ -1,4 +1,5 @@
 import replaceTransportMarkers from './core/replaceTransportMarkers';
+import requireModule from './core/requireModule';
 
 function handler(dependencies, guard, context) {
   return dependencies.map(function (args) {
@@ -21,7 +22,7 @@ export default class ServerJS {
         replaceTransportMarkers(this._relativeTo, marker);
       }
 
-      const factory = window.require(modulePath);
+      const factory = requireModule(modulePath);
       const context = typeof factory === 'function' ? new factory() : factory;
 
       if (!context[method]) {
@@ -34,7 +35,7 @@ export default class ServerJS {
         replaceTransportMarkers(this._relativeTo, marker);
       }
 
-      new (window.require(modulePath))(...(marker || []));
+      new (requireModule(modulePath))(...(marker || []));
     }
   }
 }

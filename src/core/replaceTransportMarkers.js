@@ -1,4 +1,5 @@
 import $ from './$';
+import requireModule from './requireModule';
 
 export default function replaceTransportMarkers(markerValue, markers, key) {
   const marker = typeof key !== 'undefined' ? markers[key] : markers;
@@ -10,7 +11,7 @@ export default function replaceTransportMarkers(markerValue, markers, key) {
   } else {
     if (marker && typeof marker == 'object') {
       if (marker.__m) {
-        markers[key] = window.require(marker.__m);
+        markers[key] = requireModule(marker.__m);
       } else if (marker.__e) {
         markers[key] = $(marker.__e);
       } else if (marker.__map) {

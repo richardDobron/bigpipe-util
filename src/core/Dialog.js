@@ -1,5 +1,6 @@
 import Modal from 'modal-vanilla/lib/modal';
 import DOM from './DOM';
+import requireModule from './requireModule';
 
 const DEFAULT_Z_INDEX = 1040;
 
@@ -98,7 +99,7 @@ export default class Dialog {
 
     if (controller) {
       if (typeof controller === 'string') {
-        new (window.require(controller))(_modal, ...args);
+        new (requireModule(controller))(_modal, ...args);
       } else if (typeof controller === 'function') {
         controller(_modal, ...args);
       }
