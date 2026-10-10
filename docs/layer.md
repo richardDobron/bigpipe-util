@@ -73,3 +73,24 @@ class LogOnShow {
   }
 }
 ```
+
+## Hiding
+
+The `hide()` of a layer takes the source of the request, one of `HideSources` (`blur`, `escape`, `transition`), which
+`beforehide` and `starthide` get as their data.
+
+| Behavior           | Does                                                                                              |
+|--------------------|---------------------------------------------------------------------------------------------------|
+| `HideOnEscape`     | Hides the topmost layer when <kbd>Esc</kbd> is pressed, and handles the key.                       |
+| `HideOnBlur`       | Hides the layer on a click outside of it. Layers below stay open.                                  |
+| `HideOnTransition` | Hides the layer before a [page transition](page_transitions.md). Override `isTransitionRelevant({ from, to })` to hide only for some. |
+| `DestroyOnHide`    | Destroys the layer after it was hidden.                                                            |
+| `RemoveOnHide`     | Removes the root from the page when the layer is hidden. `show()` puts it back.                    |
+
+```javascript
+import Layer from 'bigpipe-util/dist/core/layer/Layer';
+import HideOnBlur from 'bigpipe-util/dist/core/layer/HideOnBlur';
+import HideOnEscape from 'bigpipe-util/dist/core/layer/HideOnEscape';
+
+new Layer(menuElement, { behaviors: [HideOnBlur, HideOnEscape] }).show();
+```
