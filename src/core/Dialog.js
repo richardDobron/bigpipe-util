@@ -58,9 +58,9 @@ export default class Dialog {
   close(limit = -1) {
     let modals;
     if (limit > -1) {
-      modals = stack.slice(-limit);
+      modals = stack.slice(Math.max(stack.length - limit, 0));
     } else {
-      modals = stack;
+      modals = stack.slice();
     }
     modals.forEach(dialog => dialog.hide());
   }

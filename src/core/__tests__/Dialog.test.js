@@ -92,6 +92,24 @@ describe('events', () => {
     vi.runAllTimers();
     expect(lower.layer.isShown()).toBe(false);
   });
+
+  it('closes the last dialogs with close(limit), and none with close(0)', () => {
+    const lower = open();
+    const middle = open();
+    const upper = open();
+
+    dialog.close(0);
+    vi.runAllTimers();
+    expect([lower, middle, upper].map(m => m.layer.isShown())).toEqual([true, true, true]);
+
+    dialog.close(2);
+    vi.runAllTimers();
+    expect([lower, middle, upper].map(m => m.layer.isShown())).toEqual([true, false, false]);
+
+    dialog.close(5);
+    vi.runAllTimers();
+    expect(lower.layer.isShown()).toBe(false);
+  });
 });
 
 describe('layer', () => {
