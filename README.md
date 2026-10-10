@@ -1,17 +1,21 @@
 <img src="bigpipe.svg" alt="BigPipe logo">
 
-The JavaScript runtime of BigPipe, a microframework for PHP and JavaScript. It sends requests, applies the DOM operations a server responds with, shows the pagelets of a page as they arrive and calls JavaScript modules the server asks for. The server side is [richarddobron/bigpipe](https://github.com/richardDobron/bigpipe-php) for PHP, but any backend that speaks the [response format](docs/how_it_works.md) works.
-
+The JavaScript runtime of BigPipe, a microframework for PHP and JavaScript. It sends requests, applies the DOM operations a server responds with, shows the pagelets of a page as they arrive, loads the next page into the layout and calls the JavaScript modules the server asks for. The server side is [richarddobron/bigpipe](https://github.com/richardDobron/bigpipe-php) for PHP, but any backend that speaks the [response format](docs/how_it_works.md) works.
 
 ## 👀 Demo App
-Try the app with [live demo](http://bigpipe.xf.cz).
+Try the app with [live demo](http://bigpipe.etexweb.sk). It is a Laravel 13 application, [installed from the PHP repository](https://github.com/richardDobron/bigpipe-php/tree/main/demo-app), with:
+
+- **Tutorials**: a working example of every feature, each with its code and a panel that shows what the server sent back.
+- **A demo app**: a blog, a shop, a dashboard of streamed pagelets, notifications and a profile, with every page a page transition.
 
 ## 📕 Full documentation
 https://richarddobron.github.io/bigpipe-php/
 
+The pages of this package are in [docs](docs): [getting started](docs/getting_started.md), [how it works](docs/how_it_works.md) and one page for every part, listed [below](#-what-is-inside).
+
 ## ℹ️ Requirements
-* A bundler: [webpack](https://webpack.js.org/), [Vite](https://vite.dev/) or similar
-* A backend that answers with BigPipe responses, e.g. `richarddobron/bigpipe` for PHP 8.0 or higher
+* A bundler: [webpack](https://webpack.js.org/), [Vite](https://vite.dev/) or similar. The package ships ES modules and CommonJS.
+* A backend that answers with BigPipe responses, e.g. `richarddobron/bigpipe` for PHP 8.0 or higher.
 
 ## 📦 Installation
 Follow these steps to install and set up:
@@ -58,7 +62,7 @@ setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
 ```html
 <?= \dobron\BigPipe\BigPipe::render() ?>
 ```
-It prints the script that sends the pagelets and the modules of the page to the browser, so load the entrypoint with a classic `<script src>` before it. With a deferred `<script type="module">` entrypoint, hand the modules to [ServerJS](docs/server_js.md) once `DOMContentLoaded` fires, see the [getting started guide](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
+It prints the script that sends the pagelets and the modules of the page to the browser, so load the entrypoint with a classic `<script src>` before it. With a `<script type="module">` entrypoint, as Vite adds it, call `BigPipe::setScriptType('module')` so the script runs after it. See the [getting started guide](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
 
 ## 🚀 Quick start
 
@@ -80,16 +84,40 @@ $response->call('UserLoggedInAlert', null, ['Marvin']);
 $response->send();
 ```
 
+Make a link or a form asynchronous with the [Primer](docs/primer.md), and answer with DOM operations:
+
+```html
+<a href="/items/123/remove" ajaxify="/ajax/remove.php?id=123" rel="async">Remove</a>
+```
+
+```php
+$response = new \dobron\BigPipe\AsyncResponse();
+
+$response->remove('#item-' . (int) $_GET['id']);
+$response->send();
+```
+
 ## 🧩 What is inside
 
-* [Primer](docs/primer.md): makes links and forms with `rel` asynchronous.
-* [AsyncRequest](docs/async_request.md): requests with handlers, errors, retries, `abandon()` and streamed responses.
-* [Pagelets](docs/pagelets.md): independent parts of a page, displayed as they arrive, loaded on demand with `UIPagelet` and `MorePagerFetchOnScroll`.
+**Requests and responses**
+* [Primer](docs/primer.md): makes links and forms with `rel` asynchronous, with the progress of file uploads, and can load `AsyncRequest` on demand.
+* [AsyncRequest](docs/async_request.md): requests with handlers, structured errors, timeouts, retries, `abandon()`, streamed responses, a `success` event and a CSRF token that is refreshed when it expires.
+* [How it works](docs/how_it_works.md): the response format, DOM operations and `AsyncResponse`.
+* [ServerJS](docs/server_js.md): calls the modules of a response, keeps instances and defined modules, transport markers.
+* [DOM](docs/dom.md) (with morphing) and [Arbiter](docs/arbiter.md), a small event system with states.
+
+**Pages**
+* [Pagelets](docs/pagelets.md): independent parts of a page, displayed as they arrive, in phases, with lifecycle events, timings and a time to interactive (`tti_bigpipe`); loaded on demand with `UIPagelet` and `MorePagerFetchOnScroll`.
 * [Page transitions](docs/page_transitions.md): load the next page into the layout instead of in full.
-* [Bootloader](docs/bootloader.md): loads CSS and JavaScript once, and modules only when they are called.
-* [ServerJS](docs/server_js.md): calls the modules of a response, keeps instances and defined modules.
+* [Bootloader](docs/bootloader.md): loads CSS and JavaScript once, and modules only when they are called, with `ifRequired`, `requireDeferred` and `requireCond`.
 * [Poller](docs/poller.md): requests a URL again and again, controlled by the server.
-* [Dialogs](docs/dialog.md), [DOM](docs/dom.md) (with morphing), [Arbiter](docs/arbiter.md) and [utilities](docs/utilities.md).
+* [Run](docs/run.md): `onLoad`, `onAfterLoad`, `onBeforeUnload`, `onLeave`, `onUnload` and `onCleanupOrLeave`, for full page loads and page transitions alike.
+
+**User interface**
+* [Layer](docs/layer.md): a base for everything that floats, with behaviors (hide on <kbd>Esc</kbd>, outside click and page transition, focus handling, fades) and `ModalLayer` and `ContextualLayer`. It sets no class names, so Bootstrap, Tailwind or your own CSS work.
+* [Dialogs](docs/dialog.md): Bootstrap-compatible dialogs that are layers, with their events kept.
+* [Form](docs/form.md) and [FormMonitor](docs/form_monitor.md): read a form the way PHP does, and warn before unsaved changes are lost.
+* [Utilities](docs/utilities.md): `onVisible`, `TimerStorage`, `DataStore`, `Cookie`, `WebStorage`, `KeyEventController` and more.
 
 ## 🛜 Request API
 
@@ -102,6 +130,7 @@ const request = (new AsyncRequest('/ajax/remove.php'))
   .setData({
     param: 'value',
   })
+  .setOption('retries', 2)
   .setInitialHandler(() => {
       // pre-request callback function
   })
@@ -119,6 +148,43 @@ const request = (new AsyncRequest('/ajax/remove.php'))
 if (OH_NOES_WE_NEED_TO_CANCEL_RIGHT_NOW_OR_ELSE) {
   request.abort();
 }
+```
+
+## 🧱 Building blocks
+
+A floating menu that hides on a click outside, on <kbd>Esc</kbd> and before a page transition:
+
+```javascript
+import ContextualLayer from 'bigpipe-util/dist/core/layer/ContextualLayer';
+import HideOnBlur from 'bigpipe-util/dist/core/layer/HideOnBlur';
+import HideOnEscape from 'bigpipe-util/dist/core/layer/HideOnEscape';
+import HideOnTransition from 'bigpipe-util/dist/core/layer/HideOnTransition';
+
+new ContextualLayer(menu, {
+  context: button,
+  position: 'below',
+  behaviors: [HideOnBlur, HideOnEscape, HideOnTransition],
+}).show();
+```
+
+Run code when the page is left, however it is left, and ask before unsaved work is lost:
+
+```javascript
+import Run from 'bigpipe-util/dist/core/Run';
+import FormMonitor from 'bigpipe-util/dist/core/FormMonitor';
+
+Run.onLeave(() => socket.close());
+new FormMonitor(document.getElementById('post-form'), { message: 'Leave without saving?' });
+```
+
+Call a module only if it is loaded already, or get a reference to one that loads later:
+
+```javascript
+import ifRequired from 'bigpipe-util/dist/core/ifRequired';
+import requireDeferred from 'bigpipe-util/dist/core/requireDeferred';
+
+ifRequired('Editor', Editor => Editor.save());
+requireDeferred('Editor').onReady(Editor => Editor.open());
 ```
 
 # ⚡️ What all can be Ajaxifed?
@@ -139,6 +205,8 @@ if (OH_NOES_WE_NEED_TO_CANCEL_RIGHT_NOW_OR_ELSE) {
     <input type="submit" name="Done">
 </form>
 ```
+
+A form with a chosen file is uploaded in the background, and reports its progress as an `uploadprogress` event, to `<progress>` elements inside it and as the CSS variable `--upload-progress`.
 
 ## 💬 Dialogs
 ```html
@@ -175,6 +243,13 @@ workflow then tests, builds and publishes it to npm; `dist` is built on publish 
 ## 🤝 Contributing
 
 We welcome contributions! If you'd like to help improve this project, feel free to open an issue or submit a pull request.
+
+```shell
+npm install
+npm test        # vitest
+npm run lint
+npm run build   # CommonJS in dist, ES modules in dist/esm
+```
 
 ## 📜 License
 
