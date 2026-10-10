@@ -48,7 +48,8 @@ relative to) and its pagelets are loaded like on a page. Only the response of th
 
 ## Leaving a page
 
-A page that is left runs its leave hooks and its timers are cleared:
+A page that is left runs its leave hooks, its timers are cleared, and its requests in flight are abandoned unless they
+were sent with `setAllowCrossPageTransition(true)`, see [AsyncRequest](async_request.md):
 
 ```javascript
 import PageTransitions from 'bigpipe-util/dist/PageTransitions';

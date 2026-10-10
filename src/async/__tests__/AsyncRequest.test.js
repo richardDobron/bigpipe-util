@@ -655,3 +655,24 @@ describe('abandon', () => {
     expect(button.classList.contains('async-saving')).toBe(false);
   });
 });
+
+describe('page transitions', () => {
+  it('abandons the requests of the page, unless they may outlive it', async () => {
+    const { default: Arbiter } = await import('../../core/Arbiter');
+    const page = handlers();
+    const crossing = handlers();
+
+    send(new AsyncRequest('/page'), page);
+    send(new AsyncRequest('/crossing').setAllowCrossPageTransition(true), crossing);
+
+    new Arbiter().inform('page_transition', { uri: new URL('/next', window.location.href) });
+
+    expect(requests[0].aborted).toBe(true);
+    expect(requests[1].aborted).toBe(false);
+    expect(page.finally).toHaveBeenCalledOnce();
+
+    requests[1].respond(200, asyncResponse({ payload: 'ok' }));
+    expect(crossing.success).toHaveBeenCalledOnce();
+    expect(page.success).not.toHaveBeenCalled();
+  });
+});

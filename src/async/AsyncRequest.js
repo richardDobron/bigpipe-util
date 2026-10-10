@@ -1,3 +1,4 @@
+import Arbiter from '../core/Arbiter';
 import emptyFunction from '../core/emptyFunction';
 import reportError from '../core/reportError';
 import requireModule, { isModuleDefined } from '../core/requireModule';
@@ -5,6 +6,17 @@ import warning from '../core/warning';
 import AsyncResponse from './AsyncResponse';
 
 let requests = 0;
+
+// The requests in flight. A page transition abandons the ones that must not outlive their page.
+const pending = new Set();
+
+new Arbiter().subscribe('page_transition', () => {
+  Array.from(pending).forEach(request => {
+    if (!request.getAllowCrossPageTransition()) {
+      request.abandon();
+    }
+  });
+});
 
 export function incrementRequests() {
   return requests++;
@@ -189,6 +201,7 @@ export default class AsyncRequest {
     this.uploadProgressHandler = null;
     this.options = { retries: 0 };
     this.abandoned = false;
+    this.allowCrossPageTransition = false;
 
     if (uri !== undefined) {
       this.setURI(uri);
@@ -331,6 +344,19 @@ export default class AsyncRequest {
   }
 
   /**
+   * A request is abandoned when the page is left with a page transition, see PageTransitions,
+   * unless it is allowed to outlive the page, e.g. a request of the next page.
+   */
+  setAllowCrossPageTransition(allow) {
+    this.allowCrossPageTransition = Boolean(allow);
+    return this;
+  }
+
+  getAllowCrossPageTransition() {
+    return this.allowCrossPageTransition;
+  }
+
+  /**
    * Sets an option of the request: `retries`, how many times a request that failed with a network
    * error is sent again (0 by default).
    */
@@ -404,15 +430,17 @@ export default class AsyncRequest {
     let timer = null;
     let timedOut = false;
 
-    function finish(transport) {
+    const finish = transport => {
+      pending.delete(this);
       clearTimeout(timer);
       if (statusElement) {
         statusElement.classList.remove(statusClass);
       }
       finallyHandler(transport);
-    }
+    };
 
     initialHandler();
+    pending.add(this);
 
     if (statusElement) {
       statusElement.classList.add(statusClass);

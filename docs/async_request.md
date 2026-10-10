@@ -39,9 +39,14 @@ All setters return the request, so they can be chained.
 | `abort()`                         | Aborts the request.                                                                  |
 | `abandon()`                       | Aborts the request without calling its handlers, except the finally handler.         |
 | `setOption(name, value)`          | Sets an option, see [retries](#retries).                                             |
+| `setAllowCrossPageTransition(allow)` | Lets the request outlive its page, see below.                                    |
 
 Every request is sent with the `X-Requested-With: XMLHttpRequest` header and a `__req` parameter with a counter of
 the requests made from the page.
+
+A [page transition](page_transitions.md) abandons the requests of the page it leaves, so their responses never reach
+the next page. A request that must outlive its page, e.g. one that saves something in the background, calls
+`setAllowCrossPageTransition(true)`.
 
 ## Handlers
 

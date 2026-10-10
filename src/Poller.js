@@ -150,7 +150,9 @@ export default class Poller {
       return this.done();
     }
 
-    const request = new AsyncRequest();
+    const request = new AsyncRequest().setAllowCrossPageTransition(
+      !this.config.clearOnQuicklingEvents
+    );
     let canceled = false;
 
     const { uri, method, data, id } = this.config;

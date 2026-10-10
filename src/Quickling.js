@@ -140,6 +140,7 @@ function transitionHandler(uri) {
     .setMethod('GET')
     .setData({ quickling: { version: config.version } })
     .setRelative(canvas)
+    .setAllowCrossPageTransition(true)
     .setPreResponseHandler(response => onFirstResponse(request, uri.href, response))
     .setHandler(onResponse)
     .setErrorHandler(fullLoad)

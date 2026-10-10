@@ -154,6 +154,21 @@ describe('Quickling', () => {
     expect(document.title).toBe('Second');
   });
 
+  it('drops the requests of the page it leaves', async () => {
+    const { default: AsyncRequest } = await import('../async/AsyncRequest');
+    const handler = vi.fn();
+    new AsyncRequest('/home/more').setHandler(handler).send();
+    Quickling.init(canvas, {});
+
+    PageTransitions.go('/feed');
+
+    expect(requests[0].aborted).toBe(true);
+    expect(requests[1].aborted).toBe(false);
+    requests[1].respond(200, feedResponse({ version: undefined }));
+    expect(document.title).toBe('Feed');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('loads the page in full when the request fails', () => {
     Quickling.init(canvas, {});
     PageTransitions.go('/feed');
