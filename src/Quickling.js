@@ -3,6 +3,7 @@ import PageTransitions, { DELAY_HISTORY } from './PageTransitions';
 import AsyncRequest from './async/AsyncRequest';
 import Arbiter from './core/Arbiter';
 import DOM from './core/DOM';
+import DocumentTitle from './core/DocumentTitle';
 import goOrReplace from './core/goOrReplace';
 import { clearAll as clearAllTimers } from './core/TimerStorage';
 
@@ -83,7 +84,7 @@ function onFirstResponse(request, uri, response) {
   new Arbiter().inform(QUICKLING_EVENT.FIRST_RESPONSE, { uri });
 
   if (typeof payload.title === 'string') {
-    document.title = payload.title;
+    DocumentTitle.set(payload.title);
   }
   document.body.className = payload.body_class || '';
   window.scrollTo(0, 0);

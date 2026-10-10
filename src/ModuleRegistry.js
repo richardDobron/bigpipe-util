@@ -4,13 +4,18 @@ import AsyncResponse from './async/AsyncResponse';
 import $ from './core/$';
 import Arbiter from './core/Arbiter';
 import Dialog from './core/Dialog';
+import Cookie from './core/Cookie';
+import DataStore from './core/DataStore';
 import DOM from './core/DOM';
+import DocumentTitle from './core/DocumentTitle';
+import KeyEventController from './core/KeyEventController';
 import onAfterLoad from './core/onAfterLoad';
 import ReloadPage from './core/ReloadPage';
 import ServerRedirect from './core/ServerRedirect';
 import TimerStorage from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
 import Visibility from './core/Visibility';
+import WebStorage from './core/WebStorage';
 import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
 import Bootloader, { requireLazy } from './Bootloader';
@@ -35,13 +40,18 @@ registerBuiltins({
   'core/$': $,
   'core/Arbiter': Arbiter,
   'core/Dialog': Dialog,
+  'core/Cookie': Cookie,
+  'core/DataStore': DataStore,
   'core/DOM': DOM,
+  'core/DocumentTitle': DocumentTitle,
+  'core/KeyEventController': KeyEventController,
   'core/onAfterLoad': onAfterLoad,
   'core/ReloadPage': ReloadPage,
   'core/ServerRedirect': ServerRedirect,
   'core/TimerStorage': TimerStorage,
   'core/UserActivity': UserActivity,
   'core/Visibility': Visibility,
+  'core/WebStorage': WebStorage,
   'core/waitForLoad': waitForLoad,
   BigPipe,
   Bootloader,
