@@ -5,6 +5,7 @@ import Arbiter from './core/Arbiter';
 import { find } from './core/Parent';
 import onAfterLoad from './core/onAfterLoad';
 import performanceNow from './core/performanceNow';
+import reportError from './core/reportError';
 
 export { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE };
 
@@ -33,7 +34,18 @@ export default class BigPipe {
     new Arbiter().informState(event, { ts: performanceNow() });
   }
 
+  /**
+   * Starts a pagelet. A pagelet that fails to arrive is reported and does not stop the page.
+   */
   onPageletArrive(pageletData) {
+    try {
+      this.arrive(pageletData);
+    } catch (error) {
+      reportError(error);
+    }
+  }
+
+  arrive(pageletData) {
     if (pageletData.resource_map) {
       Bootloader.setResourceMap(pageletData.resource_map);
     }

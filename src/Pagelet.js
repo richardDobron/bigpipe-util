@@ -55,6 +55,7 @@ export default class Pagelet {
     this.prefetchRsrcs = pageletData.prefetchRsrcs || [];
     this.prefetchJsmods = pageletData.prefetchJsmods;
     this.root = null;
+    this.error = null;
     this.destroyed = false;
     this.cssLoaded = false;
     this.jsStarted = false;
@@ -238,12 +239,26 @@ export default class Pagelet {
     this.setContent();
   }
 
+  /**
+   * Reports an error of the pagelet and informs `pagelet/error`, e.g. to show an error state in
+   * it. The page goes on: the pagelet still counts as displayed and runs its modules.
+   */
+  fail(error) {
+    this.error = error;
+    reportError(error);
+    new Arbiter().inform('pagelet/error', { id: this.id, error });
+  }
+
   setContent() {
     this.setPhase(PAGELET_PHASE.DISPLAY_START);
     this.inform(PAGELET_EVENT.DISPLAY_START);
 
     if (this.domops) {
-      asyncDOM.invoke(this.domops);
+      try {
+        asyncDOM.invoke(this.domops);
+      } catch (error) {
+        this.fail(error);
+      }
     }
 
     this.root = document.getElementById('pagelet_' + this.id);

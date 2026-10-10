@@ -165,3 +165,19 @@ export default class Feed {
 
 `getPageletForNode()` finds the pagelet an element is in, by its root element `#pagelet_<id>`. `getRoot()` returns
 the root of a displayed pagelet, and `removePagelet(pagelet)` destroys a pagelet.
+
+## Errors
+
+A failing pagelet does not stop the page. A pagelet that fails to arrive is reported, and the next pagelets arrive as
+usual. When the DOM operations of a pagelet fail, the error is reported, `pagelet/error` is informed through
+[Arbiter](arbiter.md) with its `id` and the `error`, and the pagelet still counts as displayed: its modules run and the
+JS of the page loads. Every module call is isolated too, see [ServerJS](server_js.md).
+
+```javascript
+new Arbiter().subscribe('pagelet/error', ({ id }) => {
+  document.getElementById('pagelet_' + id).classList.add('pagelet-failed');
+});
+```
+
+Errors are reported with `reportError()`: they are thrown asynchronously, so they reach `window.onerror` and the error
+tracking of the page without stopping BigPipe.
