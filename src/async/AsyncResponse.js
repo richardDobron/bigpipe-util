@@ -10,12 +10,14 @@ export default class AsyncResponse {
     const { domops, pagelets, jsmods } = response;
 
     if (typeof response === 'object') {
+      const bigPipe = new BigPipe();
+
       if (domops) {
         _AsyncDOM.invoke(domops, element);
+        bigPipe.destroyDetachedPagelets();
       }
 
       if (pagelets) {
-        const bigPipe = new BigPipe();
         pagelets.forEach(pagelet => bigPipe.onPageletArrive(pagelet));
       }
 

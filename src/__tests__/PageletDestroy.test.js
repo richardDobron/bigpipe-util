@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let bigPipe;
 let Arbiter;
+let AsyncResponse;
 
 // BigPipe is a singleton: every test gets fresh modules so pagelets do not leak between tests.
 beforeEach(async () => {
   vi.resetModules();
   const { default: BigPipe } = await import('../BigPipe');
   ({ default: Arbiter } = await import('../core/Arbiter'));
+  ({ default: AsyncResponse } = await import('../async/AsyncResponse'));
   bigPipe = new BigPipe();
 
   window.require = () => ({ init() {} });
@@ -87,6 +89,27 @@ describe('pagelet destructors', () => {
 
     expect(destructor).toHaveBeenCalledOnce();
     expect(bigPipe.pagelets.has('comments')).toBe(false);
+  });
+
+  it('destroys the pagelets whose root a response removed', () => {
+    const feed = arrive('feed', '<div id="pagelet_comments"></div>', false);
+    const comments = arrive('comments', 'comments', false);
+    const sidebar = arrive('sidebar');
+    const destructor = vi.fn();
+    comments.addDestructor(destructor);
+
+    new AsyncResponse().handle({
+      domops: [
+        ['setContent', '#pagelet_feed', false, { __html: 'refreshed' }],
+        ['remove', '#pagelet_sidebar', false, null]
+      ]
+    });
+
+    expect(destructor).toHaveBeenCalledOnce();
+    expect(bigPipe.pagelets.get('feed')).toBe(feed);
+    expect(bigPipe.pagelets.has('comments')).toBe(false);
+    expect(sidebar.destroyed).toBe(true);
+    expect(bigPipe.pagelets.has('sidebar')).toBe(false);
   });
 
   it('finds the pagelet of a node', () => {

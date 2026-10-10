@@ -46,6 +46,18 @@ export default class BigPipe {
     pagelet.destroy();
   }
 
+  /**
+   * Destroys the pagelets whose root is no longer on the page, e.g. replaced by a response.
+   */
+  destroyDetachedPagelets() {
+    Array.from(this.pagelets.values()).forEach(pagelet => {
+      const root = pagelet.getRoot();
+      if (root && !root.isConnected) {
+        this.removePagelet(pagelet);
+      }
+    });
+  }
+
   destroyPageletsInside(parent) {
     const root = parent.getRoot();
     if (!root) {

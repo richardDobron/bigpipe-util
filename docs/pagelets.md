@@ -81,7 +81,7 @@ link with the one of the next page, or removes it. `remove()` stops waiting.
 ## Destroying pagelets
 
 Like the `PageletSet` of Facebook, a pagelet is destroyed when a pagelet with the same id replaces it, e.g. when the
-server refreshes it. Destroying a pagelet destroys the pagelets inside it, runs its destructors, informs
+server refreshes it, or when the DOM operations of a response remove its root element. Destroying a pagelet destroys the pagelets inside it, runs its destructors, informs
 `pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root element.
 
 A module stops what it started for a pagelet in a destructor, e.g. a subscription or a timer:
