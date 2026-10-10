@@ -94,7 +94,7 @@ function onPreResponse(request, uri, response) {
   window.scrollTo(0, 0);
 
   clearCanvas();
-  new Arbiter().clearState(BIGPIPE_EVENT.DISPLAYED);
+  new Arbiter().clearState(BIGPIPE_EVENT.DISPLAYED).clearState(BIGPIPE_EVENT.LOADED);
   new BigPipe().resetTti();
 
   return true;

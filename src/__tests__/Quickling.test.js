@@ -141,6 +141,28 @@ describe('Quickling', () => {
     expect(complete).toHaveBeenCalledOnce();
   });
 
+  it('forgets that the pagelets of the previous page were displayed and loaded', async () => {
+    const { default: Arbiter } = await import('../core/Arbiter');
+    new BigPipe().inform('all_pagelets_displayed');
+    new BigPipe().inform('all_pagelets_loaded');
+    Quickling.init(canvas, { version: 'v1' });
+    PageTransitions.go('/feed');
+
+    requests[0].respond(
+      200,
+      asyncResponse({
+        payload: { title: 'Feed', version: 'v1' },
+        domops: [['setContent', '', true, { __html: '<div id="pagelet_feed"></div>' }]]
+      })
+    );
+    const informed = vi.fn();
+    new Arbiter().subscribe('all_pagelets_displayed', informed);
+    new Arbiter().subscribe('all_pagelets_loaded', informed);
+
+    expect(document.title).toBe('Feed');
+    expect(informed).not.toHaveBeenCalled();
+  });
+
   it('loads a page of another version in full', () => {
     Quickling.init(canvas, { version: 'v1' });
     PageTransitions.go('/feed');
