@@ -3,108 +3,261 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+Object.defineProperty(exports, "PAGELET_EVENT", {
+  enumerable: true,
+  get: function () {
+    return _BigPipePhases.PAGELET_EVENT;
+  }
+});
 Object.defineProperty(exports, "PAGELET_PHASE", {
   enumerable: true,
   get: function () {
-    return _BigPipe.PAGELET_PHASE;
+    return _BigPipePhases.PAGELET_PHASE;
   }
 });
 exports.default = void 0;
-var _BigPipe = _interopRequireWildcard(require("./BigPipe"));
+var _BigPipePhases = require("./BigPipePhases");
+var _Bootloader = _interopRequireDefault(require("./Bootloader"));
 var _ServerJS = _interopRequireDefault(require("./ServerJS"));
 var _AsyncDOM = _interopRequireDefault(require("./async/AsyncDOM"));
+var _Arbiter = _interopRequireDefault(require("./core/Arbiter"));
+var _DOM = _interopRequireDefault(require("./core/DOM"));
+var _invariant = _interopRequireDefault(require("./core/invariant"));
+var _performanceNow = _interopRequireDefault(require("./core/performanceNow"));
+var _reportError = _interopRequireDefault(require("./core/reportError"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
-function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (const t in e) "default" !== t && {}.hasOwnProperty.call(e, t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, t)) && (i.get || i.set) ? o(f, t, i) : f[t] = e[t]); return f; })(e, t); }
 const serverJS = new _ServerJS.default();
 const asyncDOM = new _AsyncDOM.default();
-const bigPipe = new _BigPipe.default();
-function areAllResourcesLoaded(resources) {
-  if (resources.size === 0) {
-    return true;
-  }
-  return Array.from(resources.values()).every(resource => resource.phase === _BigPipe.RESOURCE_PHASE.LOADED);
+function loadResources(groups, callback) {
+  let pending = groups.length;
+  groups.forEach(([names, type]) => _Bootloader.default.loadResources(names || [], () => {
+    pending -= 1;
+    if (pending === 0) {
+      callback();
+    }
+  }, type));
 }
 class Pagelet {
-  cssResources = new Map();
-  jsResources = new Map();
-  id = '';
-  phase = _BigPipe.PAGELET_PHASE.ARRIVE_START;
-  constructor(pageletData) {
+  constructor(pageletData, bigPipe) {
+    (0, _invariant.default)(bigPipe, 'Pagelet "%s" has to be created by BigPipe.onPageletArrive().', pageletData.id);
     this.bigPipe = bigPipe;
     this.id = pageletData.id;
-    this.phase = _BigPipe.PAGELET_PHASE.ARRIVE_START;
+    this.phase = _BigPipePhases.PAGELET_PHASE.ARRIVE_START;
     this.domops = pageletData.domops;
     this.jsmods = pageletData.jsmods;
+    this.onload = pageletData.onload;
+    this.onafterload = pageletData.onafterload;
+    this.displayPhase = pageletData.phase || 0;
+    this.displayDependency = pageletData.display_dependency || [];
     this.css = pageletData.css;
     this.js = pageletData.js;
-    this.cssResources = new Map();
-    this.jsResources = new Map();
+    this.displayResources = pageletData.displayResources || [];
+    this.allResources = pageletData.allResources || [];
+    this.jsNonBlock = Boolean(pageletData.jsNonBlock);
+    this.prefetchRsrcs = pageletData.prefetchRsrcs || [];
+    this.prefetchJsmods = pageletData.prefetchJsmods;
+    this.root = null;
+    this.error = null;
+    this.destroyed = false;
+    this.cssLoaded = false;
+    this.jsStarted = false;
+    this.jsPrefetched = false;
+    this.timings = {};
+    this.destructors = [() => new _Arbiter.default().inform('pagelet/destroy', {
+      id: this.id,
+      root: this.root
+    })];
+  }
+
+  /**
+   * The root element of the pagelet, `#pagelet_<id>`, once the pagelet is displayed.
+   */
+  getRoot() {
+    return this.root;
+  }
+
+  /**
+   * Runs `destructor` when the pagelet is destroyed: when a pagelet with the same id replaces it,
+   * or a response removes its root. Use it to stop what a module started for the pagelet.
+   */
+  addDestructor(destructor) {
+    if (this.destroyed) {
+      destructor();
+      return;
+    }
+    this.destructors.push(destructor);
+  }
+  destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
+    this.bigPipe.destroyPageletsInside(this);
+    this.destructors.splice(0).forEach(destructor => {
+      try {
+        destructor();
+      } catch (error) {
+        (0, _reportError.default)(error);
+      }
+    });
+    if (this.root) {
+      _DOM.default.empty(this.root);
+    }
   }
   isComplete() {
-    return this.phase === _BigPipe.PAGELET_PHASE.ARRIVE_END;
+    return this.phase === _BigPipePhases.PAGELET_PHASE.ARRIVE_END;
   }
   setPhase(phase) {
     this.phase = phase;
   }
   start() {
-    if (this.phase !== _BigPipe.PAGELET_PHASE.ARRIVE_START) {
+    if (this.phase !== _BigPipePhases.PAGELET_PHASE.ARRIVE_START) {
       return;
     }
-    if (this.css.length > 0) {
-      this.css.forEach(cssFile => {
-        const cssResource = this.bigPipe.pageletResourceFactory(cssFile, 'css');
-        this.attachCssResource(cssResource);
-      });
-    }
-    if (this.js.length > 0) {
-      this.js.forEach(jsFile => {
-        const jsResource = this.bigPipe.pageletResourceFactory(jsFile, 'js');
-        this.attachJsResource(jsResource);
-      });
-    }
-    if (this.cssResources.size > 0) {
-      this.setPhase(_BigPipe.PAGELET_PHASE.LOADING_CSS);
-      this.cssResources.forEach(resource => {
-        resource.startLoading();
-      });
-    } else {
-      this.setContent();
-      this.onJsFinished();
-    }
+    this.inform(_BigPipePhases.PAGELET_EVENT.ARRIVE);
+    this.prefetch();
+    this.setPhase(_BigPipePhases.PAGELET_PHASE.LOADING_CSS);
+    this.inform(_BigPipePhases.PAGELET_EVENT.CSS);
+    loadResources([[this.css, 'css'], [this.displayResources]], () => this.onCssFinished());
   }
-  attachCssResource(resource) {
-    resource.attachToPagelet(() => this.onCssFinished(resource));
-    this.cssResources.set(resource.file, resource);
+
+  /**
+   * Loads the `prefetchRsrcs` of the pagelet when it arrives and then handles its `prefetchJsmods`,
+   * e.g. for what the user is likely to need next.
+   */
+  prefetch() {
+    if (this.prefetchRsrcs.length === 0 && !this.prefetchJsmods) {
+      return;
+    }
+    _Bootloader.default.loadResources(this.prefetchRsrcs, () => {
+      if (!this.destroyed && this.prefetchJsmods) {
+        serverJS.handle(this.prefetchJsmods);
+      }
+    });
   }
-  attachJsResource(resource) {
-    resource.attachToPagelet(() => this.onJsFinished());
-    this.jsResources.set(resource.file, resource);
+
+  /**
+   * Records the time of a lifecycle event in `timings` and informs `pagelet_event` with it.
+   */
+  inform(event) {
+    const ts = (0, _performanceNow.default)();
+    this.timings[event] = ts;
+    if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+      performance.mark(`pagelet_${this.id}_${event}`);
+    }
+    new _Arbiter.default().inform('pagelet_event', {
+      event,
+      id: this.id,
+      ts
+    });
+  }
+
+  /**
+   * Loads the JS files of the pagelet: BigPipe calls it when every pagelet is displayed, or the
+   * pagelet itself once it is displayed with `jsNonBlock`.
+   */
+  startJs() {
+    if (this.destroyed || this.phase !== _BigPipePhases.PAGELET_PHASE.DISPLAY_END || this.jsStarted) {
+      return;
+    }
+    this.jsStarted = true;
+    this.inform(_BigPipePhases.PAGELET_EVENT.JS_START);
+    loadResources([[this.js, 'js'], [this.allResources]], () => this.onJsFinished());
+  }
+  prefetchJs() {
+    if (this.jsPrefetched || this.jsStarted || this.destroyed) {
+      return;
+    }
+    this.jsPrefetched = true;
+    _Bootloader.default.prefetch([...(this.js || []), ...this.allResources]);
   }
   onJsFinished() {
-    if (this.isComplete()) {
+    if (this.destroyed || this.phase !== _BigPipePhases.PAGELET_PHASE.DISPLAY_END || !this.jsStarted) {
       return;
     }
-    if (!areAllResourcesLoaded(this.jsResources)) {
-      return;
-    }
-    this.processJsMods();
-    this.setPhase(_BigPipe.PAGELET_PHASE.ARRIVE_END);
+    this.inform(_BigPipePhases.PAGELET_EVENT.JS_DONE);
+    this.processOnloadJsMods();
+    this.setPhase(_BigPipePhases.PAGELET_PHASE.ARRIVE_END);
+    this.inform(_BigPipePhases.PAGELET_EVENT.ONLOAD);
+    this.bigPipe.pageletFinished(this);
   }
   processJsMods() {
-    serverJS.handle(this.jsmods);
+    if (this.jsmods) {
+      serverJS.handle(this.jsmods);
+    }
+  }
+
+  /**
+   * Handles the `onload` jsmods, the module calls that need the JS files of the pagelet.
+   */
+  processOnloadJsMods() {
+    if (this.onload) {
+      serverJS.handle(this.onload);
+    }
+  }
+
+  /**
+   * Handles the `onafterload` jsmods, which BigPipe runs once every pagelet has run its jsmods and
+   * the window has loaded.
+   */
+  processAfterLoadJsMods() {
+    const {
+      onafterload
+    } = this;
+    this.onafterload = null;
+    if (onafterload) {
+      serverJS.handle(onafterload);
+    }
   }
   onCssFinished() {
-    if (!areAllResourcesLoaded(this.cssResources)) {
+    if (this.destroyed || this.cssLoaded || this.phase !== _BigPipePhases.PAGELET_PHASE.LOADING_CSS) {
+      return;
+    }
+    this.cssLoaded = true;
+    this.inform(_BigPipePhases.PAGELET_EVENT.CSS_LOAD);
+    this.display();
+  }
+
+  /**
+   * Displays the pagelet once its CSS is loaded and BigPipe allows it: after the pagelets of a
+   * lower `phase` and its `display_dependency`.
+   */
+  display() {
+    if (this.destroyed || !this.cssLoaded || this.phase !== _BigPipePhases.PAGELET_PHASE.LOADING_CSS || !this.bigPipe.canDisplay(this)) {
       return;
     }
     this.setContent();
   }
+
+  /**
+   * Reports an error of the pagelet and informs `pagelet/error`, e.g. to show an error state in
+   * it. The page goes on: the pagelet still counts as displayed and runs its modules.
+   */
+  fail(error) {
+    this.error = error;
+    (0, _reportError.default)(error);
+    new _Arbiter.default().inform('pagelet/error', {
+      id: this.id,
+      error
+    });
+  }
   setContent() {
-    this.setPhase(_BigPipe.PAGELET_PHASE.DISPLAY_START);
+    this.setPhase(_BigPipePhases.PAGELET_PHASE.DISPLAY_START);
+    this.inform(_BigPipePhases.PAGELET_EVENT.DISPLAY_START);
     if (this.domops) {
-      asyncDOM.invoke(this.domops);
+      try {
+        asyncDOM.invoke(this.domops);
+      } catch (error) {
+        this.fail(error);
+      }
     }
-    this.setPhase(_BigPipe.PAGELET_PHASE.DISPLAY_END);
+    this.root = document.getElementById('pagelet_' + this.id);
+    this.processJsMods();
+    this.setPhase(_BigPipePhases.PAGELET_PHASE.DISPLAY_END);
+    this.inform(_BigPipePhases.PAGELET_EVENT.DISPLAY);
+    if (this.jsNonBlock) {
+      this.startJs();
+    }
     this.bigPipe.pageletDisplayed(this);
   }
 }

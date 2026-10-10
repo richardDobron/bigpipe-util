@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 var _DOM = _interopRequireDefault(require("../core/DOM"));
+var _warning = _interopRequireDefault(require("../core/warning"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 class AsyncDOM {
   invoke(domOps, element) {
@@ -14,14 +15,13 @@ class AsyncDOM {
       if (selector) {
         node = (node || document.documentElement).querySelector(selector);
       }
+      (0, _warning.default)(node, "Selector '%s' does not match anything!", selector);
       if (!node) {
-        if (typeof __DEV__ !== 'undefined' && __DEV__) {
-          console.error(`Selector '${selector}' does not match anything!`);
-        }
         continue;
       }
       switch (type) {
         case 'eval':
+          (0, _warning.default)(false, 'The eval DOM operation is deprecated: a Content Security Policy without ' + "'unsafe-eval' blocks it. Call a module with jsmods instead.");
           new Function(content).apply(node);
           break;
         case 'hide':
@@ -50,6 +50,12 @@ class AsyncDOM {
           break;
         case 'replace':
           _DOM.default.replace(node, content.__html);
+          break;
+        case 'morph':
+          _DOM.default.morph(node, content.__html);
+          break;
+        case 'morphContent':
+          _DOM.default.morphContent(node, content.__html);
           break;
       }
     }

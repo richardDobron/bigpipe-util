@@ -4,25 +4,31 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
-const _events = {};
+var _reportError = _interopRequireDefault(require("./reportError"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+const _events = Object.create(null);
+const _states = Object.create(null);
+function call(context, callback, args) {
+  try {
+    callback.apply(context, args);
+  } catch (e) {
+    (0, _reportError.default)(e);
+  }
+}
 class Arbiter {
   constructor() {
     this._events = _events;
   }
   inform(what, ...args) {
-    const list = [...this.getSubscribers(what)];
-    for (let i = 0; i < list.length; i++) {
-      if (list[i] === null) {
-        continue;
-      }
-      try {
-        list[i].apply(this, args);
-      } catch (e) {
-        window.setTimeout(() => {
-          throw e;
-        }, 0);
-      }
-    }
+    [...this.getSubscribers(what)].forEach(callback => call(this, callback, args));
+    return this;
+  }
+  informState(what, ...args) {
+    _states[what] = args;
+    return this.inform(what, ...args);
+  }
+  clearState(what) {
+    delete _states[what];
     return this;
   }
   getSubscribers(toWhat) {
@@ -35,9 +41,19 @@ class Arbiter {
     return this;
   }
   subscribe(toWhat, withWhat) {
-    const list = this.getSubscribers(toWhat);
-    list.push(withWhat);
-    return this;
+    this.getSubscribers(toWhat).push(withWhat);
+    if (_states[toWhat]) {
+      call(this, withWhat, _states[toWhat]);
+    }
+    let subscribed = true;
+    return {
+      remove: () => {
+        if (subscribed) {
+          subscribed = false;
+          this.unsubscribe(toWhat, withWhat);
+        }
+      }
+    };
   }
   unsubscribe(toWhat, withWhat) {
     const list = this.getSubscribers(toWhat);

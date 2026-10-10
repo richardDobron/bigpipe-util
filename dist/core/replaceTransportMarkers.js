@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = replaceTransportMarkers;
 var _$ = _interopRequireDefault(require("./$"));
+var _requireModule = _interopRequireDefault(require("./requireModule"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function replaceTransportMarkers(markerValue, markers, key) {
   const marker = typeof key !== 'undefined' ? markers[key] : markers;
@@ -15,7 +16,7 @@ function replaceTransportMarkers(markerValue, markers, key) {
   } else {
     if (marker && typeof marker == 'object') {
       if (marker.__m) {
-        markers[key] = window.require(marker.__m);
+        markers[key] = (0, _requireModule.default)(marker.__m);
       } else if (marker.__e) {
         markers[key] = (0, _$.default)(marker.__e);
       } else if (marker.__map) {

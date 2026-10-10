@@ -7,8 +7,6 @@ exports.byAttribute = byAttribute;
 exports.byClass = byClass;
 exports.byTag = byTag;
 exports.find = find;
-var _CSSCore = _interopRequireDefault(require("fbjs/lib/CSSCore"));
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function byTag(node, tagName) {
   tagName = tagName.toUpperCase();
   node = find(node, function (el) {
@@ -18,7 +16,7 @@ function byTag(node, tagName) {
 }
 function byClass(node, className) {
   node = find(node, function (el) {
-    return el instanceof Element && _CSSCore.default.hasClass(el, className);
+    return el instanceof Element && el.classList.contains(className);
   });
   return node instanceof Element ? node : null;
 }

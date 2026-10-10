@@ -6,6 +6,13 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _modal2 = _interopRequireDefault(require("modal-vanilla/lib/modal"));
 var _DOM = _interopRequireDefault(require("./DOM"));
+var _AutoFocus = _interopRequireDefault(require("./layer/AutoFocus"));
+var _DialogLayer = _interopRequireDefault(require("./layer/DialogLayer"));
+var _HideOnSuccess = _interopRequireDefault(require("./layer/HideOnSuccess"));
+var _HideOnTransition = _interopRequireDefault(require("./layer/HideOnTransition"));
+var _RefocusOnHide = _interopRequireDefault(require("./layer/RefocusOnHide"));
+var _TabIsolation = _interopRequireDefault(require("./layer/TabIsolation"));
+var _requireModule = _interopRequireDefault(require("./requireModule"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const DEFAULT_Z_INDEX = 1040;
 let stack = [];
@@ -21,6 +28,31 @@ _modal2.default.prototype._handleKeydownEvent = function (event) {
     }
   }
 };
+function layerConfig(source) {
+  const enabled = (name, fallback) => source[name] !== null && source[name] !== undefined ? source[name] : fallback;
+  const behaviors = [];
+  if (enabled('autoFocus', true)) {
+    behaviors.push(_AutoFocus.default);
+  }
+  if (enabled('trapFocus', true)) {
+    behaviors.push(_TabIsolation.default);
+  }
+  if (enabled('refocus', true)) {
+    behaviors.push(_RefocusOnHide.default);
+  }
+  if (enabled('hideOnTransition', true)) {
+    behaviors.push(_HideOnTransition.default);
+  }
+  if (source.hideOnSuccess) {
+    behaviors.push(_HideOnSuccess.default);
+  }
+  return {
+    behaviors,
+    causalElement: source.causalElement,
+    hideOnSuccess: source.hideOnSuccess,
+    position: source.position
+  };
+}
 class Dialog {
   close(limit = -1) {
     let modals;
@@ -47,7 +79,7 @@ class Dialog {
       backdrop: this._getOption(options, 'backdrop', true),
       transition: this._getOption(options, 'transition', 0),
       backdropTransition: this._getOption(options, 'backdropTransition', 0)
-    }, options.controller, args));
+    }, options.controller, args, layerConfig(options)));
   }
   showFromModel(model, args) {
     return this._maybeWithTimeout(model.timeout, () => this._show({
@@ -59,7 +91,7 @@ class Dialog {
       backdrop: this._getOption(model, 'backdrop', true),
       transition: this._getOption(model, 'transition', 0),
       backdropTransition: this._getOption(model, 'backdropTransition', 0)
-    }, model.controller, args));
+    }, model.controller, args, layerConfig(model)));
   }
   _maybeWithTimeout(timeout, callback) {
     if (typeof timeout === 'number') {
@@ -70,15 +102,16 @@ class Dialog {
   _getOption(obj, key, defaultVal) {
     return obj[key] !== null && obj[key] !== undefined ? obj[key] : defaultVal;
   }
-  _show(options, controller, args) {
+  _show(options, controller, args = [], layerOptions = {}) {
     if (originalBodyPad === null) {
       originalBodyPad = document.body.style.paddingRight;
     }
     const _modal = new _modal2.default(options);
     stack.push(_modal);
+    new _DialogLayer.default(_modal, layerOptions);
     if (controller) {
       if (typeof controller === 'string') {
-        new (window.require(controller))(_modal, ...args);
+        new ((0, _requireModule.default)(controller))(_modal, ...args);
       } else if (typeof controller === 'function') {
         controller(_modal, ...args);
       }
@@ -89,7 +122,12 @@ class Dialog {
     }) {
       zIndex = DEFAULT_Z_INDEX + 10 * stack.length;
       el.style.zIndex = zIndex;
-      setTimeout(() => document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1);
+      setTimeout(() => {
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+          backdrop.style.zIndex = zIndex - 1;
+        }
+      });
     }).on('showBackdrop', this._fixBackdrop).on('hidden', function ({
       el
     }) {
