@@ -18,7 +18,7 @@ so it can be started early and `AsyncRequest` loaded on demand, see [Loading Asy
 
 ## Links
 
-Add the URL to call in `ajaxify` and pick the behaviour with `rel`:
+Add the URL to call in `ajaxify`, or in `href` when the link has no `ajaxify`, and pick the behaviour with `rel`:
 
 ```html
 <a href="#" ajaxify="/ajax/remove.php" rel="async">Remove item</a>

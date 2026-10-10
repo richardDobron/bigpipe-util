@@ -35,7 +35,9 @@ describe('links', () => {
     document.body.innerHTML = `
       <a id="get" href="#" ajaxify="/ajax/remove.php?id=1" rel="async"><span>Remove</span></a>
       <a id="post" href="#" ajaxify="/ajax/like.php" rel="async-post">Like</a>
-      <a id="dialog" href="#" ajaxify="/ajax/dialog.php" rel="dialog">Open</a>`;
+      <a id="dialog" href="#" ajaxify="/ajax/dialog.php" rel="dialog">Open</a>
+      <a id="href" href="/ajax/hide.php" rel="async">Hide</a>
+      <a id="nowhere" rel="async">Nowhere</a>`;
   });
 
   it.each([
@@ -48,6 +50,21 @@ describe('links', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].method).toBe(method);
     expect(requests[0].url).toMatch(url);
+  });
+
+  it('sends the request to the href of a link without ajaxify', () => {
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    document.getElementById('href').dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toMatch(/\/ajax\/hide\.php\?__req=\d+$/);
+  });
+
+  it('sends nothing for a link without a URL', () => {
+    click(document.getElementById('nowhere'));
+
+    expect(requests).toHaveLength(0);
   });
 
   it('handles clicks on the children of the link', () => {

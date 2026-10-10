@@ -70,6 +70,7 @@ export default function Primer() {
 
     const ajaxHref = linkNodeOnClicked.getAttribute('ajaxify');
     const realHref = linkNodeOnClicked.href;
+    const href = ajaxHref || realHref;
     let relationship = linkNodeOnClicked.rel && linkNodeOnClicked.rel.match(RELATIONSHIP_REGEX);
     relationship = relationship && relationship[0];
 
@@ -90,9 +91,13 @@ export default function Primer() {
     if (relationship) {
       event.preventDefault();
 
+      if (!href) {
+        return;
+      }
+
       withAsyncRequest(linkNodeOnClicked, AsyncRequest => {
         // No error handler: errors go to the default one, see AsyncRequest.setDefaultErrorHandler().
-        new AsyncRequest(ajaxHref)
+        new AsyncRequest(href)
           .setRelative(linkNodeOnClicked)
           .setStatusElement(linkNodeOnClicked)
           .setMethod(relationship === 'async' ? 'GET' : 'POST')
