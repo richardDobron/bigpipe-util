@@ -73,6 +73,42 @@ button.addEventListener('click', () => {
 });
 ```
 
+## Using a module only if it is there
+
+`ifRequired(name, whenLoaded, whenMissing)` calls `whenLoaded` with the module if it is loaded already, and
+`whenMissing` otherwise, without loading anything. It returns what the callback returns. A bootloadable module is
+loaded once all its resources are, any other module when the module loader finds it.
+
+```javascript
+import ifRequired from 'bigpipe-util/dist/core/ifRequired';
+
+ifRequired('Editor', Editor => Editor.save(), () => console.log('The editor was never opened.'));
+```
+
+`requireDeferred(name)` is a reference to a module that is loaded later. Pass it around instead of the module, and
+resolve it when you need it:
+
+```javascript
+import requireDeferred from 'bigpipe-util/dist/core/requireDeferred';
+
+const editor = requireDeferred('Editor');
+
+editor.preload();                       // preloads the resources while the network is idle
+editor.getModuleIfRequired();           // the module, or undefined while it's not loaded
+editor.load().then(Editor => {});       // loads the resources, rejects if the module can't be required
+editor.loadImmediately(Editor => {});   // the same with a callback
+editor.onReady(Editor => {}).remove();  // calls back once it's loaded, `remove()` stops waiting
+```
+
+`requireCond(condition, whenTrue, whenFalse)` requires the module named by the branch that matches, so a page can
+pick between two implementations without requiring both:
+
+```javascript
+import requireCond from 'bigpipe-util/dist/core/requireCond';
+
+const Chart = requireCond(window.matchMedia('(max-width: 600px)').matches, 'SparkLine', 'FullChart');
+```
+
 ## Display resources
 
 A pagelet waits for its `css` before it is displayed, and for its `js` before it runs its `onload` jsmods. With a

@@ -8,9 +8,12 @@ import Cookie from './core/Cookie';
 import DataStore from './core/DataStore';
 import DOM from './core/DOM';
 import DocumentTitle from './core/DocumentTitle';
+import ifRequired from './core/ifRequired';
 import KeyEventController from './core/KeyEventController';
 import onAfterLoad from './core/onAfterLoad';
 import ReloadPage from './core/ReloadPage';
+import requireCond from './core/requireCond';
+import requireDeferred from './core/requireDeferred';
 import ServerRedirect from './core/ServerRedirect';
 import TimerStorage from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
@@ -44,9 +47,12 @@ registerBuiltins({
   'core/DataStore': DataStore,
   'core/DOM': DOM,
   'core/DocumentTitle': DocumentTitle,
+  'core/ifRequired': ifRequired,
   'core/KeyEventController': KeyEventController,
   'core/onAfterLoad': onAfterLoad,
   'core/ReloadPage': ReloadPage,
+  'core/requireCond': requireCond,
+  'core/requireDeferred': requireDeferred,
   'core/ServerRedirect': ServerRedirect,
   'core/TimerStorage': TimerStorage,
   'core/UserActivity': UserActivity,
@@ -73,4 +79,4 @@ export function setModuleLoader(loader, { global = true } = {}) {
   }
 }
 
-export { registerModules, requireLazy, requireModule };
+export { ifRequired, registerModules, requireCond, requireDeferred, requireLazy, requireModule };

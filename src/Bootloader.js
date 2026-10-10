@@ -210,14 +210,32 @@ const Bootloader = {
    * Loads the resources of the modules, then calls `callback` with the modules. Modules that are
    * not bootloadable are required right away.
    */
-  loadModules(modules, callback) {
+  loadModules(modules, callback, onError) {
     const names = modules.reduce((all, module) => all.concat(bootloadable.get(module) || []), []);
 
     Bootloader.loadResources(names, () => {
-      const exports = modules.map(module => requireModule(module));
+      let exports;
+      try {
+        exports = modules.map(module => requireModule(module));
+      } catch (error) {
+        if (!onError) {
+          throw error;
+        }
+        onError(error);
+        return;
+      }
       if (callback) {
         callback(...exports);
       }
+    });
+  },
+
+  isLoaded(module) {
+    return (bootloadable.get(module) || []).every(name => {
+      const { type, src } = getResource(name);
+      const url = resolveURL(src);
+      const entry = requests.get(url);
+      return entry ? entry.loaded : isOnPage(url, type);
     });
   },
 
