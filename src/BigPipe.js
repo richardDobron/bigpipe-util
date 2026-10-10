@@ -14,6 +14,9 @@ let instance = null;
 export default class BigPipe {
   pagelets = new Map();
   phase = BIGPIPE_PHASE.WAITING;
+  ttiPhase = null;
+  ttiReached = false;
+  lastArrived = false;
 
   constructor() {
     if (instance) {
@@ -26,12 +29,12 @@ export default class BigPipe {
   /**
    * Informs a page event through Arbiter as a state, so a later subscriber gets it too.
    */
-  inform(event) {
+  inform(event, data = {}) {
     if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
       performance.mark(event);
     }
 
-    new Arbiter().informState(event, { ts: performanceNow() });
+    new Arbiter().informState(event, { ts: performanceNow(), ...data });
   }
 
   /**
@@ -54,8 +57,13 @@ export default class BigPipe {
       Bootloader.enableBootload(pageletData.bootloadable);
     }
 
+    if (pageletData.tti_phase !== undefined && pageletData.tti_phase !== null) {
+      this.ttiPhase = Number(pageletData.tti_phase);
+    }
+
     if (pageletData.is_last) {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
+      this.lastArrived = true;
     }
 
     const previous = this.pagelets.get(pageletData.id);
@@ -66,6 +74,11 @@ export default class BigPipe {
     const pagelet = new Pagelet(pageletData, this);
     this.registerPagelet(pagelet);
     pagelet.start();
+
+    if (this.ttiReached && pagelet.displayPhase > this.ttiPhase) {
+      pagelet.prefetchJs();
+    }
+    this.checkTti();
   }
 
   /**
@@ -78,6 +91,7 @@ export default class BigPipe {
 
     pagelet.destroy();
     this.displayWaitingPagelets();
+    this.checkTti();
   }
 
   /**
@@ -161,10 +175,47 @@ export default class BigPipe {
 
   pageletDisplayed() {
     this.displayWaitingPagelets();
+    this.checkTti();
 
     if (this.phase === BIGPIPE_PHASE.READY_FOR_JS && this.areAllPageletsDisplayed()) {
       this.loadJSResources();
     }
+  }
+
+  /**
+   * Informs `tti_bigpipe` once every pagelet of the phases up to `tti_phase` is displayed and no
+   * more of them can arrive, then loads the JS files of the later phases in the background.
+   */
+  checkTti() {
+    if (this.ttiReached || this.ttiPhase === null) {
+      return;
+    }
+
+    const pagelets = Array.from(this.pagelets.values());
+    const complete =
+      this.lastArrived || pagelets.some(pagelet => pagelet.displayPhase > this.ttiPhase);
+    const isEarly = pagelet => pagelet.displayPhase <= this.ttiPhase;
+
+    if (
+      !complete ||
+      !pagelets.filter(isEarly).every(pagelet => pagelet.phase >= PAGELET_PHASE.DISPLAY_END)
+    ) {
+      return;
+    }
+
+    this.ttiReached = true;
+    this.inform(BIGPIPE_EVENT.TTI, { phase: this.ttiPhase });
+    pagelets.filter(pagelet => !isEarly(pagelet)).forEach(pagelet => pagelet.prefetchJs());
+  }
+
+  /**
+   * Forgets the time to interactive of the page, for the next page of a page transition.
+   */
+  resetTti() {
+    this.ttiPhase = null;
+    this.ttiReached = false;
+    this.lastArrived = false;
+    new Arbiter().clearState(BIGPIPE_EVENT.TTI);
   }
 
   pageletFinished() {

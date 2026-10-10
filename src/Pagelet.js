@@ -59,6 +59,7 @@ export default class Pagelet {
     this.destroyed = false;
     this.cssLoaded = false;
     this.jsStarted = false;
+    this.jsPrefetched = false;
     this.timings = {};
     this.destructors = [
       () => new Arbiter().inform('pagelet/destroy', { id: this.id, root: this.root })
@@ -169,6 +170,15 @@ export default class Pagelet {
     this.jsStarted = true;
     this.inform(PAGELET_EVENT.JS_START);
     loadResources([[this.js, 'js'], [this.allResources]], () => this.onJsFinished());
+  }
+
+  prefetchJs() {
+    if (this.jsPrefetched || this.jsStarted || this.destroyed) {
+      return;
+    }
+
+    this.jsPrefetched = true;
+    Bootloader.prefetch([...(this.js || []), ...this.allResources]);
   }
 
   onJsFinished() {

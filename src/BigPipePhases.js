@@ -26,6 +26,7 @@ export const PAGELET_EVENT = Object.freeze({
 
 export const BIGPIPE_EVENT = Object.freeze({
   INIT: 'BigPipe/init',
+  TTI: 'tti_bigpipe',
   DISPLAYED: 'all_pagelets_displayed',
   LOADED: 'all_pagelets_loaded'
 });

@@ -89,8 +89,8 @@ The times are kept in `pagelet.timings` and marked with `performance.mark()` as 
 show in the performance panel of the browser. The names are exported as `PAGELET_EVENT`.
 
 The page informs its own events, exported as `BIGPIPE_EVENT`, with the time `ts`: `BigPipe/init` when `BigPipe` is
-created, `all_pagelets_displayed` when the last pagelet has arrived and all are displayed, and `all_pagelets_loaded`
-when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
+created, `tti_bigpipe` when the [time to interactive](#time-to-interactive) is reached, `all_pagelets_displayed`
+when the last pagelet has arrived and all are displayed, and `all_pagelets_loaded` when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
 away, and they are marked with `performance.mark()` as well. A response with pagelets informs them again.
 
 ```javascript
@@ -136,6 +136,27 @@ new MorePagerFetchOnScroll(document.getElementById('more_pager'), 300);
 It clicks the link when it comes within the offset of the viewport. The response appends the items and replaces the
 link with the one of the next page, or removes it. `remove()` stops waiting, and so does destroying the pagelet the
 link is in.
+
+## Time to interactive
+
+The pagelets of the first `phase`s are the content the user is waiting for, the others are the rest of the page. The
+server tells which ones with `tti_phase`, a field of a pagelet: the time to interactive is reached when every pagelet
+of the phases up to it is displayed.
+
+```javascript
+new Arbiter().subscribe('tti_bigpipe', ({ phase, ts }) => {
+  analytics.track('interactive', { phase, ts });
+});
+```
+
+The event is informed once per page as a state, so a module that subscribes later is called right away. It waits until
+no pagelet of the phases up to `tti_phase` can arrive any more, i.e. a pagelet of a later phase or the last pagelet
+has arrived. A page transition forgets it for the next page.
+
+Right after the time to interactive, the browser downloads the `js` and `allResources` of the pagelets of the later
+phases in the background (`<link rel="preload">`), without running them. The scripts then are in the cache when the pagelets
+load their JS, after all of them are displayed, and nothing competes with the content of the first phases before. A
+pagelet of a later phase that arrives after the time to interactive is prefetched when it arrives.
 
 ## Destroying pagelets
 

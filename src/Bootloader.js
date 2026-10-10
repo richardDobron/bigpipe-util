@@ -43,7 +43,7 @@ function isNetworkIdle() {
   return Array.from(requests.values()).every(entry => entry.loaded);
 }
 
-function preload(name, onLoad) {
+function preload(name, onLoad, execute = true) {
   const { type, src } = getResource(name);
   const url = resolveURL(src);
 
@@ -66,7 +66,7 @@ function preload(name, onLoad) {
   link.onload = link.onerror = () => {
     preloading.delete(url);
     preloaded.add(url);
-    if (type === 'js') {
+    if (type === 'js' && execute) {
       requestIdleCallbackAcrossTransitions(() => Bootloader.loadResources([name]));
     }
     if (onLoad) {
@@ -200,6 +200,10 @@ const Bootloader = {
     modules.forEach(module => {
       (bootloadable.get(module) || []).forEach(name => preload(name));
     });
+  },
+
+  prefetch(names) {
+    names.forEach(name => preload(name, null, false));
   },
 
   isBootloadable(module) {
