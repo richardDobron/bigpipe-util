@@ -65,6 +65,8 @@ PageTransitions.addBeforeLeaveHook(() => (form.dirty ? 'You have unsaved changes
 PageTransitions.addLeaveHook(() => player.stop());
 ```
 
+[`Run`](run.md) registers the same hooks and works for full page loads too: `Run.onBeforeUnload()` and `Run.onLeave()`.
+
 `core/TimerStorage` has `setTimeout`, `setInterval`, `requestAnimationFrame` and `requestIdleCallback` (with their
 `clear` and `cancel` functions) that end with the page, and `setTimeoutAcrossTransitions`,
 `setIntervalAcrossTransitions`, `requestAnimationFrameAcrossTransitions` and `requestIdleCallbackAcrossTransitions`

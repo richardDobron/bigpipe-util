@@ -10,6 +10,7 @@ const SKIPPED_REL = /(?:^|\s)(?:async(?:-post)?|dialog|external)(?:\s|$)/;
 let initialized = false;
 let currentURI = null;
 let transitioning = false;
+let leaveConfirmed = false;
 let handlers = [];
 let beforeLeaveHooks = [];
 let leaveHooks = [];
@@ -156,12 +157,16 @@ function load(uri, fromHistory, fallback) {
     return;
   }
 
+  leaveConfirmed = false;
   const message = runHooks(beforeLeaveHooks).find(Boolean);
-  if (message && !window.confirm(message)) {
-    if (fromHistory) {
-      updateHistory(currentURI, false);
+  if (message) {
+    if (!window.confirm(message)) {
+      if (fromHistory) {
+        updateHistory(currentURI, false);
+      }
+      return;
     }
-    return;
+    leaveConfirmed = true;
   }
 
   new Arbiter().inform('pre_page_transition', { from: currentURI, to: uri });
@@ -241,6 +246,10 @@ const PageTransitions = {
     return transitioning;
   },
 
+  isLeaveConfirmed() {
+    return leaveConfirmed;
+  },
+
   getCurrentURI() {
     return currentURI ? new URL(currentURI.href) : toURI(window.location.href);
   },
@@ -283,6 +292,7 @@ const PageTransitions = {
     const hooks = leaveHooks;
     leaveHooks = [];
     beforeLeaveHooks = [];
+    leaveConfirmed = false;
     runHooks(hooks);
   },
 

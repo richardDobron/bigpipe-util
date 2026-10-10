@@ -14,6 +14,7 @@ import onAfterLoad from './core/onAfterLoad';
 import ReloadPage from './core/ReloadPage';
 import requireCond from './core/requireCond';
 import requireDeferred from './core/requireDeferred';
+import Run from './core/Run';
 import ServerRedirect from './core/ServerRedirect';
 import TimerStorage from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
@@ -53,6 +54,7 @@ registerBuiltins({
   'core/ReloadPage': ReloadPage,
   'core/requireCond': requireCond,
   'core/requireDeferred': requireDeferred,
+  'core/Run': Run,
   'core/ServerRedirect': ServerRedirect,
   'core/TimerStorage': TimerStorage,
   'core/UserActivity': UserActivity,

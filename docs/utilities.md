@@ -14,6 +14,8 @@ import onAfterLoad from 'bigpipe-util/dist/core/onAfterLoad';
 onAfterLoad(() => console.log('The page is loaded.'));
 ```
 
+See [Run](run.md) for removable subscriptions and the hooks for leaving a page.
+
 ## onVisible
 
 Calls the callback once, when the element comes within `buffer` pixels of the viewport, e.g. to load content right
