@@ -43,6 +43,7 @@ export default class Pagelet {
     this.phase = PAGELET_PHASE.ARRIVE_START;
     this.domops = pageletData.domops;
     this.jsmods = pageletData.jsmods;
+    this.onload = pageletData.onload;
     this.onafterload = pageletData.onafterload;
     this.displayPhase = pageletData.phase || 0;
     this.displayDependency = pageletData.display_dependency || [];
@@ -50,6 +51,7 @@ export default class Pagelet {
     this.js = pageletData.js;
     this.displayResources = pageletData.displayResources || [];
     this.allResources = pageletData.allResources || [];
+    this.jsNonBlock = Boolean(pageletData.jsNonBlock);
     this.root = null;
     this.destroyed = false;
     this.cssLoaded = false;
@@ -136,7 +138,8 @@ export default class Pagelet {
   }
 
   /**
-   * BigPipe calls it when it starts loading the JS of all pagelets.
+   * Loads the JS files of the pagelet: BigPipe calls it when every pagelet is displayed, or the
+   * pagelet itself once it is displayed with `jsNonBlock`.
    */
   startJs() {
     if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END || this.jsStarted) {
@@ -154,7 +157,7 @@ export default class Pagelet {
     }
 
     this.inform(PAGELET_EVENT.JS_DONE);
-    this.processJsMods();
+    this.processOnloadJsMods();
 
     this.setPhase(PAGELET_PHASE.ARRIVE_END);
     this.inform(PAGELET_EVENT.ONLOAD);
@@ -162,7 +165,18 @@ export default class Pagelet {
   }
 
   processJsMods() {
-    serverJS.handle(this.jsmods);
+    if (this.jsmods) {
+      serverJS.handle(this.jsmods);
+    }
+  }
+
+  /**
+   * Handles the `onload` jsmods, the module calls that need the JS files of the pagelet.
+   */
+  processOnloadJsMods() {
+    if (this.onload) {
+      serverJS.handle(this.onload);
+    }
   }
 
   /**
@@ -214,8 +228,14 @@ export default class Pagelet {
     }
 
     this.root = document.getElementById('pagelet_' + this.id);
+    this.processJsMods();
     this.setPhase(PAGELET_PHASE.DISPLAY_END);
     this.inform(PAGELET_EVENT.DISPLAY);
+
+    if (this.jsNonBlock) {
+      this.startJs();
+    }
+
     this.bigPipe.pageletDisplayed(this);
   }
 }

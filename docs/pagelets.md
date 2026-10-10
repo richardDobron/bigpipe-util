@@ -5,8 +5,8 @@ sidebar_label: Pagelets
 ---
 
 A pagelet is an independent part of the page, like a sidebar or a feed, with its own content, CSS and JavaScript.
-`BigPipe` shows each pagelet as soon as its CSS is loaded and runs the JavaScript of the pagelets only after all of
-them are displayed, so scripts never delay the content.
+`BigPipe` shows each pagelet as soon as its CSS is loaded and loads the JavaScript files of the pagelets only after all
+of them are displayed, so scripts never delay the content.
 
 The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library. For every pagelet, it outputs:
 
@@ -17,6 +17,7 @@ The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library
   js: ["/js/sidebar.js"],
   domops: [["setContent", "#sidebar", false, {"__html": "..."}]],
   jsmods: {"require": [["Sidebar", "init", []]]},
+  onload: {"require": [["SidebarChat", "connect", []]]},
   onafterload: {"require": [["SidebarPrefetch", "start", []]]},
   is_last: true,
 });
@@ -33,14 +34,15 @@ pagelets, makes them display progressively.
 1. **Arrive.** The CSS files of the pagelet start loading through the [Bootloader](bootloader.md), which loads
    every file once.
 2. **Display.** When its CSS (and its [display resources](bootloader.md#display-resources)) is loaded, the DOM
-   operations of the pagelet are applied.
+   operations of the pagelet are applied and its `jsmods` are handled by [ServerJS](server_js.md). A module of the
+   page bundle runs right away, a [bootloadable module](bootloader.md#bootloadable-modules) once its files are loaded.
 3. **Load JS.** When the last pagelet (`is_last`) has arrived and all pagelets are displayed, the JS files of all
-   pagelets start loading.
-4. **Run.** When the JS files of a pagelet are loaded, its `jsmods` are handled by [ServerJS](server_js.md).
-   Pagelets run their `jsmods` in the order they arrived.
-5. **After load.** When every pagelet has run its `jsmods` and the window has loaded, the optional `onafterload`
-   jsmods of the pagelets are handled. Use them for work that must not compete with the page, like prefetching or
-   analytics.
+   pagelets start loading. A pagelet with `jsNonBlock` loads its JS files right after it is displayed instead.
+4. **Onload.** When the JS files of a pagelet are loaded, its `onload` jsmods are handled: the module calls that
+   need those files. Pagelets run their `onload` jsmods in the order they arrived.
+5. **After load.** When every pagelet has run its `onload` jsmods and the window has loaded, the optional
+   `onafterload` jsmods of the pagelets are handled. Use them for work that must not compete with the page, like
+   prefetching or analytics.
 
 The phases are exported as `BIGPIPE_PHASE` and `PAGELET_PHASE` from `bigpipe-util/dist/BigPipe`. `BigPipe` is a
 singleton, so `new BigPipe()` always returns the same instance with the registered `pagelets`.

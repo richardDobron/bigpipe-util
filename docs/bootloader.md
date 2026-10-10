@@ -75,12 +75,12 @@ button.addEventListener('click', () => {
 
 ## Display resources
 
-A pagelet waits for its `css` before it is displayed, and for its `js` before it runs its modules. With a resource
-map it can split its resources further:
+A pagelet waits for its `css` before it is displayed, and for its `js` before it runs its `onload` jsmods. With a
+resource map it can split its resources further:
 
 - `displayResources`: what the pagelet needs to be displayed, e.g. its stylesheet.
 - `allResources`: everything else, e.g. the stylesheet of a dialog it opens or its scripts. They load when the JS of
-  the pagelets loads, and the pagelet runs its modules once they are loaded.
+  the pagelets loads, and the pagelet runs its `onload` jsmods once they are loaded.
 
 ```javascript
 {

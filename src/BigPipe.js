@@ -185,6 +185,8 @@ export default class BigPipe {
     this.pagelets.forEach(pagelet => {
       pagelet.startJs();
     });
+
+    this.pageletFinished();
   }
 
   fileLoaded(file) {

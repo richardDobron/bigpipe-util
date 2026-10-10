@@ -195,7 +195,8 @@ describe('display resources', () => {
       displayResources: ['feed.css'],
       allResources: ['dialog.css', 'feed.js'],
       domops: [['setContent', '#pagelet_feed', false, { __html: 'Posts' }]],
-      jsmods: { require: [['Feed', 'init']] },
+      jsmods: {},
+      onload: { require: [['Feed', 'init']] },
       is_last: true
     });
     expect(hrefs()).toEqual(['/static/feed.css']);

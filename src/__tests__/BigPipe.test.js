@@ -153,13 +153,18 @@ describe('lifecycle', () => {
     delete window.require;
   });
 
-  function arrive(id, { css = [], js = [], isLast = false, afterLoad = false } = {}) {
+  function arrive(
+    id,
+    { css = [], js = [], isLast = false, afterLoad = false, jsNonBlock = false } = {}
+  ) {
     bigPipe.onPageletArrive({
       id,
       css,
       js,
       domops: [['setContent', '#' + id, false, { __html: id.toUpperCase() }]],
       jsmods: { require: [[id + 'Module', 'init']] },
+      onload: { require: [[id + 'Onload', 'init']] },
+      ...(jsNonBlock ? { jsNonBlock: true } : {}),
       ...(afterLoad ? { onafterload: { require: [[id + 'AfterLoad', 'init']] } } : {}),
       ...(isLast ? { is_last: true } : {})
     });
@@ -168,14 +173,15 @@ describe('lifecycle', () => {
   const load = selector => document.querySelector(selector).onload();
   const content = id => document.getElementById(id).innerHTML;
 
-  it('displays a pagelet once its stylesheet is loaded and then runs its jsmods', () => {
+  it('displays a pagelet once its stylesheet is loaded and runs its jsmods with it', () => {
     arrive('a', { css: ['/a.css'], isLast: true });
     expect(content('a')).toBe('');
+    expect(calls).toEqual([]);
 
     load('link[href="/a.css"]');
 
     expect(content('a')).toBe('A');
-    expect(calls).toEqual(['aModule']);
+    expect(calls).toEqual(['aModule', 'aOnload']);
   });
 
   it('loads the JS files only after every pagelet is displayed', () => {
@@ -183,21 +189,43 @@ describe('lifecycle', () => {
     arrive('b', { css: ['/b.css'], isLast: true });
     expect(document.querySelector('script[src="/a.js"]')).toBeNull();
 
+    expect(calls).toEqual(['aModule']);
+
     load('link[href="/b.css"]');
     expect(document.querySelector('script[src="/a.js"]')).not.toBeNull();
-    expect(calls).toEqual(['bModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'bOnload']);
 
     load('script[src="/a.js"]');
-    expect(calls).toEqual(['bModule', 'aModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'bOnload', 'aOnload']);
   });
 
-  it('runs the jsmods only after the last pagelet arrived, in arrival order', () => {
+  it('runs the onload jsmods only after the last pagelet arrived, in arrival order', () => {
     arrive('a');
     expect(content('a')).toBe('A');
-    expect(calls).toEqual([]);
+    expect(calls).toEqual(['aModule']);
 
     arrive('b', { isLast: true });
-    expect(calls).toEqual(['aModule', 'bModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'aOnload', 'bOnload']);
+  });
+
+  it('loads the JS files of a jsNonBlock pagelet right after it is displayed', () => {
+    arrive('a', { js: ['/a.js'], jsNonBlock: true });
+    expect(document.querySelector('script[src="/a.js"]')).not.toBeNull();
+
+    load('script[src="/a.js"]');
+    expect(calls).toEqual(['aModule', 'aOnload']);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.WAITING);
+
+    arrive('b', { isLast: true });
+    expect(calls).toEqual(['aModule', 'aOnload', 'bModule', 'bOnload']);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
+  });
+
+  it('completes the page when every pagelet already ran its JS', () => {
+    arrive('a', { jsNonBlock: true, isLast: true });
+
+    expect(calls).toEqual(['aModule', 'aOnload']);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
   });
 
   it('displays a pagelet whose stylesheet another pagelet already loaded', () => {
@@ -208,34 +236,34 @@ describe('lifecycle', () => {
 
     expect(document.querySelectorAll('link').length).toBe(1);
     expect(content('b')).toBe('B');
-    expect(calls).toEqual(['aModule', 'bModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'aOnload', 'bOnload']);
   });
 
   it('runs the onafterload jsmods after all jsmods, once the window has loaded', () => {
     arrive('a', { js: ['/a.js'], afterLoad: true });
     arrive('b', { isLast: true, afterLoad: true });
     window.dispatchEvent(new Event('load'));
-    expect(calls).toEqual(['bModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'bOnload']);
     expect(bigPipe.phase).toBe(BIGPIPE_PHASE.LOADING_JS);
 
     load('script[src="/a.js"]');
     expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
-    expect(calls).toEqual(['bModule', 'aModule']);
+    expect(calls).toEqual(['aModule', 'bModule', 'bOnload', 'aOnload']);
 
     window.dispatchEvent(new Event('load'));
-    expect(calls).toEqual(['bModule', 'aModule', 'aAfterLoad', 'bAfterLoad']);
+    expect(calls).toEqual(['aModule', 'bModule', 'bOnload', 'aOnload', 'aAfterLoad', 'bAfterLoad']);
   });
 
   it('runs a pagelet that arrives after the page finished, and its onafterload only', () => {
     arrive('a', { isLast: true, afterLoad: true });
     window.dispatchEvent(new Event('load'));
-    expect(calls).toEqual(['aModule', 'aAfterLoad']);
+    expect(calls).toEqual(['aModule', 'aOnload', 'aAfterLoad']);
 
     arrive('b', { isLast: true, afterLoad: true });
     window.dispatchEvent(new Event('load'));
 
     expect(content('b')).toBe('B');
-    expect(calls).toEqual(['aModule', 'aAfterLoad', 'bModule', 'bAfterLoad']);
+    expect(calls).toEqual(['aModule', 'aOnload', 'aAfterLoad', 'bModule', 'bOnload', 'bAfterLoad']);
     expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
   });
 
@@ -244,10 +272,10 @@ describe('lifecycle', () => {
     vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete');
 
     arrive('a', { isLast: true, afterLoad: true });
-    expect(calls).toEqual(['aModule']);
+    expect(calls).toEqual(['aModule', 'aOnload']);
 
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(calls).toEqual(['aModule', 'aAfterLoad']);
+    expect(calls).toEqual(['aModule', 'aOnload', 'aAfterLoad']);
   });
 });
 
