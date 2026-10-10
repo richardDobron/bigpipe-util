@@ -32,7 +32,8 @@ pagelets, makes them display progressively.
 
 1. **Arrive.** The CSS files of the pagelet start loading through the [Bootloader](bootloader.md), which loads
    every file once.
-2. **Display.** When its CSS is loaded, the DOM operations of the pagelet are applied.
+2. **Display.** When its CSS (and its [display resources](bootloader.md#display-resources)) is loaded, the DOM
+   operations of the pagelet are applied.
 3. **Load JS.** When the last pagelet (`is_last`) has arrived and all pagelets are displayed, the JS files of all
    pagelets start loading.
 4. **Run.** When the JS files of a pagelet are loaded, its `jsmods` are handled by [ServerJS](server_js.md).

@@ -72,3 +72,27 @@ button.addEventListener('click', () => {
   requireLazy(['Editor'], Editor => Editor.open(textarea));
 });
 ```
+
+## Display resources
+
+A pagelet waits for its `css` before it is displayed, and for its `js` before it runs its modules. With a resource
+map it can split its resources further:
+
+- `displayResources`: what the pagelet needs to be displayed, e.g. its stylesheet.
+- `allResources`: everything else, e.g. the stylesheet of a dialog it opens or its scripts. They load when the JS of
+  the pagelets loads, and the pagelet runs its modules once they are loaded.
+
+```javascript
+{
+  "id": "feed",
+  "displayResources": ["feed.css"],
+  "allResources": ["dialog.css", "feed.js"],
+  "resource_map": {
+    "feed.css": {"type": "css", "src": "/static/feed.css"},
+    "dialog.css": {"type": "css", "src": "/static/dialog.css"},
+    "feed.js": {"type": "js", "src": "/static/feed.js"}
+  }
+}
+```
+
+A stylesheet in `allResources` does not delay the display of the pagelet.

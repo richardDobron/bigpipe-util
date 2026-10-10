@@ -177,3 +177,39 @@ describe('bootloadable modules', () => {
     expect(Bootloader.isBootloadable('Chat')).toBe(true);
   });
 });
+
+describe('display resources', () => {
+  it('displays a pagelet once its display resources are loaded, and loads the rest with the JS', () => {
+    const init = vi.fn();
+    window.require = () => ({ init });
+    Bootloader.setResourceMap({
+      'feed.css': { type: 'css', src: '/static/feed.css' },
+      'dialog.css': { type: 'css', src: '/static/dialog.css' },
+      'feed.js': { type: 'js', src: '/static/feed.js' }
+    });
+
+    new BigPipe().onPageletArrive({
+      id: 'feed',
+      css: [],
+      js: [],
+      displayResources: ['feed.css'],
+      allResources: ['dialog.css', 'feed.js'],
+      domops: [['setContent', '#pagelet_feed', false, { __html: 'Posts' }]],
+      jsmods: { require: [['Feed', 'init']] },
+      is_last: true
+    });
+    expect(hrefs()).toEqual(['/static/feed.css']);
+
+    Bootloader.done('/static/feed.css');
+    expect(document.getElementById('pagelet_feed').innerHTML).toBe('Posts');
+    expect(hrefs()).toEqual(['/static/feed.css', '/static/dialog.css']);
+    expect(srcs()).toEqual(['/static/feed.js']);
+
+    Bootloader.done('/static/feed.js');
+    expect(init).not.toHaveBeenCalled();
+
+    Bootloader.done('/static/dialog.css');
+    expect(init).toHaveBeenCalledOnce();
+    delete window.require;
+  });
+});

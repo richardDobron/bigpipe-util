@@ -11,6 +11,23 @@ import reportError from './core/reportError';
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
 
+function loadResources(groups, callback) {
+  let pending = groups.length;
+
+  groups.forEach(([names, type]) =>
+    Bootloader.loadResources(
+      names || [],
+      () => {
+        pending -= 1;
+        if (pending === 0) {
+          callback();
+        }
+      },
+      type
+    )
+  );
+}
+
 export { PAGELET_PHASE, PAGELET_EVENT };
 
 export default class Pagelet {
@@ -31,6 +48,8 @@ export default class Pagelet {
     this.displayDependency = pageletData.display_dependency || [];
     this.css = pageletData.css;
     this.js = pageletData.js;
+    this.displayResources = pageletData.displayResources || [];
+    this.allResources = pageletData.allResources || [];
     this.root = null;
     this.destroyed = false;
     this.cssLoaded = false;
@@ -99,7 +118,7 @@ export default class Pagelet {
 
     this.setPhase(PAGELET_PHASE.LOADING_CSS);
     this.inform(PAGELET_EVENT.CSS);
-    Bootloader.loadResources(this.css || [], () => this.onCssFinished(), 'css');
+    loadResources([[this.css, 'css'], [this.displayResources]], () => this.onCssFinished());
   }
 
   /**
@@ -126,7 +145,7 @@ export default class Pagelet {
 
     this.jsStarted = true;
     this.inform(PAGELET_EVENT.JS_START);
-    Bootloader.loadResources(this.js || [], () => this.onJsFinished(), 'js');
+    loadResources([[this.js, 'js'], [this.allResources]], () => this.onJsFinished());
   }
 
   onJsFinished() {
