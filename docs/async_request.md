@@ -117,6 +117,25 @@ AsyncRequest.setDefaultErrorHandler((xhr, error) => {
 });
 ```
 
+## Token refresh
+
+A token expires, e.g. with the session of the user, and the server then rejects the request. `AsyncRequest` gets a new token
+and sends the request again, once, so the user does not lose the form they filled in. The server can do it two ways:
+
+- **Answer with a new token.** A response with `"csrf_refresh": 1` that defines the `CSRFToken` module again says the
+  request was rejected because of its token. The response is applied, which replaces the token, and the request is sent
+  again with the new one. Its handlers are not called for the rejection; they are called for the second response.
+- **Name a refresh URL.** When the `CSRFToken` module has a `refresh` URL and the server responds with `419` (the status
+  Laravel uses for an expired token), the browser requests the URL, a response that defines the token, and then sends the
+  request again.
+
+```json
+{ "define": [["CSRFToken", {"token": "...", "header": "X-CSRF-TOKEN", "refresh": "/csrf-token"}]] }
+```
+
+A request is sent again once: if the token is rejected again, the second response is handled like any other, or the `419` is
+an `http` error. If the refresh itself fails, the `419` is reported. A request that was abandoned meanwhile is not sent.
+
 ## Retries
 
 A request with the `retries` option is sent again right away when it fails with a network error, e.g. a dropped
@@ -170,6 +189,8 @@ change data (not `GET`, `HEAD` or `OPTIONS`) sends the token, but only to URLs o
 
 - `header`: the request header with the token, unless the request sets this header itself.
 - `param`: the field of the data with the token.
+
+- `refresh`: a same-origin URL that answers with a new token, see [Token refresh](#token-refresh).
 
 A later response that defines the module again replaces the token. Without the module, add the token yourself:
 

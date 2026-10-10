@@ -137,6 +137,8 @@ function createNetworkError(transport) {
 
 export const CSRF_TOKEN_MODULE = 'CSRFToken';
 
+const CSRF_EXPIRED_STATUS = 419;
+
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
 function isSameOrigin(uri) {
@@ -423,7 +425,6 @@ export default class AsyncRequest {
 
   send() {
     const { method } = this;
-    let { uri, data } = this;
 
     const handler = this.getHandler();
     const errorHandler = this.getErrorHandler();
@@ -436,7 +437,14 @@ export default class AsyncRequest {
     let timer = null;
     let timedOut = false;
 
+    let finished = false;
+
     const finish = transport => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+
       pending.delete(this);
       clearTimeout(timer);
       if (statusElement) {
@@ -454,27 +462,37 @@ export default class AsyncRequest {
 
     incrementRequests();
 
-    const csrf = getCSRFToken(method, uri);
-    const csrfParam = csrf && csrf.param ? { [csrf.param]: csrf.token } : {};
     const stream = Boolean(this.getOption('stream'));
     const streamParam = stream ? { __stream: 1 } : {};
+    const requestNumber = requests;
+    let csrf = null;
 
-    if (data instanceof FormData) {
-      data = copyFormData(data);
-      Object.keys(csrfParam).forEach(name => data.append(name, csrfParam[name]));
-      Object.keys(streamParam).forEach(name => data.append(name, streamParam[name]));
-      data.append('__req', requests);
-    } else {
-      data = serialize({ ...data, ...csrfParam, ...streamParam, __req: requests });
-    }
+    // The URL and the body of an attempt, with the CSRF token the server defines at that time.
+    const prepare = () => {
+      csrf = getCSRFToken(method, this.uri);
+      const csrfParam = csrf && csrf.param ? { [csrf.param]: csrf.token } : {};
+      let body = this.data;
+      let target = this.uri;
 
-    if (['GET', 'HEAD'].includes(method)) {
-      uri = appendQueryString(
-        uri,
-        data instanceof FormData ? new URLSearchParams(data).toString() : data
-      );
-      data = null;
-    }
+      if (body instanceof FormData) {
+        body = copyFormData(body);
+        Object.keys(csrfParam).forEach(name => body.append(name, csrfParam[name]));
+        Object.keys(streamParam).forEach(name => body.append(name, streamParam[name]));
+        body.append('__req', requestNumber);
+      } else {
+        body = serialize({ ...body, ...csrfParam, ...streamParam, __req: requestNumber });
+      }
+
+      if (['GET', 'HEAD'].includes(method)) {
+        target = appendQueryString(
+          target,
+          body instanceof FormData ? new URLSearchParams(body).toString() : body
+        );
+        body = null;
+      }
+
+      return { body, target };
+    };
 
     const self = this;
     const { headers, uploadProgressHandler } = this;
@@ -483,6 +501,8 @@ export default class AsyncRequest {
     let offset = 0;
     let parts = 0;
     let stopped = false;
+    let restarting = false;
+    let tokenRefreshed = false;
 
     // Handles one response, or one part of a streamed response: is_first and is_last tell which.
     const handleResponse = (transport, response, isLast) => {
@@ -497,6 +517,15 @@ export default class AsyncRequest {
 
       // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
       new AsyncResponse().handle(response, self.relative);
+
+      // The server rejected the CSRF token and sent a new one: send the request again, once.
+      if (response.csrf_refresh && !tokenRefreshed && parts === 1) {
+        tokenRefreshed = true;
+        restarting = true;
+        stopped = true;
+        open();
+        return;
+      }
 
       if (response.error) {
         errorHandler(transport, createServerError(transport, response));
@@ -565,6 +594,7 @@ export default class AsyncRequest {
 
     const open = () => {
       const request = new XMLHttpRequest();
+      const { body, target } = prepare();
 
       this.transport = request;
       timedOut = false;
@@ -572,7 +602,7 @@ export default class AsyncRequest {
       parts = 0;
       stopped = false;
 
-      request.open(method, uri, true);
+      request.open(method, target, true);
 
       // Listening to upload events must start before send(), see XMLHttpRequest.upload.
       if (uploadProgressHandler && request.upload) {
@@ -613,17 +643,52 @@ export default class AsyncRequest {
             }
 
             handleResponse(this, response, true);
+          } else if (
+            this.status === CSRF_EXPIRED_STATUS &&
+            csrf &&
+            csrf.refresh &&
+            !tokenRefreshed &&
+            isSameOrigin(csrf.refresh)
+          ) {
+            // The token expired: get a new one from the URL the server named, then try again once.
+            const failed = this;
+            tokenRefreshed = true;
+            restarting = true;
+
+            new AsyncRequest(csrf.refresh)
+              .setMethod('GET')
+              .setAllowCrossPageTransition(true)
+              .setHandler(() => {
+                if (self.abandoned) {
+                  finish(failed);
+                } else {
+                  open();
+                }
+              })
+              .setErrorHandler(() => {
+                transportErrorHandler(failed, createHttpError(failed));
+                finish(failed);
+              })
+              .setTransportErrorHandler(() => {
+                transportErrorHandler(failed, createHttpError(failed));
+                finish(failed);
+              })
+              .send();
           } else {
             transportErrorHandler(this, createHttpError(this));
           }
         } finally {
-          finish(this);
+          if (restarting) {
+            restarting = false;
+          } else {
+            finish(this);
+          }
         }
       };
 
       request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-      if (typeof data === 'string') {
+      if (typeof body === 'string') {
         request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
       }
 
@@ -676,7 +741,7 @@ export default class AsyncRequest {
         }
       };
 
-      request.send(data);
+      request.send(body);
 
       if (timeout > 0) {
         clearTimeout(timer);
