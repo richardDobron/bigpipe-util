@@ -1,3 +1,4 @@
+import Bootloader from './Bootloader';
 import invariant from './core/invariant';
 import replaceTransportMarkers from './core/replaceTransportMarkers';
 import reportError from './core/reportError';
@@ -21,7 +22,7 @@ export default class ServerJS {
   handle(jsMods) {
     handler(jsMods.define || [], this._handleDefine, this);
     handler(jsMods.instances || [], this._handleInstance, this);
-    handler(jsMods.require || [], this._handleRequire, this);
+    handler(jsMods.require || [], this._handleRequireLazy, this);
   }
 
   _handleDefine(name, exports) {
@@ -48,6 +49,14 @@ export default class ServerJS {
 
       return new Constructor(...(marker || []));
     });
+  }
+
+  _handleRequireLazy(modulePath, method, marker) {
+    if (Bootloader.isBootloadable(modulePath)) {
+      Bootloader.loadModules([modulePath], () => this._handleRequire(modulePath, method, marker));
+    } else {
+      this._handleRequire(modulePath, method, marker);
+    }
   }
 
   _handleRequire(modulePath, method, marker) {

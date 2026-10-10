@@ -1,8 +1,10 @@
 import getCSPNonce from './core/getCSPNonce';
 import reportError from './core/reportError';
+import requireModule from './core/requireModule';
 
 const resourceMap = new Map();
 const requests = new Map();
+const bootloadable = new Map();
 
 function resolveURL(src) {
   try {
@@ -109,6 +111,37 @@ const Bootloader = {
   },
 
   /**
+   * Adds the modules that can be loaded later, with the resources each of them needs:
+   * `{Module: [names or URLs]}`.
+   */
+  enableBootload(map) {
+    Object.keys(map || {}).forEach(module => {
+      if (!bootloadable.has(module)) {
+        bootloadable.set(module, map[module]);
+      }
+    });
+  },
+
+  isBootloadable(module) {
+    return bootloadable.has(module);
+  },
+
+  /**
+   * Loads the resources of the modules, then calls `callback` with the modules. Modules that are
+   * not bootloadable are required right away.
+   */
+  loadModules(modules, callback) {
+    const names = modules.reduce((all, module) => all.concat(bootloadable.get(module) || []), []);
+
+    Bootloader.loadResources(names, () => {
+      const exports = modules.map(module => requireModule(module));
+      if (callback) {
+        callback(...exports);
+      }
+    });
+  },
+
+  /**
    * Marks the resource at the URL as loaded, also when it failed to load.
    */
   done(src) {
@@ -130,5 +163,9 @@ const Bootloader = {
 
   resolveURL
 };
+
+export function requireLazy(modules, callback) {
+  Bootloader.loadModules(modules, callback);
+}
 
 export default Bootloader;

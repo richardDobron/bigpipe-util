@@ -17,6 +17,10 @@ export default class AsyncResponse {
         Bootloader.setResourceMap(response.resource_map);
       }
 
+      if (response.bootloadable) {
+        Bootloader.enableBootload(response.bootloadable);
+      }
+
       if (domops) {
         _AsyncDOM.invoke(domops, element);
         bigPipe.destroyDetachedPagelets();

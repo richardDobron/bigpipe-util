@@ -41,3 +41,34 @@ Bootloader.loadResources(['editor.css', '/static/editor.js'], () => openEditor()
 are. A resource that fails to load counts as loaded, so one broken file does not stop the page. A URL that is not in
 the map is loaded as the given `type`, or by its extension (`.css` as a stylesheet, anything else as a script).
 Scripts run in the order they were added.
+
+## Bootloadable modules
+
+A module that the page rarely needs, like an editor, does not have to be in the bundle of the page. The server lists
+the resources it needs in `bootloadable`, with a pagelet or a response, and `ServerJS` loads them before it calls the
+module:
+
+```javascript
+{
+  "resource_map": {
+    "editor.css": {"type": "css", "src": "/static/editor.css"},
+    "editor.js": {"type": "js", "src": "/static/editor.js"}
+  },
+  "bootloadable": {"Editor": ["editor.css", "editor.js"]},
+  "jsmods": {"require": [["Editor", "open", [{"__e": "post"}]]]}
+}
+```
+
+The script has to make the module available when it runs, e.g. a chunk of the bundle that calls `registerModules()`
+from `bigpipe-util/dist/ModuleRegistry`. The other module calls of the response do not wait for it.
+
+`requireLazy(modules, callback)` does the same in JavaScript: it loads the resources of the bootloadable modules and
+calls back with the modules. Modules that are not bootloadable are required right away.
+
+```javascript
+import { requireLazy } from 'bigpipe-util/dist/Bootloader';
+
+button.addEventListener('click', () => {
+  requireLazy(['Editor'], Editor => Editor.open(textarea));
+});
+```

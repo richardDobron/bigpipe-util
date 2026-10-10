@@ -10,7 +10,7 @@ import ReloadPage from './core/ReloadPage';
 import ServerRedirect from './core/ServerRedirect';
 import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
-import Bootloader from './Bootloader';
+import Bootloader, { requireLazy } from './Bootloader';
 import Pagelet from './Pagelet';
 import MorePagerFetchOnScroll from './MorePagerFetchOnScroll';
 import Primer from './Primer';
@@ -51,4 +51,4 @@ export function setModuleLoader(loader, { global = true } = {}) {
   }
 }
 
-export { registerModules, requireModule };
+export { registerModules, requireLazy, requireModule };

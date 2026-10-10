@@ -38,6 +38,10 @@ export default class BigPipe {
       Bootloader.setResourceMap(pageletData.resource_map);
     }
 
+    if (pageletData.bootloadable) {
+      Bootloader.enableBootload(pageletData.bootloadable);
+    }
+
     if (pageletData.is_last) {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
     }

@@ -110,3 +110,70 @@ describe('Bootloader', () => {
     delete window.require;
   });
 });
+
+describe('bootloadable modules', () => {
+  let registerModules;
+  let ServerJS;
+  let requireLazy;
+
+  beforeEach(async () => {
+    ({ registerModules } = await import('../core/requireModule'));
+    ({ default: ServerJS } = await import('../ServerJS'));
+    ({ requireLazy } = await import('../Bootloader'));
+
+    Bootloader.setResourceMap({
+      'editor.css': { type: 'css', src: '/static/editor.css' },
+      'editor.js': { type: 'js', src: '/static/editor.js' }
+    });
+    Bootloader.enableBootload({ Editor: ['editor.css', 'editor.js'] });
+  });
+
+  function loadEditor(Editor) {
+    registerModules({ Editor });
+    Bootloader.done('/static/editor.css');
+    Bootloader.done('/static/editor.js');
+  }
+
+  it('loads the resources of a module before requiring it', () => {
+    const callback = vi.fn();
+    const Editor = { open() {} };
+
+    requireLazy(['Editor'], callback);
+    expect(hrefs()).toEqual(['/static/editor.css']);
+    expect(srcs()).toEqual(['/static/editor.js']);
+    expect(callback).not.toHaveBeenCalled();
+
+    loadEditor(Editor);
+    expect(callback).toHaveBeenCalledWith(Editor);
+  });
+
+  it('requires a module that is not bootloadable right away', () => {
+    const Page = {};
+    registerModules({ Page });
+    const callback = vi.fn();
+
+    requireLazy(['Page'], callback);
+
+    expect(callback).toHaveBeenCalledWith(Page);
+  });
+
+  it('calls a bootloadable module the server requires once it is loaded', () => {
+    const Editor = { open: vi.fn() };
+    document.body.innerHTML = '<textarea id="post"></textarea>';
+
+    new ServerJS().handle({ require: [['Editor', 'open', [{ __e: 'post' }]]] });
+    expect(Editor.open).not.toHaveBeenCalled();
+
+    loadEditor(Editor);
+    expect(Editor.open).toHaveBeenCalledWith(document.getElementById('post'));
+  });
+
+  it('takes the bootloadable modules of a response', () => {
+    new AsyncResponse().handle({
+      resource_map: { 'chat.js': { type: 'js', src: '/static/chat.js' } },
+      bootloadable: { Chat: ['chat.js'] }
+    });
+
+    expect(Bootloader.isBootloadable('Chat')).toBe(true);
+  });
+});
