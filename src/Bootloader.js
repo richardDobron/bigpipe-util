@@ -1,10 +1,16 @@
 import getCSPNonce from './core/getCSPNonce';
 import reportError from './core/reportError';
 import requireModule from './core/requireModule';
+import { requestIdleCallbackAcrossTransitions } from './core/TimerStorage';
+
+const MAX_PRELOADS = 2;
 
 const resourceMap = new Map();
 const requests = new Map();
 const bootloadable = new Map();
+const preloadQueue = [];
+const preloading = new Set();
+const preloaded = new Set();
 
 function resolveURL(src) {
   try {
@@ -31,6 +37,61 @@ function isOnPage(url, type) {
   }
 
   return Array.from(document.querySelectorAll('script[src]')).some(script => script.src === url);
+}
+
+function isNetworkIdle() {
+  return Array.from(requests.values()).every(entry => entry.loaded);
+}
+
+function preload(name, onLoad) {
+  const { type, src } = getResource(name);
+  const url = resolveURL(src);
+
+  if (requests.has(url) || preloading.has(url) || preloaded.has(url)) {
+    return false;
+  }
+
+  preloading.add(url);
+
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.setAttribute('as', type === 'css' ? 'style' : 'script');
+  link.href = src;
+
+  const nonce = getCSPNonce();
+  if (nonce) {
+    link.setAttribute('nonce', nonce);
+  }
+
+  link.onload = link.onerror = () => {
+    preloading.delete(url);
+    preloaded.add(url);
+    if (type === 'js') {
+      requestIdleCallbackAcrossTransitions(() => Bootloader.loadResources([name]));
+    }
+    if (onLoad) {
+      onLoad();
+    }
+  };
+  document.head.appendChild(link);
+
+  return true;
+}
+
+function runPreloadQueue() {
+  while (preloadQueue.length > 0 && preloading.size < MAX_PRELOADS && isNetworkIdle()) {
+    preload(preloadQueue.pop().name, runPreloadQueue);
+  }
+}
+
+function enqueuePreload(name, priority) {
+  if (preloadQueue.some(job => job.name === name)) {
+    return;
+  }
+
+  const index = preloadQueue.findIndex(job => job.priority >= priority);
+  preloadQueue.splice(index === -1 ? preloadQueue.length : index, 0, { name, priority });
+  runPreloadQueue();
 }
 
 function request({ type, src }) {
@@ -112,13 +173,32 @@ const Bootloader = {
 
   /**
    * Adds the modules that can be loaded later, with the resources each of them needs:
-   * `{Module: [names or URLs]}`.
+   * `{Module: [names or URLs]}`, or `{Module: {resources, priority}}` to preload the resources of
+   * a module with a priority above 0 while the network is idle, higher priorities first.
    */
   enableBootload(map) {
     Object.keys(map || {}).forEach(module => {
-      if (!bootloadable.has(module)) {
-        bootloadable.set(module, map[module]);
+      if (bootloadable.has(module)) {
+        return;
       }
+
+      const entry = Array.isArray(map[module]) ? { resources: map[module] } : map[module];
+      const resources = entry.resources || [];
+      bootloadable.set(module, resources);
+
+      if (entry.priority > 0) {
+        resources.forEach(name => enqueuePreload(name, entry.priority));
+      }
+    });
+  },
+
+  /**
+   * Preloads the resources of the modules right away, e.g. of a dialog the user is likely to
+   * open, so that loading the modules later is fast. Their scripts run once the browser is idle.
+   */
+  preloadModules(modules) {
+    modules.forEach(module => {
+      (bootloadable.get(module) || []).forEach(name => preload(name));
     });
   },
 
@@ -159,6 +239,8 @@ const Bootloader = {
         reportError(error);
       }
     });
+
+    runPreloadQueue();
   },
 
   resolveURL

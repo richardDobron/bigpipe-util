@@ -52,6 +52,8 @@ export default class Pagelet {
     this.displayResources = pageletData.displayResources || [];
     this.allResources = pageletData.allResources || [];
     this.jsNonBlock = Boolean(pageletData.jsNonBlock);
+    this.prefetchRsrcs = pageletData.prefetchRsrcs || [];
+    this.prefetchJsmods = pageletData.prefetchJsmods;
     this.root = null;
     this.destroyed = false;
     this.cssLoaded = false;
@@ -117,10 +119,27 @@ export default class Pagelet {
     }
 
     this.inform(PAGELET_EVENT.ARRIVE);
+    this.prefetch();
 
     this.setPhase(PAGELET_PHASE.LOADING_CSS);
     this.inform(PAGELET_EVENT.CSS);
     loadResources([[this.css, 'css'], [this.displayResources]], () => this.onCssFinished());
+  }
+
+  /**
+   * Loads the `prefetchRsrcs` of the pagelet when it arrives and then handles its `prefetchJsmods`,
+   * e.g. for what the user is likely to need next.
+   */
+  prefetch() {
+    if (this.prefetchRsrcs.length === 0 && !this.prefetchJsmods) {
+      return;
+    }
+
+    Bootloader.loadResources(this.prefetchRsrcs, () => {
+      if (!this.destroyed && this.prefetchJsmods) {
+        serverJS.handle(this.prefetchJsmods);
+      }
+    });
   }
 
   /**

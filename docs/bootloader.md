@@ -96,3 +96,32 @@ resource map it can split its resources further:
 ```
 
 A stylesheet in `allResources` does not delay the display of the pagelet.
+
+## Preloading and prefetching
+
+A bootloadable module with a priority above 0 is preloaded with `<link rel="preload">` while the network is idle,
+higher priorities first, so that it loads fast when the server or `requireLazy()` calls it. Its scripts run once the
+browser is idle.
+
+```javascript
+{
+  "bootloadable": {
+    "Dialog": {"resources": ["dialog.css", "dialog.js"], "priority": 2},
+    "Editor": ["editor.css", "editor.js"]
+  }
+}
+```
+
+`Bootloader.preloadModules(['Dialog'])` preloads the resources of modules right away, e.g. when the user hovers the
+button that opens the dialog.
+
+A pagelet can also prefetch what the user is likely to need next: its `prefetchRsrcs` load as soon as it arrives,
+and its `prefetchJsmods` run once they are loaded.
+
+```javascript
+{
+  "id": "feed",
+  "prefetchRsrcs": ["composer.js"],
+  "prefetchJsmods": {"require": [["Composer", "warmUp"]]}
+}
+```

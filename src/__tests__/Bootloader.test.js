@@ -214,3 +214,82 @@ describe('display resources', () => {
     delete window.require;
   });
 });
+
+describe('preloading', () => {
+  const preloads = () =>
+    Array.from(document.querySelectorAll('link[rel="preload"]'), link => [
+      link.getAttribute('href'),
+      link.getAttribute('as')
+    ]);
+
+  beforeEach(() => {
+    Bootloader.setResourceMap({
+      'dialog.css': { type: 'css', src: '/static/dialog.css' },
+      'dialog.js': { type: 'js', src: '/static/dialog.js' },
+      'editor.js': { type: 'js', src: '/static/editor.js' },
+      'chat.js': { type: 'js', src: '/static/chat.js' }
+    });
+  });
+
+  it('preloads the bootloadable modules with a priority while the network is idle', () => {
+    Bootloader.loadResources(['/static/page.css']);
+
+    Bootloader.enableBootload({
+      Chat: { resources: ['chat.js'], priority: 1 },
+      Dialog: { resources: ['dialog.css', 'dialog.js'], priority: 2 },
+      Editor: ['editor.js']
+    });
+    expect(preloads()).toEqual([]);
+
+    Bootloader.done('/static/page.css');
+    expect(preloads()).toEqual([
+      ['/static/dialog.css', 'style'],
+      ['/static/dialog.js', 'script']
+    ]);
+
+    document.querySelector('link[href="/static/dialog.css"]').onload();
+    expect(preloads().map(([href]) => href)).toContain('/static/chat.js');
+    expect(preloads().map(([href]) => href)).not.toContain('/static/editor.js');
+  });
+
+  it('preloads the modules right away and runs their scripts once the browser is idle', () => {
+    const idle = [];
+    vi.stubGlobal('requestIdleCallback', callback => idle.push(callback));
+    Bootloader.enableBootload({ Dialog: ['dialog.css', 'dialog.js'] });
+
+    Bootloader.preloadModules(['Dialog']);
+    expect(preloads()).toEqual([
+      ['/static/dialog.css', 'style'],
+      ['/static/dialog.js', 'script']
+    ]);
+
+    document.querySelector('link[href="/static/dialog.js"]').onload();
+    expect(srcs()).toEqual([]);
+
+    idle.forEach(callback => callback());
+    expect(srcs()).toEqual(['/static/dialog.js']);
+    expect(document.querySelector('link[rel="stylesheet"]')).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it('loads the prefetch resources of a pagelet when it arrives, then runs its prefetch jsmods', () => {
+    const warm = vi.fn();
+    window.require = name => (name === 'Cache' ? { warm } : {});
+
+    new BigPipe().onPageletArrive({
+      id: 'feed',
+      css: ['/static/feed-blocking.css'],
+      js: [],
+      domops: [],
+      jsmods: {},
+      prefetchRsrcs: ['editor.js'],
+      prefetchJsmods: { require: [['Cache', 'warm']] }
+    });
+    expect(srcs()).toEqual(['/static/editor.js']);
+    expect(warm).not.toHaveBeenCalled();
+
+    Bootloader.done('/static/editor.js');
+    expect(warm).toHaveBeenCalledOnce();
+    delete window.require;
+  });
+});
