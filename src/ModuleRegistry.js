@@ -10,6 +10,7 @@ import ReloadPage from './core/ReloadPage';
 import ServerRedirect from './core/ServerRedirect';
 import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
+import Bootloader from './Bootloader';
 import Pagelet from './Pagelet';
 import MorePagerFetchOnScroll from './MorePagerFetchOnScroll';
 import Primer from './Primer';
@@ -34,6 +35,7 @@ registerBuiltins({
   'core/ServerRedirect': ServerRedirect,
   'core/waitForLoad': waitForLoad,
   BigPipe,
+  Bootloader,
   MorePagerFetchOnScroll,
   Pagelet,
   Primer,

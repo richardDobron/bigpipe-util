@@ -30,7 +30,8 @@ pagelets, makes them display progressively.
 
 ## Lifecycle
 
-1. **Arrive.** The CSS files of the pagelet start loading. Files shared by more pagelets are loaded once.
+1. **Arrive.** The CSS files of the pagelet start loading through the [Bootloader](bootloader.md), which loads
+   every file once.
 2. **Display.** When its CSS is loaded, the DOM operations of the pagelet are applied.
 3. **Load JS.** When the last pagelet (`is_last`) has arrived and all pagelets are displayed, the JS files of all
    pagelets start loading.
@@ -40,9 +41,8 @@ pagelets, makes them display progressively.
    jsmods of the pagelets are handled. Use them for work that must not compete with the page, like prefetching or
    analytics.
 
-The phases are exported as `BIGPIPE_PHASE`, `PAGELET_PHASE` and `RESOURCE_PHASE` from
-`bigpipe-util/dist/BigPipe`. `BigPipe` is a singleton, so `new BigPipe()` always returns the same instance with
-the registered `pagelets`.
+The phases are exported as `BIGPIPE_PHASE` and `PAGELET_PHASE` from `bigpipe-util/dist/BigPipe`. `BigPipe` is a
+singleton, so `new BigPipe()` always returns the same instance with the registered `pagelets`.
 
 ## Display order
 
@@ -106,9 +106,9 @@ else from the first `<script nonce="...">` on the page, e.g. the inline script t
 
 ## Loading pagelets from an endpoint
 
-Like the `UIPagelet` of Facebook, a pagelet can be loaded later from an endpoint, e.g. a pagelet below the fold. The
-server prints its placeholder, the root element of the pagelet, and calls `UIPagelet.loadFromEndpoint()` with it, see
-`LazyPagelet` in the PHP library:
+A pagelet can be loaded later from an endpoint, e.g. a pagelet below the fold. The server prints its placeholder,
+the root element of the pagelet, and calls `UIPagelet.loadFromEndpoint()` with it, see `LazyPagelet` in the PHP
+library:
 
 ```javascript
 UIPagelet.loadFromEndpoint('/pagelets/feed', 'pagelet_feed', { page: 2 }, { load: 'visible' });
@@ -136,9 +136,10 @@ link is in.
 
 ## Destroying pagelets
 
-Like the `PageletSet` of Facebook, a pagelet is destroyed when a pagelet with the same id replaces it, e.g. when the
-server refreshes it, or when the DOM operations of a response remove its root element. Destroying a pagelet destroys the pagelets inside it, runs its destructors, informs
-`pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root element.
+A pagelet is destroyed when a pagelet with the same id replaces it, e.g. when the server refreshes it, or when the
+DOM operations of a response remove its root element. Destroying a pagelet destroys the pagelets inside it, runs its
+destructors, informs `pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root
+element.
 
 A module stops what it started for a pagelet in a destructor, e.g. a subscription or a timer:
 

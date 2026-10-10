@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BigPipe, { BIGPIPE_PHASE, PAGELET_PHASE } from '../BigPipe';
+import Bootloader from '../Bootloader';
 import Pagelet from '../Pagelet';
 
 beforeEach(() => {
@@ -71,7 +72,7 @@ describe('resources', () => {
     const bigPipe = new BigPipe();
 
     arriveWithCss(bigPipe, 'nonce', ['/nonce/a.css']);
-    bigPipe.pageletResourceFactory('/nonce/a.js', 'js').startLoading();
+    Bootloader.loadResources(['/nonce/a.js'], null, 'js');
 
     expect(document.querySelector('link[href="/nonce/a.css"]').getAttribute('nonce')).toBe(
       'r4nd0m'

@@ -1,4 +1,5 @@
-import { RESOURCE_PHASE, PAGELET_PHASE, PAGELET_EVENT } from './BigPipePhases';
+import { PAGELET_PHASE, PAGELET_EVENT } from './BigPipePhases';
+import Bootloader from './Bootloader';
 import ServerJS from './ServerJS';
 import AsyncDOM from './async/AsyncDOM';
 import Arbiter from './core/Arbiter';
@@ -11,13 +12,6 @@ const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
 
 export { PAGELET_PHASE, PAGELET_EVENT };
-
-function areAllResourcesLoaded(resources) {
-  if (resources.size === 0) {
-    return true;
-  }
-  return Array.from(resources.values()).every(resource => resource.phase === RESOURCE_PHASE.LOADED);
-}
 
 export default class Pagelet {
   constructor(pageletData, bigPipe) {
@@ -37,8 +31,6 @@ export default class Pagelet {
     this.displayDependency = pageletData.display_dependency || [];
     this.css = pageletData.css;
     this.js = pageletData.js;
-    this.cssResources = new Map();
-    this.jsResources = new Map();
     this.root = null;
     this.destroyed = false;
     this.cssLoaded = false;
@@ -103,34 +95,11 @@ export default class Pagelet {
       return;
     }
 
-    this.css.forEach(cssFile => {
-      this.attachCssResource(this.bigPipe.pageletResourceFactory(cssFile, 'css'));
-    });
-
-    this.js.forEach(jsFile => {
-      this.attachJsResource(this.bigPipe.pageletResourceFactory(jsFile, 'js'));
-    });
-
     this.inform(PAGELET_EVENT.ARRIVE);
 
     this.setPhase(PAGELET_PHASE.LOADING_CSS);
     this.inform(PAGELET_EVENT.CSS);
-    this.cssResources.forEach(resource => {
-      resource.startLoading();
-    });
-
-    // A stylesheet that another pagelet already loaded will not call back again.
-    this.onCssFinished();
-  }
-
-  attachCssResource(resource) {
-    resource.attachToPagelet(() => this.onCssFinished(resource));
-    this.cssResources.set(resource.file, resource);
-  }
-
-  attachJsResource(resource) {
-    resource.attachToPagelet(() => this.onJsFinished());
-    this.jsResources.set(resource.file, resource);
+    Bootloader.loadResources(this.css || [], () => this.onCssFinished(), 'css');
   }
 
   /**
@@ -157,19 +126,11 @@ export default class Pagelet {
 
     this.jsStarted = true;
     this.inform(PAGELET_EVENT.JS_START);
-    this.onJsFinished();
+    Bootloader.loadResources(this.js || [], () => this.onJsFinished(), 'js');
   }
 
-  /**
-   * Runs the jsmods once the JS files of the pagelet are loaded. Every JS file calls it when it
-   * is loaded.
-   */
   onJsFinished() {
     if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END || !this.jsStarted) {
-      return;
-    }
-
-    if (!areAllResourcesLoaded(this.jsResources)) {
       return;
     }
 
@@ -199,12 +160,7 @@ export default class Pagelet {
   }
 
   onCssFinished() {
-    if (
-      this.destroyed ||
-      this.cssLoaded ||
-      this.phase !== PAGELET_PHASE.LOADING_CSS ||
-      !areAllResourcesLoaded(this.cssResources)
-    ) {
+    if (this.destroyed || this.cssLoaded || this.phase !== PAGELET_PHASE.LOADING_CSS) {
       return;
     }
 

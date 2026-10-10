@@ -1,23 +1,16 @@
-import {
-  BIGPIPE_EVENT,
-  BIGPIPE_PHASE,
-  PAGELET_EVENT,
-  PAGELET_PHASE,
-  RESOURCE_PHASE
-} from './BigPipePhases';
+import { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE } from './BigPipePhases';
+import Bootloader from './Bootloader';
 import Pagelet from './Pagelet';
 import Arbiter from './core/Arbiter';
 import { find } from './core/Parent';
 import onAfterLoad from './core/onAfterLoad';
-import getCSPNonce from './core/getCSPNonce';
 import performanceNow from './core/performanceNow';
 
-export { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE };
+export { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE };
 
 let instance = null;
 
 export default class BigPipe {
-  pageletResources = new Map();
   pagelets = new Map();
   phase = BIGPIPE_PHASE.WAITING;
 
@@ -41,6 +34,10 @@ export default class BigPipe {
   }
 
   onPageletArrive(pageletData) {
+    if (pageletData.resource_map) {
+      Bootloader.setResourceMap(pageletData.resource_map);
+    }
+
     if (pageletData.is_last) {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
     }
@@ -108,13 +105,6 @@ export default class BigPipe {
     });
 
     return found;
-  }
-
-  fileLoaded(filename) {
-    const resource = this.pageletResources.get(filename);
-    if (resource) {
-      resource.onComplete();
-    }
   }
 
   registerPagelet(pagelet) {
@@ -188,92 +178,16 @@ export default class BigPipe {
     this.inform(BIGPIPE_EVENT.DISPLAYED);
     this.setPhase(BIGPIPE_PHASE.LOADING_JS);
 
-    this.getResourcesByType('js').forEach(resource => {
-      resource.startLoading();
-    });
-
-    // Pagelets without JS files (or with files already loaded) get no callback from a resource.
     this.pagelets.forEach(pagelet => {
       pagelet.startJs();
     });
   }
 
+  fileLoaded(file) {
+    Bootloader.done(file);
+  }
+
   resolveResourceName(file) {
-    try {
-      return new URL(file, document.baseURI).href;
-    } catch (e) {
-      return file;
-    }
-  }
-
-  getResourcesByType(type) {
-    return Array.from(this.pageletResources.values()).filter(resource => resource.type === type);
-  }
-
-  extractFilename(filePath) {
-    const match = /([^/]+)$/.exec(filePath);
-    return match ? match[1] : filePath;
-  }
-
-  pageletResourceFactory(file, type) {
-    const name = this.resolveResourceName(file);
-
-    let resource = this.pageletResources.get(name);
-    if (!resource) {
-      resource = this.createResource(file, name, type);
-      this.pageletResources.set(name, resource);
-    }
-
-    return resource;
-  }
-
-  createResource(file, name, type) {
-    const self = this;
-
-    return {
-      file,
-      name,
-      type,
-      phase: RESOURCE_PHASE.PENDING,
-      callbacks: [],
-
-      startLoading() {
-        if (this.phase !== RESOURCE_PHASE.PENDING) {
-          return;
-        }
-
-        this.phase = RESOURCE_PHASE.LOADING;
-
-        let element;
-        if (type === 'css') {
-          element = document.createElement('link');
-          element.rel = 'stylesheet';
-          element.href = file;
-        } else if (type === 'js') {
-          element = document.createElement('script');
-          element.src = file;
-        } else {
-          return;
-        }
-
-        const nonce = getCSPNonce();
-        if (nonce) {
-          element.setAttribute('nonce', nonce);
-        }
-
-        element.onload = () => self.fileLoaded(name);
-        element.onerror = () => self.fileLoaded(name);
-        (type === 'css' ? document.head : document.body).appendChild(element);
-      },
-
-      onComplete() {
-        this.phase = RESOURCE_PHASE.LOADED;
-        this.callbacks.forEach(callback => callback(this));
-      },
-
-      attachToPagelet(callback) {
-        this.callbacks.push(callback);
-      }
-    };
+    return Bootloader.resolveURL(file);
   }
 }

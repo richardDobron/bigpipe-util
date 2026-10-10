@@ -1,5 +1,6 @@
 import AsyncDOM from './AsyncDOM';
 import BigPipe from '../BigPipe';
+import Bootloader from '../Bootloader';
 import ServerJS from '../ServerJS';
 
 const _AsyncDOM = new AsyncDOM();
@@ -11,6 +12,10 @@ export default class AsyncResponse {
 
     if (typeof response === 'object') {
       const bigPipe = new BigPipe();
+
+      if (response.resource_map) {
+        Bootloader.setResourceMap(response.resource_map);
+      }
 
       if (domops) {
         _AsyncDOM.invoke(domops, element);
