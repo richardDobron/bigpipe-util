@@ -90,8 +90,16 @@ loader above replaces the `bigpipe-util/` branch of the old function: you only w
 
 ## 3. Handle the modules of the first page load
 
-At the end of the page, pass the modules required during the page render to [ServerJS](server_js.md). Wait for
-`DOMContentLoaded`:
+At the end of the page, print the script that sends the [pagelets](pagelets.md) and the modules required during the
+page render to the browser. With PHP it's one line, and the entrypoint has to be loaded by then, so add it with a
+classic `<script src>` before it:
+
+```php title="layout.php"
+<?= \dobron\BigPipe\BigPipe::render() ?>
+```
+
+When the entrypoint is a deferred `<script type="module">`, as Vite adds it, pass the modules to
+[ServerJS](server_js.md) yourself once `DOMContentLoaded` fires. This does not send pagelets:
 
 ```php title="layout.php"
 <script>
@@ -133,7 +141,7 @@ Call it from the server:
 ```php
 $response = new \dobron\BigPipe\AsyncResponse();
 
-$response->bigPipe()->require("require('MyModule').init()", [
+$response->call('MyModule', 'init', [
     'first argument',
     'second argument',
 ]);

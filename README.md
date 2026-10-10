@@ -1,6 +1,6 @@
 <img src="bigpipe.svg" alt="BigPipe logo">
 
-This library currently implements small part of [Facebook BigPipe][blog] so far, but the advantage is to efficiently insert/replace content and work with the DOM. It is also possible to easily call JavaScript modules from PHP.
+The JavaScript runtime of BigPipe, a microframework for PHP and JavaScript. It sends requests, applies the DOM operations a server responds with, shows the pagelets of a page as they arrive and calls JavaScript modules the server asks for. The server side is [richarddobron/bigpipe](https://github.com/richardDobron/bigpipe-php) for PHP, but any backend that speaks the [response format](docs/how_it_works.md) works.
 
 
 ## 👀 Demo App
@@ -10,8 +10,8 @@ Try the app with [live demo](http://bigpipe.xf.cz).
 https://richarddobron.github.io/bigpipe-php/
 
 ## ℹ️ Requirements
-* PHP 7.1 or higher
 * A bundler: [webpack](https://webpack.js.org/), [Vite](https://vite.dev/) or similar
+* A backend that answers with BigPipe responses, e.g. `richarddobron/bigpipe` for PHP 8.0 or higher
 
 ## 📦 Installation
 Follow these steps to install and set up:
@@ -34,7 +34,7 @@ import { setModuleLoader } from 'bigpipe-util/dist/ModuleRegistry';
 Primer();
 ```
 
-Then tell BigPipe how to load your modules by name (the server calls e.g. `require('UserLoggedInAlert')`):
+Then tell BigPipe how to load your modules by name (the server calls e.g. `$response->call('UserLoggedInAlert')`):
 
 **webpack**
 ```javascript
@@ -49,25 +49,52 @@ setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
 ```
 
 > Vite needs an alias for the `events` module used by dialogs, see the
-> [documentation](https://richarddobron.github.io/bigpipe-php/).
+> [getting started guide](docs/getting_started.md#vite-the-events-module).
 
 > Already using your own `window.require`? It keeps working, see the
-> [documentation](https://richarddobron.github.io/bigpipe-php/).
+> [getting started guide](docs/getting_started.md#upgrading-from-windowrequire).
 
-### 4. Add these lines to the page footer:
+### 4. Add this line to the page footer:
 ```html
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
-    });
-</script>
+<?= \dobron\BigPipe\BigPipe::render() ?>
 ```
-`DOMContentLoaded` is needed because Vite loads the entrypoint as a deferred module script.
+It prints the script that sends the pagelets and the modules of the page to the browser, so load the entrypoint with a classic `<script src>` before it. With a deferred `<script type="module">` entrypoint, hand the modules to [ServerJS](docs/server_js.md) once `DOMContentLoaded` fires, see the [getting started guide](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
+
+## 🚀 Quick start
+
+Write a module, a default export:
+
+```javascript
+// resources/js/UserLoggedInAlert.js
+export default function UserLoggedInAlert(username) {
+  alert(`Welcome, ${username}!`);
+}
+```
+
+and call it from the server:
+
+```php
+$response = new \dobron\BigPipe\AsyncResponse();
+
+$response->call('UserLoggedInAlert', null, ['Marvin']);
+$response->send();
+```
+
+## 🧩 What is inside
+
+* [Primer](docs/primer.md): makes links and forms with `rel` asynchronous.
+* [AsyncRequest](docs/async_request.md): requests with handlers, errors, retries, `abandon()` and streamed responses.
+* [Pagelets](docs/pagelets.md): independent parts of a page, displayed as they arrive, loaded on demand with `UIPagelet` and `MorePagerFetchOnScroll`.
+* [Page transitions](docs/page_transitions.md): load the next page into the layout instead of in full.
+* [Bootloader](docs/bootloader.md): loads CSS and JavaScript once, and modules only when they are called.
+* [ServerJS](docs/server_js.md): calls the modules of a response, keeps instances and defined modules.
+* [Poller](docs/poller.md): requests a URL again and again, controlled by the server.
+* [Dialogs](docs/dialog.md), [DOM](docs/dom.md) (with morphing), [Arbiter](docs/arbiter.md) and [utilities](docs/utilities.md).
 
 ## 🛜 Request API
 
 ```javascript
-import AsyncRequest from 'bigpipe-util/dist/AsyncRequest';
+import AsyncRequest from 'bigpipe-util/dist/async/AsyncRequest';
 
 const request = (new AsyncRequest('/ajax/remove.php'))
   // or .setURI('/ajax/remove.php')
@@ -81,7 +108,7 @@ const request = (new AsyncRequest('/ajax/remove.php'))
   .setHandler((jsonResponse) => {
       // A function to be called if the request succeeds
   })
-  .setErrorHandler((xhr) => {
+  .setErrorHandler((xhr, error) => {
       // A function to be called if the request fails
   })
   .setFinallyHandler((xhr) => {
