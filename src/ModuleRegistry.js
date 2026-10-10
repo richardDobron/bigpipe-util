@@ -8,6 +8,7 @@ import Cookie from './core/Cookie';
 import DataStore from './core/DataStore';
 import DOM from './core/DOM';
 import DocumentTitle from './core/DocumentTitle';
+import FormMonitor from './core/FormMonitor';
 import ifRequired from './core/ifRequired';
 import KeyEventController from './core/KeyEventController';
 import onAfterLoad from './core/onAfterLoad';
@@ -47,6 +48,7 @@ registerBuiltins({
   'core/DataStore': DataStore,
   'core/DOM': DOM,
   'core/DocumentTitle': DocumentTitle,
+  'core/FormMonitor': FormMonitor,
   'core/ifRequired': ifRequired,
   'core/KeyEventController': KeyEventController,
   'core/onAfterLoad': onAfterLoad,

@@ -39,6 +39,8 @@ text. When a page transition ends in a full page load because no handler loads t
 `onUnload()` only for what must run when the page really goes away, like sending a beacon, as a page transition keeps
 the document.
 
+[FormMonitor](form_monitor.md) uses `onBeforeUnload()` to ask before a form with unsaved changes is left.
+
 `onCleanupOrLeave()` ties a cleanup to an element. The elements inside a pagelet are gone when the pagelet is destroyed,
 e.g. when a page transition empties the canvas or a response replaces the pagelet, long before the page is left:
 
