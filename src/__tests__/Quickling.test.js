@@ -85,7 +85,7 @@ describe('Quickling', () => {
 
     expect(interval).not.toHaveBeenCalled();
     expect(requests[0].method).toBe('GET');
-    expect(requests[0].url).toMatch(/\/feed\?quickling%5Bversion%5D=v1&__req=\d+$/);
+    expect(requests[0].url).toMatch(/\/feed\?quickling%5Bversion%5D=v1&__stream=1&__req=\d+$/);
     expect(window.location.pathname).toBe('/feed');
 
     requests[0].respond(200, feedResponse());
@@ -96,6 +96,48 @@ describe('Quickling', () => {
     expect(document.title).toBe('Feed');
     expect(document.body.className).toBe('feed');
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+    expect(complete).toHaveBeenCalledOnce();
+  });
+
+  it('shows the parts of a streamed page as they arrive and completes after the last one', () => {
+    const complete = vi.spyOn(PageTransitions, 'transitionComplete');
+    const part = (content, finished = false) =>
+      JSON.stringify({ content, finished }) + '/*<!-- fetch-stream -->*/';
+    const pagelet = (id, extra = {}) => ({
+      id,
+      css: [],
+      js: [],
+      domops: [['setContent', '#pagelet_' + id, false, { __html: id }]],
+      jsmods: {},
+      ...extra
+    });
+
+    Quickling.init(canvas, { version: 'v1' });
+    PageTransitions.go('/feed');
+
+    let body = part({
+      payload: { title: 'Feed', version: 'v1' },
+      domops: [
+        [
+          'setContent',
+          '',
+          true,
+          { __html: '<div id="pagelet_feed"></div><div id="pagelet_ads"></div>' }
+        ]
+      ]
+    });
+    requests[0].progress(200, body);
+    expect(document.title).toBe('Feed');
+    expect(canvas.innerHTML).toBe('<div id="pagelet_feed"></div><div id="pagelet_ads"></div>');
+
+    body += part({ pagelets: [pagelet('feed')] });
+    requests[0].progress(200, body);
+    expect(document.getElementById('pagelet_feed').innerHTML).toBe('feed');
+    expect(complete).not.toHaveBeenCalled();
+
+    body += part({ pagelets: [pagelet('ads', { is_last: true })] }, true);
+    requests[0].respond(200, body);
+    expect(document.getElementById('pagelet_ads').innerHTML).toBe('ads');
     expect(complete).toHaveBeenCalledOnce();
   });
 

@@ -142,7 +142,7 @@ describe('responses', () => {
     requests[0].respond(200, asyncResponse(response));
 
     expect(h.initial).toHaveBeenCalledOnce();
-    expect(h.success).toHaveBeenCalledWith(response);
+    expect(h.success).toHaveBeenCalledWith({ ...response, is_first: true, is_last: true });
     expect(h.error).not.toHaveBeenCalled();
     expect(h.finally).toHaveBeenCalledOnce();
   });
@@ -674,5 +674,99 @@ describe('page transitions', () => {
     requests[1].respond(200, asyncResponse({ payload: 'ok' }));
     expect(crossing.success).toHaveBeenCalledOnce();
     expect(page.success).not.toHaveBeenCalled();
+  });
+});
+
+describe('streamed responses', () => {
+  const part = (content, finished = false) =>
+    JSON.stringify({ content, finished }) + '/*<!-- fetch-stream -->*/';
+
+  it('handles every part of a streamed response as soon as it arrives', () => {
+    document.body.innerHTML = '<ul class="feed"></ul>';
+    const h = handlers();
+    const append = html => ({
+      domops: [['appendContent', 'ul.feed', false, { __html: html }]]
+    });
+
+    send(new AsyncRequest('/feed').setMethod('GET').setOption('stream', true), h);
+    expect(requests[0].url).toMatch(/^\/feed\?__stream=1&__req=\d+$/);
+
+    const first = part(append('<li>1</li>'));
+    requests[0].progress(200, first + '{"content":');
+    expect(document.querySelector('ul.feed').innerHTML).toBe('<li>1</li>');
+    expect(h.success).toHaveBeenLastCalledWith(
+      expect.objectContaining({ is_first: true, is_last: false })
+    );
+
+    const all = first + part(append('<li>2</li>')) + part({ payload: 'done' }, true);
+    requests[0].progress(200, all);
+    requests[0].respond(200, all);
+
+    expect(document.querySelector('ul.feed').innerHTML).toBe('<li>1</li><li>2</li>');
+    expect(h.success).toHaveBeenCalledTimes(3);
+    expect(h.success).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payload: 'done', is_first: false, is_last: true })
+    );
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
+  it('handles a response that is not streamed', () => {
+    const h = handlers();
+
+    send(new AsyncRequest('/feed').setOption('stream', true), h);
+    requests[0].progress(200, 'for (;;);{"payload":');
+    expect(h.success).not.toHaveBeenCalled();
+    requests[0].respond(200, asyncResponse({ payload: 'all' }));
+
+    expect(h.success).toHaveBeenCalledWith(
+      expect.objectContaining({ payload: 'all', is_first: true, is_last: true })
+    );
+  });
+
+  it('stops at a part the pre-response handler drops or that is invalid', () => {
+    const dropped = handlers();
+    send(
+      new AsyncRequest('/a')
+        .setOption('stream', true)
+        .setPreResponseHandler(response => response.payload !== 'stop'),
+      dropped
+    );
+    const stopping =
+      part({ payload: 'go' }) + part({ payload: 'stop' }) + part({ payload: 'more' }, true);
+    requests[0].respond(200, stopping);
+    expect(dropped.success).toHaveBeenCalledOnce();
+
+    const transportError = vi.fn();
+    new AsyncRequest('/b')
+      .setOption('stream', true)
+      .setTransportErrorHandler(transportError)
+      .send();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    requests[1].respond(200, '{"broken' + '/*<!-- fetch-stream -->*/');
+    expect(transportError).toHaveBeenCalledWith(
+      requests[1],
+      expect.objectContaining({ type: ERROR_TYPE.INVALID_RESPONSE })
+    );
+    vi.clearAllTimers();
+  });
+
+  it('does not retry a request whose response already started', () => {
+    const h = handlers();
+    const transportError = vi.fn();
+
+    send(
+      new AsyncRequest('/feed')
+        .setOption('stream', true)
+        .setOption('retries', 2)
+        .setTransportErrorHandler(transportError),
+      h
+    );
+    requests[0].progress(200, part({ payload: 1 }));
+    requests[0].fail();
+
+    expect(requests).toHaveLength(1);
+    expect(h.success).toHaveBeenCalledOnce();
+    expect(transportError).toHaveBeenCalledOnce();
   });
 });

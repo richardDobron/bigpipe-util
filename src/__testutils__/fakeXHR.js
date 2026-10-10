@@ -35,6 +35,12 @@ export function installFakeXHR() {
       this.onabort && this.onabort.call(this);
     }
 
+    progress(status, responseText) {
+      this.status = status;
+      this.responseText = responseText;
+      this.onprogress && this.onprogress.call(this);
+    }
+
     respond(status, responseText) {
       this.status = status;
       this.responseText = responseText;

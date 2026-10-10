@@ -64,9 +64,13 @@ function redirect(payload) {
   }
 }
 
-function onFirstResponse(request, uri, response) {
+function onPreResponse(request, uri, response) {
   if (request !== currentRequest) {
     return false;
+  }
+
+  if (!response.is_first) {
+    return true;
   }
 
   const payload = response.payload || {};
@@ -95,10 +99,20 @@ function onFirstResponse(request, uri, response) {
   return true;
 }
 
-function onResponse(response) {
+// A streamed response arrives in parts: the page transition completes once the pagelets of all
+// of them are displayed.
+function onResponse(response, state) {
+  if (response.pagelets && response.pagelets.length > 0) {
+    state.pagelets = true;
+  }
+
   new Arbiter().inform(QUICKLING_EVENT.RESPONSE, { response });
 
-  if (!response.pagelets || response.pagelets.length === 0) {
+  if (!response.is_last) {
+    return;
+  }
+
+  if (!state.pagelets) {
     PageTransitions.transitionComplete();
     return;
   }
@@ -137,13 +151,15 @@ function transitionHandler(uri) {
   PageTransitions.runLeaveHooks();
 
   const fullLoad = () => goOrReplace(window.location, withoutRequestParams(uri.href), true);
+  const state = { pagelets: false };
   const request = new AsyncRequest(uri.href)
     .setMethod('GET')
+    .setOption('stream', true)
     .setData({ quickling: { version: config.version } })
     .setRelative(canvas)
     .setAllowCrossPageTransition(true)
-    .setPreResponseHandler(response => onFirstResponse(request, uri.href, response))
-    .setHandler(onResponse)
+    .setPreResponseHandler(response => onPreResponse(request, uri.href, response))
+    .setHandler(response => onResponse(response, state))
     .setErrorHandler(fullLoad)
     .setTransportErrorHandler(fullLoad)
     .setFinallyHandler(() => {

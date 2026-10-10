@@ -123,6 +123,30 @@ new AsyncRequest('/ajax/feed')
 Retry only requests that are safe to send twice, like `GET` requests: the server may have handled a request whose
 response was lost.
 
+## Streamed responses
+
+With the `stream` option, the request sends the `__stream` parameter, and the server can answer in parts, e.g. every
+pagelet as soon as it is rendered, see `AsyncResponse::stream()` in the PHP library. Every part is a response of its
+own: it is applied, and the pre-response handler and the handler (or the error handler) are called with it, as soon as
+it arrives. `is_first` and `is_last` of the response tell which part it is; the finally handler is called once, at the
+end.
+
+```javascript
+new AsyncRequest('/ajax/search')
+  .setMethod('GET')
+  .setOption('stream', true)
+  .setHandler(response => {
+    if (response.is_last) {
+      spinner.hide();
+    }
+  })
+  .send();
+```
+
+A server that doesn't stream sends a single response, with both `is_first` and `is_last`. A request whose response
+started arriving is not retried. The parts arrive over the same `XMLHttpRequest`, so CSRF tokens, timeouts and
+abandoning work as usual. See [how it works](how_it_works.md#streamed-responses) for the format.
+
 ## CSRF tokens
 
 When the server defines the `CSRFToken` module, e.g. with `BigPipe::setCSRFToken()` in PHP, every request that can

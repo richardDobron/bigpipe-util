@@ -34,6 +34,17 @@ for (;;);{"payload":null,"domops":[...],"jsmods":{"require":[...]},"__ar":1}
 The whole response object is also passed to the handler set with
 [`setHandler()`](async_request.md#handlers).
 
+## Streamed responses
+
+A [streamed response](async_request.md#streamed-responses) is a series of parts, each followed by the delimiter
+`/*<!-- fetch-stream -->*/`. A part is JSON with a response as `content` and `finished` on the last part:
+
+```text
+{"content":{"payload":{"title":"Feed"},"domops":[...],"jsmods":{"define":[...]}},"finished":false}/*<!-- fetch-stream -->*/
+{"content":{"pagelets":[{"id":"feed",...}]},"finished":false}/*<!-- fetch-stream -->*/
+{"content":{"pagelets":[{"id":"__bigpipe_last","is_last":true,...}],"jsmods":{"require":[...]}},"finished":true}/*<!-- fetch-stream -->*/
+```
+
 ## DOM operations
 
 Each operation is an array `[type, selector, targetRelative, content]`:

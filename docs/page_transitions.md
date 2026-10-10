@@ -46,6 +46,10 @@ Before the response is applied, the pagelets in the canvas are destroyed, `pagel
 canvas as `root`, and the canvas is emptied. Its DOM operations then fill the canvas (the element the request is
 relative to) and its pagelets are loaded like on a page. Only the response of the latest page transition is applied.
 
+The request is [streamed](async_request.md#streamed-responses): a server that sends every pagelet as soon as it is
+rendered shows the next page progressively, like a page streamed with `BigPipe::stream()`. The page transition
+completes once the pagelets of the last part are displayed.
+
 ## Leaving a page
 
 A page that is left runs its leave hooks, its timers are cleared, and its requests in flight are abandoned unless they

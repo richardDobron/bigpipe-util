@@ -7,6 +7,11 @@ import AsyncResponse from './AsyncResponse';
 
 let requests = 0;
 
+/** Separates the parts of a streamed response, see the `stream` option. */
+export const STREAM_DELIMITER = '/*<!-- fetch-stream -->*/';
+
+const SHIELD = 'for (;;);';
+
 // The requests in flight. A page transition abandons the ones that must not outlive their page.
 const pending = new Set();
 
@@ -199,7 +204,7 @@ export default class AsyncRequest {
     this.timeoutHandler = null;
     this.transportErrorHandler = null;
     this.uploadProgressHandler = null;
-    this.options = { retries: 0 };
+    this.options = { retries: 0, stream: false };
     this.abandoned = false;
     this.allowCrossPageTransition = false;
 
@@ -358,7 +363,8 @@ export default class AsyncRequest {
 
   /**
    * Sets an option of the request: `retries`, how many times a request that failed with a network
-   * error is sent again (0 by default).
+   * error is sent again (0 by default), and `stream`, to handle every part of a streamed response
+   * as soon as it arrives (false by default).
    */
   setOption(name, value) {
     warning(
@@ -450,13 +456,16 @@ export default class AsyncRequest {
 
     const csrf = getCSRFToken(method, uri);
     const csrfParam = csrf && csrf.param ? { [csrf.param]: csrf.token } : {};
+    const stream = Boolean(this.getOption('stream'));
+    const streamParam = stream ? { __stream: 1 } : {};
 
     if (data instanceof FormData) {
       data = copyFormData(data);
       Object.keys(csrfParam).forEach(name => data.append(name, csrfParam[name]));
+      Object.keys(streamParam).forEach(name => data.append(name, streamParam[name]));
       data.append('__req', requests);
     } else {
-      data = serialize({ ...data, ...csrfParam, __req: requests });
+      data = serialize({ ...data, ...csrfParam, ...streamParam, __req: requests });
     }
 
     if (['GET', 'HEAD'].includes(method)) {
@@ -471,11 +480,91 @@ export default class AsyncRequest {
     const { headers, uploadProgressHandler } = this;
     let remainingRetries = this.getOption('retries') || 0;
 
+    let offset = 0;
+    let parts = 0;
+    let stopped = false;
+
+    // Handles one response, or one part of a streamed response: is_first and is_last tell which.
+    const handleResponse = (transport, response, isLast) => {
+      response.is_first = parts === 0;
+      response.is_last = isLast;
+      parts += 1;
+
+      if (preResponseHandler && preResponseHandler(response) === false) {
+        stopped = true;
+        return;
+      }
+
+      // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
+      new AsyncResponse().handle(response, self.relative);
+
+      if (response.error) {
+        errorHandler(transport, createServerError(transport, response));
+      } else {
+        handler(response);
+      }
+    };
+
+    const parse = (transport, text) => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        stopped = true;
+        transportErrorHandler(
+          transport,
+          createError(ERROR_TYPE.INVALID_RESPONSE, transport, {
+            summary: 'Invalid response',
+            description: e.message
+          })
+        );
+        reportError(new Error('Failed to handle response: ' + e.message + '\n' + text));
+        return null;
+      }
+    };
+
+    // Handles the parts of a streamed response received so far, and the rest once it is complete.
+    // A server that does not stream sends a single response, which is handled once it is complete.
+    const readParts = (transport, complete) => {
+      const text = transport.responseText || '';
+
+      if (parts === 0 && text.startsWith(SHIELD)) {
+        if (complete) {
+          const response = parse(transport, text.substring(SHIELD.length));
+          if (response) {
+            handleResponse(transport, response, true);
+          }
+        }
+        return;
+      }
+
+      let end = text.indexOf(STREAM_DELIMITER, offset);
+      while (!stopped && end !== -1) {
+        const part = parse(transport, text.slice(offset, end));
+        offset = end + STREAM_DELIMITER.length;
+        if (part) {
+          handleResponse(transport, part.content, Boolean(part.finished));
+        }
+        end = text.indexOf(STREAM_DELIMITER, offset);
+      }
+
+      const rest = text.slice(offset).trim();
+      if (complete && !stopped && rest) {
+        offset = text.length;
+        const part = parse(transport, rest);
+        if (part) {
+          handleResponse(transport, part.content, true);
+        }
+      }
+    };
+
     const open = () => {
       const request = new XMLHttpRequest();
 
       this.transport = request;
       timedOut = false;
+      offset = 0;
+      parts = 0;
+      stopped = false;
 
       request.open(method, uri, true);
 
@@ -495,10 +584,14 @@ export default class AsyncRequest {
           }
 
           if (this.status >= 200 && this.status < 400) {
+            if (stream) {
+              readParts(this, true);
+              return;
+            }
+
             let response;
             try {
-              const safeJson = self._unshieldResponseText(this.responseText);
-              response = JSON.parse(safeJson);
+              response = JSON.parse(self._unshieldResponseText(this.responseText));
             } catch (e) {
               transportErrorHandler(
                 this,
@@ -513,18 +606,7 @@ export default class AsyncRequest {
               return;
             }
 
-            if (preResponseHandler && preResponseHandler(response) === false) {
-              return;
-            }
-
-            // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
-            new AsyncResponse().handle(response, self.relative);
-
-            if (response.error) {
-              errorHandler(this, createServerError(this, response));
-            } else {
-              handler(response);
-            }
+            handleResponse(this, response, true);
           } else {
             transportErrorHandler(this, createHttpError(this));
           }
@@ -547,8 +629,16 @@ export default class AsyncRequest {
         request.setRequestHeader(name, headers[name]);
       });
 
+      if (stream) {
+        request.onprogress = function () {
+          if (!self.abandoned && this.status >= 200 && this.status < 400) {
+            readParts(this, false);
+          }
+        };
+      }
+
       request.onerror = function () {
-        if (!self.abandoned && remainingRetries > 0) {
+        if (!self.abandoned && parts === 0 && remainingRetries > 0) {
           remainingRetries -= 1;
           open();
           return;
