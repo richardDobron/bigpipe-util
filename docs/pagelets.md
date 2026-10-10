@@ -77,3 +77,31 @@ new MorePagerFetchOnScroll(document.getElementById('more_pager'), 300);
 
 It clicks the link when it comes within the offset of the viewport. The response appends the items and replaces the
 link with the one of the next page, or removes it. `remove()` stops waiting.
+
+## Destroying pagelets
+
+Like the `PageletSet` of Facebook, a pagelet is destroyed when a pagelet with the same id replaces it, e.g. when the
+server refreshes it. Destroying a pagelet destroys the pagelets inside it, runs its destructors, informs
+`pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root element.
+
+A module stops what it started for a pagelet in a destructor, e.g. a subscription or a timer:
+
+```javascript
+import BigPipe from 'bigpipe-util/dist/BigPipe';
+import Arbiter from 'bigpipe-util/dist/core/Arbiter';
+
+export default class Feed {
+  init(element) {
+    const subscription = new Arbiter().subscribe('POST/ADDED', post => this.add(post));
+    const timer = setInterval(() => this.refreshTimes(), 60000);
+
+    new BigPipe().getPageletForNode(element)?.addDestructor(() => {
+      subscription.remove();
+      clearInterval(timer);
+    });
+  }
+}
+```
+
+`getPageletForNode()` finds the pagelet an element is in, by its root element `#pagelet_<id>`. `getRoot()` returns
+the root of a displayed pagelet, and `removePagelet(pagelet)` destroys a pagelet.

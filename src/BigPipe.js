@@ -1,5 +1,6 @@
 import { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
 import Pagelet from './Pagelet';
+import { find } from './core/Parent';
 import onAfterLoad from './core/onAfterLoad';
 import getCSPNonce from './core/getCSPNonce';
 
@@ -24,9 +25,56 @@ export default class BigPipe {
       this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
     }
 
+    const previous = this.pagelets.get(pageletData.id);
+    if (previous) {
+      this.removePagelet(previous);
+    }
+
     const pagelet = new Pagelet(pageletData, this);
     this.registerPagelet(pagelet);
     pagelet.start();
+  }
+
+  /**
+   * Removes the pagelet and runs its destructors, also of the pagelets inside it.
+   */
+  removePagelet(pagelet) {
+    if (this.pagelets.get(pagelet.id) === pagelet) {
+      this.pagelets.delete(pagelet.id);
+    }
+
+    pagelet.destroy();
+  }
+
+  destroyPageletsInside(parent) {
+    const root = parent.getRoot();
+    if (!root) {
+      return;
+    }
+
+    Array.from(this.pagelets.values()).forEach(pagelet => {
+      const pageletRoot = pagelet.getRoot();
+      if (pagelet !== parent && pageletRoot && root.contains(pageletRoot)) {
+        this.removePagelet(pagelet);
+      }
+    });
+  }
+
+  /**
+   * The pagelet the node is in, e.g. to add a destructor for what a module did with the node.
+   */
+  getPageletForNode(node) {
+    let found = null;
+
+    find(node, el => {
+      const pagelet = el.id && el.id.startsWith('pagelet_') && this.pagelets.get(el.id.slice(8));
+      if (pagelet && pagelet.getRoot() === el) {
+        found = pagelet;
+      }
+      return found;
+    });
+
+    return found;
   }
 
   fileLoaded(filename) {

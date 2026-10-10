@@ -1,7 +1,10 @@
 import { RESOURCE_PHASE, PAGELET_PHASE } from './BigPipePhases';
 import ServerJS from './ServerJS';
 import AsyncDOM from './async/AsyncDOM';
+import Arbiter from './core/Arbiter';
+import DOM from './core/DOM';
 import invariant from './core/invariant';
+import reportError from './core/reportError';
 
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
@@ -33,6 +36,52 @@ export default class Pagelet {
     this.js = pageletData.js;
     this.cssResources = new Map();
     this.jsResources = new Map();
+    this.root = null;
+    this.destroyed = false;
+    this.destructors = [
+      () => new Arbiter().inform('pagelet/destroy', { id: this.id, root: this.root })
+    ];
+  }
+
+  /**
+   * The root element of the pagelet, `#pagelet_<id>`, once the pagelet is displayed.
+   */
+  getRoot() {
+    return this.root;
+  }
+
+  /**
+   * Runs `destructor` when the pagelet is destroyed: when a pagelet with the same id replaces it,
+   * or a response removes its root. Use it to stop what a module started for the pagelet.
+   */
+  addDestructor(destructor) {
+    if (this.destroyed) {
+      destructor();
+      return;
+    }
+
+    this.destructors.push(destructor);
+  }
+
+  destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
+
+    this.bigPipe.destroyPageletsInside(this);
+
+    this.destructors.splice(0).forEach(destructor => {
+      try {
+        destructor();
+      } catch (error) {
+        reportError(error);
+      }
+    });
+
+    if (this.root) {
+      DOM.empty(this.root);
+    }
   }
 
   isComplete() {
@@ -126,6 +175,7 @@ export default class Pagelet {
       asyncDOM.invoke(this.domops);
     }
 
+    this.root = document.getElementById('pagelet_' + this.id);
     this.setPhase(PAGELET_PHASE.DISPLAY_END);
     this.bigPipe.pageletDisplayed(this);
   }
