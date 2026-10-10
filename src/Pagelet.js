@@ -103,8 +103,11 @@ export default class Pagelet {
    * the window has loaded.
    */
   processAfterLoadJsMods() {
-    if (this.onafterload) {
-      serverJS.handle(this.onafterload);
+    const { onafterload } = this;
+    this.onafterload = null;
+
+    if (onafterload) {
+      serverJS.handle(onafterload);
     }
   }
 

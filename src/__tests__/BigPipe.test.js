@@ -225,6 +225,19 @@ describe('lifecycle', () => {
     expect(calls).toEqual(['bModule', 'aModule', 'aAfterLoad', 'bAfterLoad']);
   });
 
+  it('runs a pagelet that arrives after the page finished, and its onafterload only', () => {
+    arrive('a', { isLast: true, afterLoad: true });
+    window.dispatchEvent(new Event('load'));
+    expect(calls).toEqual(['aModule', 'aAfterLoad']);
+
+    arrive('b', { isLast: true, afterLoad: true });
+    window.dispatchEvent(new Event('load'));
+
+    expect(content('b')).toBe('B');
+    expect(calls).toEqual(['aModule', 'aAfterLoad', 'bModule', 'bAfterLoad']);
+    expect(bigPipe.phase).toBe(BIGPIPE_PHASE.COMPLETE);
+  });
+
   it('runs the onafterload jsmods right away when the window is already loaded', async () => {
     vi.restoreAllMocks();
     vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete');
