@@ -18,3 +18,14 @@ export const PAGELET_PHASE = Object.freeze({
   DISPLAY_END: 3,
   ARRIVE_END: 4
 });
+
+export const PAGELET_EVENT = Object.freeze({
+  ARRIVE: 'arrive',
+  CSS: 'css',
+  CSS_LOAD: 'css_load',
+  DISPLAY_START: 'display_start',
+  DISPLAY: 'display',
+  JS_START: 'jsstart',
+  JS_DONE: 'jsdone',
+  ONLOAD: 'onload'
+});

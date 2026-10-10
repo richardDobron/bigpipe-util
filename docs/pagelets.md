@@ -44,6 +44,33 @@ The phases are exported as `BIGPIPE_PHASE`, `PAGELET_PHASE` and `RESOURCE_PHASE`
 `bigpipe-util/dist/BigPipe`. `BigPipe` is a singleton, so `new BigPipe()` always returns the same instance with
 the registered `pagelets`.
 
+## Events and timing
+
+Every pagelet informs `pagelet_event` through [Arbiter](arbiter.md) on each step of its
+lifecycle, with the `event`, the `id` of the pagelet and the time `ts` from `performance.now()`:
+
+| Event           | When                                              |
+| --------------- | ------------------------------------------------- |
+| `arrive`        | The pagelet arrived.                              |
+| `css`           | Its CSS files start loading.                      |
+| `css_load`      | Its CSS files are loaded.                         |
+| `display_start` | Its DOM operations are about to be applied.       |
+| `display`       | It is displayed.                                  |
+| `jsstart`       | The JS files start loading.                       |
+| `jsdone`        | Its JS files are loaded, its `jsmods` run next.   |
+| `onload`        | Its `jsmods` have run.                            |
+
+The times are kept in `pagelet.timings` and marked with `performance.mark()` as `pagelet_<id>_<event>`, so they
+show in the performance panel of the browser. The names are exported as `PAGELET_EVENT`.
+
+```javascript
+new Arbiter().subscribe('pagelet_event', ({ event, id, ts }) => {
+  if (event === 'display') {
+    analytics.track('pagelet_displayed', { id, ts });
+  }
+});
+```
+
 ## Content Security Policy
 
 With a nonce-based policy, `BigPipe` adds the nonce of the page to the stylesheets and scripts it loads. It takes the

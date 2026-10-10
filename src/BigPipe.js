@@ -1,10 +1,10 @@
-import { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
+import { BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
 import Pagelet from './Pagelet';
 import { find } from './core/Parent';
 import onAfterLoad from './core/onAfterLoad';
 import getCSPNonce from './core/getCSPNonce';
 
-export { BIGPIPE_PHASE, PAGELET_PHASE, RESOURCE_PHASE };
+export { BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE };
 
 let instance = null;
 
@@ -147,7 +147,7 @@ export default class BigPipe {
 
     // Pagelets without JS files (or with files already loaded) get no callback from a resource.
     this.pagelets.forEach(pagelet => {
-      pagelet.onJsFinished();
+      pagelet.startJs();
     });
   }
 

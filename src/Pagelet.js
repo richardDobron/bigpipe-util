@@ -1,4 +1,4 @@
-import { RESOURCE_PHASE, PAGELET_PHASE } from './BigPipePhases';
+import { RESOURCE_PHASE, PAGELET_PHASE, PAGELET_EVENT } from './BigPipePhases';
 import ServerJS from './ServerJS';
 import AsyncDOM from './async/AsyncDOM';
 import Arbiter from './core/Arbiter';
@@ -9,7 +9,13 @@ import reportError from './core/reportError';
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
 
-export { PAGELET_PHASE };
+export { PAGELET_PHASE, PAGELET_EVENT };
+
+function now() {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+}
 
 function areAllResourcesLoaded(resources) {
   if (resources.size === 0) {
@@ -38,6 +44,8 @@ export default class Pagelet {
     this.jsResources = new Map();
     this.root = null;
     this.destroyed = false;
+    this.jsStarted = false;
+    this.timings = {};
     this.destructors = [
       () => new Arbiter().inform('pagelet/destroy', { id: this.id, root: this.root })
     ];
@@ -105,7 +113,10 @@ export default class Pagelet {
       this.attachJsResource(this.bigPipe.pageletResourceFactory(jsFile, 'js'));
     });
 
+    this.inform(PAGELET_EVENT.ARRIVE);
+
     this.setPhase(PAGELET_PHASE.LOADING_CSS);
+    this.inform(PAGELET_EVENT.CSS);
     this.cssResources.forEach(resource => {
       resource.startLoading();
     });
@@ -125,11 +136,38 @@ export default class Pagelet {
   }
 
   /**
-   * Runs the jsmods once the JS files of the pagelet are loaded. BigPipe calls it when it starts
-   * loading the JS of all pagelets, and every JS file calls it when it is loaded.
+   * Records the time of a lifecycle event in `timings` and informs `pagelet_event` with it.
+   */
+  inform(event) {
+    const ts = now();
+    this.timings[event] = ts;
+
+    if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+      performance.mark(`pagelet_${this.id}_${event}`);
+    }
+
+    new Arbiter().inform('pagelet_event', { event, id: this.id, ts });
+  }
+
+  /**
+   * BigPipe calls it when it starts loading the JS of all pagelets.
+   */
+  startJs() {
+    if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END || this.jsStarted) {
+      return;
+    }
+
+    this.jsStarted = true;
+    this.inform(PAGELET_EVENT.JS_START);
+    this.onJsFinished();
+  }
+
+  /**
+   * Runs the jsmods once the JS files of the pagelet are loaded. Every JS file calls it when it
+   * is loaded.
    */
   onJsFinished() {
-    if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END) {
+    if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END || !this.jsStarted) {
       return;
     }
 
@@ -137,9 +175,11 @@ export default class Pagelet {
       return;
     }
 
+    this.inform(PAGELET_EVENT.JS_DONE);
     this.processJsMods();
 
     this.setPhase(PAGELET_PHASE.ARRIVE_END);
+    this.inform(PAGELET_EVENT.ONLOAD);
     this.bigPipe.pageletFinished(this);
   }
 
@@ -169,11 +209,13 @@ export default class Pagelet {
       return;
     }
 
+    this.inform(PAGELET_EVENT.CSS_LOAD);
     this.setContent();
   }
 
   setContent() {
     this.setPhase(PAGELET_PHASE.DISPLAY_START);
+    this.inform(PAGELET_EVENT.DISPLAY_START);
 
     if (this.domops) {
       asyncDOM.invoke(this.domops);
@@ -181,6 +223,7 @@ export default class Pagelet {
 
     this.root = document.getElementById('pagelet_' + this.id);
     this.setPhase(PAGELET_PHASE.DISPLAY_END);
+    this.inform(PAGELET_EVENT.DISPLAY);
     this.bigPipe.pageletDisplayed(this);
   }
 }
