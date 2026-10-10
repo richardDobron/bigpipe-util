@@ -61,6 +61,16 @@ the next page. A request that must outlive its page, e.g. one that saves somethi
 | `setUploadProgressHandler(fn)` | With the upload `ProgressEvent` (`loaded` and `total` bytes) while the data is sent, e.g. a file. |
 | `setTimeoutHandler(ms, fn)` | When there is no response in `ms` milliseconds: the request is aborted and `fn` gets a `timeout` error, or the transport error handler without `fn`. |
 
+## Success event
+
+When a response without an error has been handled, a `success` event bubbles from the relative element of the request,
+e.g. the link or form of the [Primer](primer.md), with the response as `event.detail.response`. For a streamed
+response it is dispatched with the last part. Listen to it on the element or any element above it:
+
+```javascript
+form.addEventListener('success', ({ detail }) => console.log(detail.response.payload));
+```
+
 ## Errors
 
 The error handler gets the `XMLHttpRequest` and an error object, the same for every kind of failure:

@@ -770,3 +770,37 @@ describe('streamed responses', () => {
     expect(transportError).toHaveBeenCalledOnce();
   });
 });
+
+describe('success event', () => {
+  it('is dispatched on the relative element and bubbles, after the handler', () => {
+    document.body.innerHTML = '<form id="form"><button id="button"></button></form>';
+    const order = [];
+    document.body.addEventListener('success', event =>
+      order.push(['event', event.target.id, event.detail.response.payload])
+    );
+
+    new AsyncRequest('/save')
+      .setRelative(document.getElementById('button'))
+      .setHandler(() => order.push(['handler']))
+      .send();
+    requests[0].respond(200, asyncResponse({ payload: 'saved' }));
+
+    expect(order).toEqual([['handler'], ['event', 'button', 'saved']]);
+  });
+
+  it('is not dispatched for an error response or a request without a relative element', () => {
+    document.body.innerHTML = '<button id="button"></button>';
+    const listener = vi.fn();
+    document.body.addEventListener('success', listener);
+
+    new AsyncRequest('/a')
+      .setRelative(document.getElementById('button'))
+      .setErrorHandler(() => {})
+      .send();
+    requests[0].respond(200, asyncResponse({ error: 1, errorSummary: 'No' }));
+    new AsyncRequest('/b').send();
+    requests[1].respond(200, asyncResponse({}));
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+});

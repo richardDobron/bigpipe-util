@@ -502,6 +502,12 @@ export default class AsyncRequest {
         errorHandler(transport, createServerError(transport, response));
       } else {
         handler(response);
+
+        if (isLast && self.relative instanceof Element) {
+          self.relative.dispatchEvent(
+            new CustomEvent('success', { bubbles: true, detail: { response } })
+          );
+        }
       }
     };
 
