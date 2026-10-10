@@ -20,7 +20,6 @@ import TimerStorage from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
 import Visibility from './core/Visibility';
 import WebStorage from './core/WebStorage';
-import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
 import Bootloader, { requireLazy } from './Bootloader';
 import Pagelet from './Pagelet';
@@ -60,7 +59,6 @@ registerBuiltins({
   'core/UserActivity': UserActivity,
   'core/Visibility': Visibility,
   'core/WebStorage': WebStorage,
-  'core/waitForLoad': waitForLoad,
   BigPipe,
   Bootloader,
   MorePagerFetchOnScroll,

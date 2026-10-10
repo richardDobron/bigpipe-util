@@ -27,38 +27,6 @@ import onVisible from 'bigpipe-util/dist/core/onVisible';
 const subscription = onVisible(element, () => console.log('Almost visible.'), { buffer: 300 });
 ```
 
-## waitForLoad
-
-Clicks made before the page is loaded would be lost, because the handlers aren't attached yet. `waitForLoad` defers
-them: it shows the `progress` cursor, waits for the page to load and then calls the callback. Then it follows the
-`href` of a link, or repeats the click when the callback returns `false` or the element isn't a link, so the
-click is handled by the listeners attached in the meantime.
-
-```javascript
-import { byTag } from 'bigpipe-util/dist/core/Parent';
-import onAfterLoad from 'bigpipe-util/dist/core/onAfterLoad';
-import waitForLoad from 'bigpipe-util/dist/core/waitForLoad';
-
-const clickHandler = (event) => {
-  const link = byTag(event.target, 'A');
-
-  if (!link || !/async(?:-post)?|dialog/.test(link.rel)) {
-    return;
-  }
-
-  event.preventDefault();
-  waitForLoad(link, event, () => false);
-};
-
-document.documentElement.addEventListener('click', clickHandler);
-
-onAfterLoad(() => {
-  document.documentElement.removeEventListener('click', clickHandler);
-});
-```
-
-Put this code inline in the `<head>`, so it runs before the rest of your JavaScript is loaded.
-
 ## ReloadPage
 
 ```javascript
