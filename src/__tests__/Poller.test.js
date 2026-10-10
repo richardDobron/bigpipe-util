@@ -85,6 +85,17 @@ describe('Poller', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 
+  it('goes on polling when setupRequest sets a finally handler', () => {
+    const finallyHandler = vi.fn();
+    poller({ setupRequest: request => request.setFinallyHandler(finallyHandler) });
+
+    respond(0);
+    expect(finallyHandler).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(5000);
+    expect(requests).toHaveLength(2);
+  });
+
   it('pauses while the page is hidden', () => {
     poller();
     respond(0);

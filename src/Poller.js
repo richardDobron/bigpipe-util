@@ -163,11 +163,22 @@ export default class Poller {
         .setData(id ? { ...data, __poller: id } : data);
     }
 
-    request.setFinallyHandler(() => {
-      if (!canceled) {
-        this.setupNextRequest();
+    // The finally handler schedules the next request: one set by setupRequest runs before it
+    // instead of replacing it.
+    let finallyHandler = emptyFunction;
+    request.setFinallyHandler(transport => {
+      try {
+        finallyHandler(transport);
+      } finally {
+        if (!canceled) {
+          this.setupNextRequest();
+        }
       }
     });
+    request.setFinallyHandler = handler => {
+      finallyHandler = handler || emptyFunction;
+      return request;
+    };
 
     this.cancelRequest = () => {
       canceled = true;
