@@ -16,7 +16,8 @@ server answers with a list of instructions and `bigpipe-util` executes them.
 ## Response format
 
 A response is JSON prefixed with the `for (;;);` shield. The shield makes the response unusable when it's loaded
-with a `<script>` tag from another site; `AsyncRequest` strips it before parsing.
+with a `<script>` tag from another site; `AsyncRequest` strips it before parsing. The server sends it as
+`application/json` with `X-Content-Type-Options: nosniff`, so the browser never runs it as a script either.
 
 ```text
 for (;;);{"payload":null,"domops":[...],"jsmods":{"require":[...]},"__ar":1}
