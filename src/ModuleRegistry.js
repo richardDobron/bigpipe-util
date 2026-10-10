@@ -9,10 +9,13 @@ import onAfterLoad from './core/onAfterLoad';
 import ReloadPage from './core/ReloadPage';
 import ServerRedirect from './core/ServerRedirect';
 import TimerStorage from './core/TimerStorage';
+import UserActivity from './core/UserActivity';
+import Visibility from './core/Visibility';
 import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
 import Bootloader, { requireLazy } from './Bootloader';
 import Pagelet from './Pagelet';
+import Poller from './Poller';
 import PageTransitions from './PageTransitions';
 import MorePagerFetchOnScroll from './MorePagerFetchOnScroll';
 import Primer from './Primer';
@@ -37,12 +40,15 @@ registerBuiltins({
   'core/ReloadPage': ReloadPage,
   'core/ServerRedirect': ServerRedirect,
   'core/TimerStorage': TimerStorage,
+  'core/UserActivity': UserActivity,
+  'core/Visibility': Visibility,
   'core/waitForLoad': waitForLoad,
   BigPipe,
   Bootloader,
   MorePagerFetchOnScroll,
   Pagelet,
   PageTransitions,
+  Poller,
   Primer,
   Quickling,
   ServerJS,
