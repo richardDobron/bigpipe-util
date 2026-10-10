@@ -26,6 +26,7 @@ for (;;);{"payload":null,"domops":[...],"jsmods":{"require":[...]},"__ar":1}
 |-----------|-------------------------------------------------------------------------------------|
 | `payload` | Custom data for your handler, see `setPayload()` on the server.                     |
 | `domops`  | [DOM operations](#dom-operations), applied in order.                                |
+| `pagelets`| Optional [pagelets](pagelets.md), handed to `BigPipe` after the DOM operations, e.g. a pagelet loaded lazily or refreshed. |
 | `jsmods`  | Modules to call, see [ServerJS](server_js.md).                                      |
 | `__ar`    | Marks the response as an async response.                                            |
 
