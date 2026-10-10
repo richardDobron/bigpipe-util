@@ -51,6 +51,38 @@ While the request is running:
   `disable-prevent-form` class,
 - an element with the `form-loader` class inside the form gets the `loading` class.
 
+## File uploads
+
+A form with `rel="async"` and a chosen file is sent as `multipart/form-data`, so PHP reads the files from `$_FILES`. While
+the data is uploaded the form reports the progress, three ways, so use what suits your markup:
+
+```html
+<form action="/upload.php" method="POST" rel="async">
+  <input type="file" name="photo">
+  <progress></progress>                       <!-- value and max are set, and reset when the request is over -->
+  <button type="submit">Upload</button>
+</form>
+```
+
+```javascript
+form.addEventListener('uploadprogress', ({ detail }) => {
+  console.log(detail.loaded, detail.total, detail.ratio);   // bubbles from the form
+});
+```
+
+```css
+form::after {
+  content: '';
+  display: block;
+  height: 4px;
+  background: currentColor;
+  transform: scaleX(var(--upload-progress, 0));   /* the ratio from 0 to 1 while uploading */
+  transform-origin: left;
+}
+```
+
+Only a form with a chosen file reports progress. For your own requests use `AsyncRequest.setUploadProgressHandler()`.
+
 ## Loading AsyncRequest on demand
 
 The Primer does not import `AsyncRequest`: it asks the [Bootloader](bootloader.md) for the module

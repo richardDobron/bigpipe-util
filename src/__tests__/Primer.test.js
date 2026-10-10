@@ -173,3 +173,56 @@ describe('forms', () => {
     expect(requests).toHaveLength(0);
   });
 });
+
+describe('file uploads', () => {
+  let form;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <form action="/upload.php" method="POST" rel="async">
+        <input type="file" name="photo">
+        <progress></progress>
+        <button type="submit">Upload</button>
+      </form>`;
+    form = document.querySelector('form');
+  });
+
+  function choose(file) {
+    Object.defineProperty(form.elements.photo, 'files', { value: [file], configurable: true });
+  }
+
+  it('reports the progress of the upload: event, progress element and CSS variable', () => {
+    choose(new File(['abc'], 'a.jpg'));
+    const events = [];
+    form.addEventListener('uploadprogress', event => events.push(event.detail));
+
+    submit(form);
+    requests[0].upload.onprogress({ lengthComputable: true, loaded: 25, total: 100 });
+
+    expect(events).toEqual([{ loaded: 25, total: 100, ratio: 0.25 }]);
+    expect(form.style.getPropertyValue('--upload-progress')).toBe('0.25');
+    expect(form.querySelector('progress').max).toBe(100);
+    expect(form.querySelector('progress').value).toBe(25);
+
+    requests[0].respond(200, asyncResponse({}));
+    expect(form.style.getPropertyValue('--upload-progress')).toBe('');
+    expect(form.querySelector('progress').value).toBe(0);
+  });
+
+  it('ignores progress that has no total', () => {
+    choose(new File(['abc'], 'a.jpg'));
+    const listener = vi.fn();
+    form.addEventListener('uploadprogress', listener);
+
+    submit(form);
+    requests[0].upload.onprogress({ lengthComputable: false, loaded: 25, total: 0 });
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('does not listen to the upload of a form without a chosen file', () => {
+    submit(form);
+
+    expect(requests[0].upload.onprogress).toBeUndefined();
+  });
+});

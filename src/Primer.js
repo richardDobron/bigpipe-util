@@ -1,10 +1,38 @@
 import Bootloader from './Bootloader';
+import Form from './core/Form';
 import { byTag } from './core/Parent';
 import reportError from './core/reportError';
 
 const ASYNC_REQUEST = 'bigpipe-util/dist/async/AsyncRequest';
 
 const pending = new WeakSet();
+
+function reportUploadProgress(form, event) {
+  if (!event.lengthComputable) {
+    return;
+  }
+
+  const ratio = event.total ? event.loaded / event.total : 0;
+
+  form.style.setProperty('--upload-progress', String(ratio));
+  form.querySelectorAll('progress').forEach(progress => {
+    progress.max = event.total;
+    progress.value = event.loaded;
+  });
+  form.dispatchEvent(
+    new CustomEvent('uploadprogress', {
+      bubbles: true,
+      detail: { loaded: event.loaded, total: event.total, ratio }
+    })
+  );
+}
+
+function clearUploadProgress(form) {
+  form.style.removeProperty('--upload-progress');
+  form.querySelectorAll('progress').forEach(progress => {
+    progress.value = 0;
+  });
+}
 
 function withAsyncRequest(element, callback, onError) {
   pending.add(element);
@@ -89,6 +117,7 @@ export default function Primer() {
       }
 
       const formData = new FormData(eventTarget);
+      const hasFiles = Form.hasFiles(eventTarget);
       const submitter = event.submitter || eventTarget.querySelector("button[type='submit']");
       const activeControls = eventTarget.querySelectorAll(
         'input:not([readonly]),select:not([readonly]),textarea:not([readonly])'
@@ -104,6 +133,9 @@ export default function Primer() {
           .setRelative(eventTarget)
           .setData(formData)
           .setStatusElement(eventTarget)
+          .setUploadProgressHandler(
+            hasFiles ? progressEvent => reportUploadProgress(eventTarget, progressEvent) : null
+          )
           .setInitialHandler(function () {
             if (!eventTarget.classList.contains('disable-prevent-form')) {
               activeControls.forEach(function (control) {
@@ -124,6 +156,10 @@ export default function Primer() {
             }
           })
           .setFinallyHandler(function () {
+            if (hasFiles) {
+              clearUploadProgress(eventTarget);
+            }
+
             activeControls.forEach(function (control) {
               control.removeAttribute('readonly');
             });
