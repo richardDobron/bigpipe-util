@@ -1,11 +1,13 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import Primer from '../Primer';
 import AsyncRequest from '../async/AsyncRequest';
+import { registerModules } from '../core/requireModule';
 import { asyncResponse, installFakeXHR } from '../__testutils__/fakeXHR';
 
 let requests;
 
 beforeAll(() => {
+  registerModules({ 'bigpipe-util/dist/async/AsyncRequest': AsyncRequest });
   Primer();
 });
 

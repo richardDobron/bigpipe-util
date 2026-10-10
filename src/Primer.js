@@ -1,5 +1,29 @@
-import AsyncRequest from './async/AsyncRequest';
+import Bootloader from './Bootloader';
 import { byTag } from './core/Parent';
+import reportError from './core/reportError';
+
+const ASYNC_REQUEST = 'bigpipe-util/dist/async/AsyncRequest';
+
+const pending = new WeakSet();
+
+function withAsyncRequest(element, callback, onError) {
+  pending.add(element);
+
+  Bootloader.loadModules(
+    [ASYNC_REQUEST],
+    AsyncRequest => {
+      pending.delete(element);
+      callback(AsyncRequest);
+    },
+    error => {
+      pending.delete(element);
+      if (onError) {
+        onError();
+      }
+      reportError(error);
+    }
+  );
+}
 
 export default function Primer() {
   const rootElement = document.documentElement;
@@ -30,7 +54,7 @@ export default function Primer() {
       }
     }
 
-    if (linkNodeOnClicked.classList.contains('async-saving')) {
+    if (linkNodeOnClicked.classList.contains('async-saving') || pending.has(linkNodeOnClicked)) {
       event.preventDefault();
       return;
     }
@@ -38,12 +62,14 @@ export default function Primer() {
     if (relationship) {
       event.preventDefault();
 
-      // No error handler: errors go to the default one, see AsyncRequest.setDefaultErrorHandler().
-      new AsyncRequest(ajaxHref)
-        .setRelative(linkNodeOnClicked)
-        .setStatusElement(linkNodeOnClicked)
-        .setMethod(relationship === 'async' ? 'GET' : 'POST')
-        .send();
+      withAsyncRequest(linkNodeOnClicked, AsyncRequest => {
+        // No error handler: errors go to the default one, see AsyncRequest.setDefaultErrorHandler().
+        new AsyncRequest(ajaxHref)
+          .setRelative(linkNodeOnClicked)
+          .setStatusElement(linkNodeOnClicked)
+          .setMethod(relationship === 'async' ? 'GET' : 'POST')
+          .send();
+      });
     }
   });
 
@@ -58,6 +84,10 @@ export default function Primer() {
     ) {
       event.preventDefault();
 
+      if (pending.has(eventTarget)) {
+        return;
+      }
+
       const formData = new FormData(eventTarget);
       const submitter = event.submitter || eventTarget.querySelector("button[type='submit']");
       const activeControls = eventTarget.querySelectorAll(
@@ -68,48 +98,50 @@ export default function Primer() {
         formData.append(submitter.name, submitter.value);
       }
 
-      new AsyncRequest(eventTarget.getAttribute('ajaxify') || eventTarget.getAttribute('action'))
-        .setMethod(eventTarget.method || 'POST')
-        .setRelative(eventTarget)
-        .setData(formData)
-        .setStatusElement(eventTarget)
-        .setInitialHandler(function () {
-          if (!eventTarget.classList.contains('disable-prevent-form')) {
+      withAsyncRequest(eventTarget, AsyncRequest => {
+        new AsyncRequest(eventTarget.getAttribute('ajaxify') || eventTarget.getAttribute('action'))
+          .setMethod(eventTarget.method || 'POST')
+          .setRelative(eventTarget)
+          .setData(formData)
+          .setStatusElement(eventTarget)
+          .setInitialHandler(function () {
+            if (!eventTarget.classList.contains('disable-prevent-form')) {
+              activeControls.forEach(function (control) {
+                control.setAttribute('readonly', 'readonly');
+              });
+
+              if (submitter) {
+                submitter.disabled = true;
+              }
+            }
+
+            if (eventTarget) {
+              const loader = eventTarget.querySelector('.form-loader');
+
+              if (loader) {
+                loader.classList.add('loading');
+              }
+            }
+          })
+          .setFinallyHandler(function () {
             activeControls.forEach(function (control) {
-              control.setAttribute('readonly', 'readonly');
+              control.removeAttribute('readonly');
             });
 
             if (submitter) {
-              submitter.disabled = true;
+              submitter.disabled = false;
             }
-          }
 
-          if (eventTarget) {
-            const loader = eventTarget.querySelector('.form-loader');
+            if (eventTarget) {
+              const loader = eventTarget.querySelector('.form-loader');
 
-            if (loader) {
-              loader.classList.add('loading');
+              if (loader) {
+                loader.classList.remove('loading');
+              }
             }
-          }
-        })
-        .setFinallyHandler(function () {
-          activeControls.forEach(function (control) {
-            control.removeAttribute('readonly');
-          });
-
-          if (submitter) {
-            submitter.disabled = false;
-          }
-
-          if (eventTarget) {
-            const loader = eventTarget.querySelector('.form-loader');
-
-            if (loader) {
-              loader.classList.remove('loading');
-            }
-          }
-        })
-        .send();
+          })
+          .send();
+      });
     }
   });
 }

@@ -13,6 +13,9 @@ import Primer from 'bigpipe-util/dist/Primer';
 Primer();
 ```
 
+The Primer cancels the click or submit at once and sends the request through `AsyncRequest` as soon as it is available,
+so it can be started early and `AsyncRequest` loaded on demand, see [Loading AsyncRequest on demand](#loading-asyncrequest-on-demand).
+
 ## Links
 
 Add the URL to call in `ajaxify` and pick the behaviour with `rel`:
@@ -47,6 +50,32 @@ While the request is running:
 - the inputs, selects and textareas are made read-only and the submit button is disabled, unless the form has the
   `disable-prevent-form` class,
 - an element with the `form-loader` class inside the form gets the `loading` class.
+
+## Loading AsyncRequest on demand
+
+The Primer does not import `AsyncRequest`: it asks the [Bootloader](bootloader.md) for the module
+`bigpipe-util/dist/async/AsyncRequest`, which the module loader resolves like the modules the server calls (the
+`ModuleRegistry` of this package provides it). A click before the module is available is not lost and does not
+follow the link: it is cancelled and the request is sent the moment the module is loaded. Further clicks on the same
+link, or submits of the same form, are ignored in the meantime, and the data of a form is the data at the time of the
+submit.
+
+This lets a small entrypoint with the Primer run early, e.g. in the `<head>`, while `AsyncRequest` and the rest of
+the library load later:
+
+```javascript title="early.js"
+import Primer from 'bigpipe-util/dist/Primer';
+import Bootloader from 'bigpipe-util/dist/Bootloader';
+
+Bootloader.setResourceMap({ 'main.js': { type: 'js', src: '/static/main.js' } });
+Bootloader.enableBootload({ 'bigpipe-util/dist/async/AsyncRequest': ['main.js'] });
+
+Primer();
+```
+
+`main.js` is the entrypoint with `import 'bigpipe-util/dist/ModuleRegistry'`; once it has run, the module resolves
+and the waiting requests are sent. If the module can't be loaded, the error is reported and the link or form works
+again.
 
 ## Loading state
 
