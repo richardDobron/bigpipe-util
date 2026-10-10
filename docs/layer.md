@@ -112,3 +112,57 @@ lists the elements <kbd>Tab</kbd> reaches.
 100 and 150 ms, and `FadeOnShow.forDuration(300)` and `FadeOnHide.forDuration(300)` return behaviors with another
 duration. Users who prefer reduced motion get no animation. `FadeOnHide` postpones the hiding with `starthide` and
 calls `finishHide()` when the fade is over.
+
+## ModalLayer
+
+`ModalLayer` makes a layer modal: it puts a backdrop before the root, locks the scrolling of the page, centers the
+root and stacks modals so that the last one shown is on top, with the only visible backdrop. Combine it with
+`HideOnBlur` to hide on a click on the backdrop and `HideOnEscape` for <kbd>Esc</kbd>.
+
+```javascript
+import ModalLayer from 'bigpipe-util/dist/core/layer/ModalLayer';
+
+new Layer(dialogElement, { behaviors: [ModalLayer, HideOnBlur, HideOnEscape, AutoFocus, TabIsolation] }).show();
+```
+
+It styles the backdrop and centers the root with inline styles, so it works without any CSS. To use your own,
+`ModalLayer.configure()` returns a behavior with other options:
+
+```javascript
+const Modal = ModalLayer.configure({
+  backdropClassName: 'fixed inset-0 bg-black/50', // no default look is applied when set
+  backdropStyle: { backdropFilter: 'blur(2px)' },
+  zIndex: 50,                                     // the first modal, the next ones are 10 above
+  center: false,                                  // position the root with your CSS
+  lockScroll: false
+});
+```
+
+With `center: false` the root has to be positioned (e.g. `fixed`) by your CSS for the `z-index` to apply.
+
+## ContextualLayer
+
+`ContextualLayer` is a `Layer` that is positioned next to an element, for menus, tooltips and popovers. It is placed with
+`position: absolute` in the page, so insert it in the body (the default).
+
+```javascript
+import ContextualLayer from 'bigpipe-util/dist/core/layer/ContextualLayer';
+
+const menu = new ContextualLayer(menuElement, {
+  context: button,       // an element, or a function that returns one
+  position: 'below',     // above, below, left or right
+  alignment: 'start',    // start, center or end of the context
+  offsetX: 0,
+  offsetY: 4,
+  autoFlip: true,        // the other side when it doesn't fit in the viewport
+  keepInViewport: true,
+  behaviors: [HideOnBlur, HideOnEscape]
+});
+
+menu.show();
+menu.getPosition();      // the side it was placed on after flipping
+menu.setPosition('right');
+```
+
+It is positioned again while it is shown when the window is resized or scrolled and informs `reposition` with the
+side and alignment. A layer whose context is not on the page is not shown.

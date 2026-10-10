@@ -1,0 +1,141 @@
+import Layer from './Layer';
+
+const OPPOSITE = { above: 'below', below: 'above', left: 'right', right: 'left' };
+
+function place(position, alignment, rect, width, height, offsetX, offsetY) {
+  const vertical = position === 'above' || position === 'below';
+  let top;
+  let left;
+
+  if (vertical) {
+    top = position === 'below' ? rect.bottom + offsetY : rect.top - height - offsetY;
+    left = rect.left;
+    if (alignment === 'center') {
+      left = rect.left + (rect.width - width) / 2;
+    } else if (alignment === 'end') {
+      left = rect.right - width;
+    }
+    left += offsetX;
+  } else {
+    left = position === 'right' ? rect.right + offsetX : rect.left - width - offsetX;
+    top = rect.top;
+    if (alignment === 'center') {
+      top = rect.top + (rect.height - height) / 2;
+    } else if (alignment === 'end') {
+      top = rect.bottom - height;
+    }
+    top += offsetY;
+  }
+
+  return { top, left };
+}
+
+function fits(position, { top, left }, width, height, viewport) {
+  if (position === 'above' || position === 'below') {
+    return top >= 0 && top + height <= viewport.height;
+  }
+  return left >= 0 && left + width <= viewport.width;
+}
+
+export default class ContextualLayer extends Layer {
+  constructor(root, config = {}) {
+    super(root, config);
+
+    this.context = config.context || null;
+    this.position = config.position || 'below';
+    this.alignment = config.alignment || 'start';
+    this.offsetX = config.offsetX || 0;
+    this.offsetY = config.offsetY || 0;
+    this.autoFlip = config.autoFlip !== false;
+    this.keepInViewport = config.keepInViewport !== false;
+    this.actualPosition = this.position;
+    this.reposition = () => window.requestAnimationFrame(() => this.updatePosition());
+
+    this.subscribe('show', () => {
+      window.addEventListener('resize', this.reposition);
+      window.addEventListener('scroll', this.reposition, true);
+    });
+    this.subscribe('hide', () => {
+      window.removeEventListener('resize', this.reposition);
+      window.removeEventListener('scroll', this.reposition, true);
+    });
+  }
+
+  getContext() {
+    return typeof this.context === 'function' ? this.context() : this.context;
+  }
+
+  setContext(context) {
+    this.context = context;
+    return this.refresh();
+  }
+
+  setPosition(position) {
+    this.position = position;
+    return this.refresh();
+  }
+
+  setAlignment(alignment) {
+    this.alignment = alignment;
+    return this.refresh();
+  }
+
+  setOffset(x, y) {
+    this.offsetX = x;
+    this.offsetY = y;
+    return this.refresh();
+  }
+
+  getPosition() {
+    return this.actualPosition;
+  }
+
+  refresh() {
+    if (this.shown) {
+      this.updatePosition();
+    }
+    return this;
+  }
+
+  updatePosition() {
+    const context = this.getContext();
+    if (!context || !context.isConnected) {
+      return false;
+    }
+
+    const root = this.getRoot();
+    const rect = context.getBoundingClientRect();
+    const width = root.offsetWidth;
+    const height = root.offsetHeight;
+    const viewport = {
+      width: document.documentElement.clientWidth || window.innerWidth,
+      height: document.documentElement.clientHeight || window.innerHeight
+    };
+    const args = [this.alignment, rect, width, height, this.offsetX, this.offsetY];
+
+    let position = this.position;
+    let coordinates = place(position, ...args);
+
+    if (this.autoFlip && !fits(position, coordinates, width, height, viewport)) {
+      const flipped = place(OPPOSITE[position], ...args);
+      if (fits(OPPOSITE[position], flipped, width, height, viewport)) {
+        position = OPPOSITE[position];
+        coordinates = flipped;
+      }
+    }
+
+    let { top, left } = coordinates;
+    if (this.keepInViewport && viewport.width > width) {
+      left = Math.min(Math.max(left, 0), viewport.width - width);
+    }
+
+    root.style.position = 'absolute';
+    root.style.top = `${top + window.scrollY}px`;
+    root.style.left = `${left + window.scrollX}px`;
+
+    this.actualPosition = position;
+    this.inform('reposition', { position, alignment: this.alignment });
+
+    return true;
+  }
+}
