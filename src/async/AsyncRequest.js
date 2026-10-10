@@ -177,6 +177,7 @@ export default class AsyncRequest {
     this.data = {};
     this.headers = {};
     this.initialHandler = emptyFunction;
+    this.preResponseHandler = null;
     this.handler = null;
     this.finallyHandler = emptyFunction;
     this.errorHandler = null;
@@ -240,6 +241,17 @@ export default class AsyncRequest {
 
   getInitialHandler() {
     return this.initialHandler || emptyFunction;
+  }
+
+  /**
+   * Gets the response before its DOM operations, pagelets and modules are applied. Returning
+   * false drops the response: nothing is applied and no other handler is called.
+   */
+  setPreResponseHandler(fn) {
+    if (validateResponseHandler(fn)) {
+      this.preResponseHandler = fn;
+    }
+    return this;
   }
 
   setHandler(fn) {
@@ -357,6 +369,7 @@ export default class AsyncRequest {
     const transportErrorHandler = this.getTransportErrorHandler();
     const initialHandler = this.getInitialHandler();
     const finallyHandler = this.getFinallyHandler();
+    const { preResponseHandler } = this;
     const { statusElement, statusClass, timeout } = this;
     const timeoutHandler = this.timeoutHandler || transportErrorHandler;
     let timer = null;
@@ -428,6 +441,10 @@ export default class AsyncRequest {
             reportError(
               new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
             );
+            return;
+          }
+
+          if (preResponseHandler && preResponseHandler(response) === false) {
             return;
           }
 

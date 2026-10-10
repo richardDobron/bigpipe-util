@@ -46,6 +46,7 @@ the requests made from the page.
 | Method                   | Called                                                                                  |
 |--------------------------|-----------------------------------------------------------------------------------------|
 | `setInitialHandler(fn)`  | Right before the request is sent.                                                       |
+| `setPreResponseHandler(fn)` | With the parsed response, before its DOM operations, pagelets and modules are applied. Returning `false` drops the response. |
 | `setHandler(fn)`         | With the parsed response, after its DOM operations and modules were applied.            |
 | `setErrorHandler(fn)`    | With the `XMLHttpRequest` and the [error](#errors) when the request failed.              |
 | `setTransportErrorHandler(fn)` | Instead of the error handler, for failures without a BigPipe response: `http`, `invalid_response`, `network` and `timeout` errors. |

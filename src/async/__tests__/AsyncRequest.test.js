@@ -536,3 +536,34 @@ describe('abort', () => {
     expect(() => new AsyncRequest('/save').abort()).not.toThrow();
   });
 });
+
+describe('pre-response handler', () => {
+  it('gets the response before it is applied and can drop it', () => {
+    document.body.innerHTML = '<div id="target">old</div>';
+    const h = handlers();
+    const seen = [];
+    const preResponse = vi.fn(response => {
+      seen.push(document.getElementById('target').innerHTML);
+      return response.payload.apply;
+    });
+    const response = apply =>
+      asyncResponse({
+        payload: { apply },
+        domops: [['setContent', '#target', false, { __html: 'new' }]]
+      });
+
+    send(new AsyncRequest('/a').setPreResponseHandler(preResponse), h);
+    requests[0].respond(200, response(false));
+
+    expect(seen).toEqual(['old']);
+    expect(document.getElementById('target').innerHTML).toBe('old');
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+
+    send(new AsyncRequest('/b').setPreResponseHandler(preResponse), h);
+    requests[1].respond(200, response(true));
+
+    expect(document.getElementById('target').innerHTML).toBe('new');
+    expect(h.success).toHaveBeenCalledOnce();
+  });
+});
