@@ -4,18 +4,13 @@ import AsyncDOM from './async/AsyncDOM';
 import Arbiter from './core/Arbiter';
 import DOM from './core/DOM';
 import invariant from './core/invariant';
+import performanceNow from './core/performanceNow';
 import reportError from './core/reportError';
 
 const serverJS = new ServerJS();
 const asyncDOM = new AsyncDOM();
 
 export { PAGELET_PHASE, PAGELET_EVENT };
-
-function now() {
-  return typeof performance !== 'undefined' && typeof performance.now === 'function'
-    ? performance.now()
-    : Date.now();
-}
 
 function areAllResourcesLoaded(resources) {
   if (resources.size === 0) {
@@ -139,7 +134,7 @@ export default class Pagelet {
    * Records the time of a lifecycle event in `timings` and informs `pagelet_event` with it.
    */
   inform(event) {
-    const ts = now();
+    const ts = performanceNow();
     this.timings[event] = ts;
 
     if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {

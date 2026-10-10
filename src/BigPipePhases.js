@@ -29,3 +29,9 @@ export const PAGELET_EVENT = Object.freeze({
   JS_DONE: 'jsdone',
   ONLOAD: 'onload'
 });
+
+export const BIGPIPE_EVENT = Object.freeze({
+  INIT: 'BigPipe/init',
+  DISPLAYED: 'all_pagelets_displayed',
+  LOADED: 'all_pagelets_loaded'
+});

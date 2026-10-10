@@ -3,12 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 let bigPipe;
 let Arbiter;
 let PAGELET_EVENT;
+let BIGPIPE_EVENT;
 
 // BigPipe is a singleton: every test gets fresh modules so pagelets do not leak between tests.
 beforeEach(async () => {
   vi.resetModules();
   let BigPipe;
-  ({ default: BigPipe, PAGELET_EVENT } = await import('../BigPipe'));
+  ({ default: BigPipe, BIGPIPE_EVENT, PAGELET_EVENT } = await import('../BigPipe'));
   ({ default: Arbiter } = await import('../core/Arbiter'));
   bigPipe = new BigPipe();
 
@@ -58,5 +59,38 @@ describe('pagelet events', () => {
     expect(timings.onload).toBeGreaterThanOrEqual(timings.arrive);
     expect(events[7].ts).toBe(timings.onload);
     expect(mark).toHaveBeenCalledWith('pagelet_feed_display');
+  });
+});
+
+describe('page events', () => {
+  it('informs the page events as states, so a later subscriber gets them too', () => {
+    const events = {};
+    const arbiter = new Arbiter();
+    Object.values(BIGPIPE_EVENT).forEach(event => {
+      arbiter.subscribe(event, data => (events[event] = data));
+    });
+    expect(Object.keys(events)).toEqual([BIGPIPE_EVENT.INIT]);
+
+    bigPipe.onPageletArrive({
+      id: 'feed',
+      css: [],
+      js: ['/feed.js'],
+      domops: [['setContent', '#pagelet_feed', false, { __html: 'Posts' }]],
+      jsmods: { require: [['Feed', 'init']] },
+      is_last: true
+    });
+    expect(Object.keys(events)).toEqual(['BigPipe/init', 'all_pagelets_displayed']);
+
+    bigPipe.fileLoaded(bigPipe.resolveResourceName('/feed.js'));
+    expect(Object.keys(events)).toEqual([
+      'BigPipe/init',
+      'all_pagelets_displayed',
+      'all_pagelets_loaded'
+    ]);
+    expect(events.all_pagelets_loaded.ts).toBeGreaterThanOrEqual(events['BigPipe/init'].ts);
+
+    const late = vi.fn();
+    arbiter.subscribe(BIGPIPE_EVENT.LOADED, late);
+    expect(late).toHaveBeenCalledWith(events.all_pagelets_loaded);
   });
 });

@@ -63,6 +63,11 @@ lifecycle, with the `event`, the `id` of the pagelet and the time `ts` from `per
 The times are kept in `pagelet.timings` and marked with `performance.mark()` as `pagelet_<id>_<event>`, so they
 show in the performance panel of the browser. The names are exported as `PAGELET_EVENT`.
 
+The page informs its own events, exported as `BIGPIPE_EVENT`, with the time `ts`: `BigPipe/init` when `BigPipe` is
+created, `all_pagelets_displayed` when the last pagelet has arrived and all are displayed, and `all_pagelets_loaded`
+when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
+away, and they are marked with `performance.mark()` as well. A response with pagelets informs them again.
+
 ```javascript
 new Arbiter().subscribe('pagelet_event', ({ event, id, ts }) => {
   if (event === 'display') {

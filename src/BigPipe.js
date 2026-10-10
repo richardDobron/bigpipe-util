@@ -1,10 +1,18 @@
-import { BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE } from './BigPipePhases';
+import {
+  BIGPIPE_EVENT,
+  BIGPIPE_PHASE,
+  PAGELET_EVENT,
+  PAGELET_PHASE,
+  RESOURCE_PHASE
+} from './BigPipePhases';
 import Pagelet from './Pagelet';
+import Arbiter from './core/Arbiter';
 import { find } from './core/Parent';
 import onAfterLoad from './core/onAfterLoad';
 import getCSPNonce from './core/getCSPNonce';
+import performanceNow from './core/performanceNow';
 
-export { BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE };
+export { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE, RESOURCE_PHASE };
 
 let instance = null;
 
@@ -18,6 +26,18 @@ export default class BigPipe {
       return instance;
     }
     instance = this;
+    this.inform(BIGPIPE_EVENT.INIT);
+  }
+
+  /**
+   * Informs a page event through Arbiter as a state, so a later subscriber gets it too.
+   */
+  inform(event) {
+    if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+      performance.mark(event);
+    }
+
+    new Arbiter().informState(event, { ts: performanceNow() });
   }
 
   onPageletArrive(pageletData) {
@@ -126,6 +146,7 @@ export default class BigPipe {
     }
 
     this.setPhase(BIGPIPE_PHASE.COMPLETE);
+    this.inform(BIGPIPE_EVENT.LOADED);
 
     onAfterLoad(() => {
       this.pagelets.forEach(pagelet => {
@@ -139,6 +160,7 @@ export default class BigPipe {
   }
 
   loadJSResources() {
+    this.inform(BIGPIPE_EVENT.DISPLAYED);
     this.setPhase(BIGPIPE_PHASE.LOADING_JS);
 
     this.getResourcesByType('js').forEach(resource => {
