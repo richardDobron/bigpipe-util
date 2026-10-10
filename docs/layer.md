@@ -105,3 +105,10 @@ new Layer(menuElement, { behaviors: [HideOnBlur, HideOnEscape] }).show();
 
 `focusWithinLayer(element)` from `core/layer/focusWithinLayer` is the focus logic of `AutoFocus`, and `getTabbable(element)`
 lists the elements <kbd>Tab</kbd> reaches.
+
+## Fading
+
+`FadeOnShow` and `FadeOnHide` fade the root with an inline `opacity` transition, so they work with any CSS. They take
+100 and 150 ms, and `FadeOnShow.forDuration(300)` and `FadeOnHide.forDuration(300)` return behaviors with another
+duration. Users who prefer reduced motion get no animation. `FadeOnHide` postpones the hiding with `starthide` and
+calls `finishHide()` when the fade is over.
