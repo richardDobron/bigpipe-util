@@ -44,6 +44,28 @@ The phases are exported as `BIGPIPE_PHASE`, `PAGELET_PHASE` and `RESOURCE_PHASE`
 `bigpipe-util/dist/BigPipe`. `BigPipe` is a singleton, so `new BigPipe()` always returns the same instance with
 the registered `pagelets`.
 
+## Display order
+
+Pagelets are displayed as soon as their CSS is loaded, in any order. The server can order
+them, see `Pagelet::setPhase()` and `Pagelet::displayAfter()` in the PHP library:
+
+- `phase` (default `0`): a pagelet is displayed after the pagelets of a lower phase that have arrived, e.g. the
+  content of the page in phase 0 before the sidebar and ads in phase 1. The server sends the pagelets in the order
+  of their phases.
+- `display_dependency`: the ids of the pagelets it is displayed after, e.g. a chat that needs the feed on the page.
+  It waits for them to arrive.
+
+```javascript
+(new (require("bigpipe-util/src/BigPipe"))).onPageletArrive({
+  id: "chat",
+  phase: 1,
+  display_dependency: ["feed"],
+  // ...
+});
+```
+
+The JS of the pagelets still loads only when all of them are displayed.
+
 ## Events and timing
 
 Every pagelet informs `pagelet_event` through [Arbiter](arbiter.md) on each step of its

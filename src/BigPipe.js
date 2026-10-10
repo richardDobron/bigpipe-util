@@ -64,6 +64,7 @@ export default class BigPipe {
     }
 
     pagelet.destroy();
+    this.displayWaitingPagelets();
   }
 
   /**
@@ -130,7 +131,31 @@ export default class BigPipe {
     );
   }
 
+  /**
+   * Whether the pagelet may be displayed: after the pagelets of a lower `phase` that arrived, and
+   * after its `display_dependency`, the pagelets it has to be displayed after.
+   */
+  canDisplay(pagelet) {
+    const isDisplayed = other => other.phase >= PAGELET_PHASE.DISPLAY_END;
+
+    return (
+      Array.from(this.pagelets.values()).every(
+        other => other.displayPhase >= pagelet.displayPhase || isDisplayed(other)
+      ) &&
+      pagelet.displayDependency.every(id => {
+        const dependency = this.pagelets.get(id);
+        return dependency && isDisplayed(dependency);
+      })
+    );
+  }
+
+  displayWaitingPagelets() {
+    this.pagelets.forEach(pagelet => pagelet.display());
+  }
+
   pageletDisplayed() {
+    this.displayWaitingPagelets();
+
     if (this.phase === BIGPIPE_PHASE.READY_FOR_JS && this.areAllPageletsDisplayed()) {
       this.loadJSResources();
     }

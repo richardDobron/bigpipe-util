@@ -33,12 +33,15 @@ export default class Pagelet {
     this.domops = pageletData.domops;
     this.jsmods = pageletData.jsmods;
     this.onafterload = pageletData.onafterload;
+    this.displayPhase = pageletData.phase || 0;
+    this.displayDependency = pageletData.display_dependency || [];
     this.css = pageletData.css;
     this.js = pageletData.js;
     this.cssResources = new Map();
     this.jsResources = new Map();
     this.root = null;
     this.destroyed = false;
+    this.cssLoaded = false;
     this.jsStarted = false;
     this.timings = {};
     this.destructors = [
@@ -198,13 +201,32 @@ export default class Pagelet {
   onCssFinished() {
     if (
       this.destroyed ||
+      this.cssLoaded ||
       this.phase !== PAGELET_PHASE.LOADING_CSS ||
       !areAllResourcesLoaded(this.cssResources)
     ) {
       return;
     }
 
+    this.cssLoaded = true;
     this.inform(PAGELET_EVENT.CSS_LOAD);
+    this.display();
+  }
+
+  /**
+   * Displays the pagelet once its CSS is loaded and BigPipe allows it: after the pagelets of a
+   * lower `phase` and its `display_dependency`.
+   */
+  display() {
+    if (
+      this.destroyed ||
+      !this.cssLoaded ||
+      this.phase !== PAGELET_PHASE.LOADING_CSS ||
+      !this.bigPipe.canDisplay(this)
+    ) {
+      return;
+    }
+
     this.setContent();
   }
 
