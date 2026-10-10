@@ -1,3 +1,4 @@
+import BigPipe from './BigPipe';
 import onVisible from './core/onVisible';
 import warning from './core/warning';
 
@@ -14,7 +15,16 @@ export default class MorePagerFetchOnScroll {
 
     warning(element, 'MorePagerFetchOnScroll: the pager is not on the page.');
 
-    if (element && setup) {
+    if (!element) {
+      return;
+    }
+
+    const pagelet = new BigPipe().getPageletForNode(element);
+    if (pagelet) {
+      pagelet.addDestructor(() => this.remove());
+    }
+
+    if (setup) {
       this.setup();
     }
   }

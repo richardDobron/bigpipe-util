@@ -1,3 +1,4 @@
+import BigPipe from './BigPipe';
 import AsyncRequest from './async/AsyncRequest';
 import onVisible from './core/onVisible';
 import warning from './core/warning';
@@ -6,10 +7,12 @@ const VISIBLE_BUFFER = 300;
 
 function whenIdle(callback) {
   if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(callback);
-  } else {
-    setTimeout(callback, 1);
+    const handle = requestIdleCallback(callback);
+    return { remove: () => cancelIdleCallback(handle) };
   }
+
+  const timer = setTimeout(callback, 1);
+  return { remove: () => clearTimeout(timer) };
 }
 
 export default {
@@ -27,20 +30,35 @@ export default {
       return;
     }
 
-    const request = () =>
-      new AsyncRequest(uri)
+    let asyncRequest = null;
+    const request = () => {
+      asyncRequest = new AsyncRequest(uri)
         .setMethod('GET')
         .setData(data)
         .setRelative(root)
-        .setStatusElement(root)
-        .send();
+        .setStatusElement(root);
+      asyncRequest.send();
+    };
 
+    let subscription = null;
     if (load === 'load') {
       request();
     } else if (load === 'idle') {
-      whenIdle(request);
+      subscription = whenIdle(request);
     } else {
-      onVisible(root, request, { buffer: VISIBLE_BUFFER });
+      subscription = onVisible(root, request, { buffer: VISIBLE_BUFFER });
+    }
+
+    const pagelet = new BigPipe().getPageletForNode(root);
+    if (pagelet) {
+      pagelet.addDestructor(() => {
+        if (subscription) {
+          subscription.remove();
+        }
+        if (asyncRequest) {
+          asyncRequest.abort();
+        }
+      });
     }
   }
 };

@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import BigPipe from '../BigPipe';
 import MorePagerFetchOnScroll from '../MorePagerFetchOnScroll';
 import Primer from '../Primer';
 import ServerJS from '../ServerJS';
@@ -68,6 +69,24 @@ describe('MorePagerFetchOnScroll', () => {
 
     morePager.setup();
     morePager.remove();
+    expect(observers[0].disconnected).toBe(true);
+  });
+
+  it('stops when the pagelet it is in is destroyed', () => {
+    const bigPipe = new BigPipe();
+    document.body.innerHTML = '<div id="pagelet_list"></div>';
+    bigPipe.onPageletArrive({
+      id: 'list',
+      css: [],
+      js: [],
+      domops: [['setContent', '#pagelet_list', false, { __html: '<a id="pager">See more</a>' }]],
+      jsmods: {},
+      is_last: true
+    });
+
+    new MorePagerFetchOnScroll(document.getElementById('pager'));
+    bigPipe.removePagelet(bigPipe.pagelets.get('list'));
+
     expect(observers[0].disconnected).toBe(true);
   });
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { asyncResponse, installFakeXHR } from '../__testutils__/fakeXHR';
 
 let UIPagelet;
+let BigPipe;
 let ServerJS;
 let requests;
 let observers;
@@ -18,7 +19,9 @@ class FakeIntersectionObserver {
     this.elements.push(element);
   }
 
-  disconnect() {}
+  disconnect() {
+    this.disconnected = true;
+  }
 
   show() {
     this.callback(this.elements.map(target => ({ target, isIntersecting: true })));
@@ -30,6 +33,7 @@ beforeEach(async () => {
   vi.resetModules();
   ({ default: UIPagelet } = await import('../UIPagelet'));
   ({ default: ServerJS } = await import('../ServerJS'));
+  ({ default: BigPipe } = await import('../BigPipe'));
   await import('../ModuleRegistry');
 
   requests = installFakeXHR();
@@ -81,6 +85,35 @@ describe('UIPagelet.loadFromEndpoint', () => {
       "Warning: UIPagelet: the placeholder 'pagelet_missing' is not on the page."
     );
     consoleError.mockRestore();
+  });
+
+  it('stops waiting and aborts the request when the pagelet it is in is destroyed', () => {
+    window.require = () => ({});
+    document.body.innerHTML = '<div id="pagelet_home"></div>';
+    const bigPipe = new BigPipe();
+    bigPipe.onPageletArrive({
+      id: 'home',
+      css: [],
+      js: [],
+      domops: [
+        [
+          'setContent',
+          '#pagelet_home',
+          false,
+          { __html: '<div id="pagelet_a"></div><div id="pagelet_b"></div>' }
+        ]
+      ],
+      jsmods: {},
+      is_last: true
+    });
+
+    UIPagelet.loadFromEndpoint('/a', 'pagelet_a');
+    UIPagelet.loadFromEndpoint('/b', 'pagelet_b', {}, { load: 'load' });
+    bigPipe.removePagelet(bigPipe.pagelets.get('home'));
+
+    expect(observers[0].disconnected).toBe(true);
+    expect(requests[0].aborted).toBe(true);
+    delete window.require;
   });
 
   it('is called by the server and fills the placeholder with the pagelet of the response', () => {
