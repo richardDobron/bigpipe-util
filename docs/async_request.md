@@ -37,6 +37,8 @@ All setters return the request, so they can be chained.
 | `setStatusClass(className)`      | The status class, `async-saving` by default.                                         |
 | `send()`                          | Sends the request and returns the `XMLHttpRequest`.                                  |
 | `abort()`                         | Aborts the request.                                                                  |
+| `abandon()`                       | Aborts the request without calling its handlers, except the finally handler.         |
+| `setOption(name, value)`          | Sets an option, see [retries](#retries).                                             |
 
 Every request is sent with the `X-Requested-With: XMLHttpRequest` header and a `__req` parameter with a counter of
 the requests made from the page.
@@ -99,6 +101,22 @@ AsyncRequest.setDefaultErrorHandler((xhr, error) => {
   new Dialog().showFromModel({ title: error.summary, body: error.description });
 });
 ```
+
+## Retries
+
+A request with the `retries` option is sent again right away when it fails with a network error, e.g. a dropped
+connection, as many times as the option says. The handlers are called once, for the last attempt. HTTP errors,
+invalid responses and timeouts are not retried.
+
+```javascript
+new AsyncRequest('/ajax/feed')
+  .setMethod('GET')
+  .setOption('retries', 2)
+  .send();
+```
+
+Retry only requests that are safe to send twice, like `GET` requests: the server may have handled a request whose
+response was lost.
 
 ## CSRF tokens
 

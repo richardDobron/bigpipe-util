@@ -567,3 +567,91 @@ describe('pre-response handler', () => {
     expect(h.success).toHaveBeenCalledOnce();
   });
 });
+
+describe('retries', () => {
+  it('sends a request again after a network error, as many times as the retries option', () => {
+    const h = handlers();
+    const transportError = vi.fn();
+
+    send(
+      new AsyncRequest('/feed')
+        .setMethod('GET')
+        .setOption('retries', 2)
+        .setTransportErrorHandler(transportError),
+      h
+    );
+    requests[0].fail();
+    requests[1].fail();
+    requests[2].respond(200, asyncResponse({ payload: 'posts' }));
+
+    expect(requests).toHaveLength(3);
+    expect(requests[2].url).toBe(requests[0].url);
+    expect(h.initial).toHaveBeenCalledOnce();
+    expect(transportError).not.toHaveBeenCalled();
+    expect(h.success).toHaveBeenCalledWith(expect.objectContaining({ payload: 'posts' }));
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
+  it('reports the network error once the retries are used up', () => {
+    const transportError = vi.fn();
+
+    new AsyncRequest('/feed')
+      .setOption('retries', 1)
+      .setTransportErrorHandler(transportError)
+      .send();
+    requests[0].fail();
+    requests[1].fail();
+
+    expect(requests).toHaveLength(2);
+    expect(transportError).toHaveBeenCalledWith(
+      requests[1],
+      expect.objectContaining({ type: ERROR_TYPE.NETWORK })
+    );
+  });
+
+  it('does not retry an HTTP error', () => {
+    const transportError = vi.fn();
+
+    new AsyncRequest('/feed')
+      .setOption('retries', 3)
+      .setTransportErrorHandler(transportError)
+      .send();
+    requests[0].respond(500, '');
+
+    expect(requests).toHaveLength(1);
+    expect(transportError).toHaveBeenCalledOnce();
+  });
+
+  it('warns about an unknown option', () => {
+    vi.stubGlobal('__DEV__', true);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(new AsyncRequest('/feed').setOption('retry', 1).getOption('retry')).toBe(1);
+
+    expect(consoleError).toHaveBeenCalledWith('Warning: AsyncRequest: unknown option "retry".');
+    consoleError.mockRestore();
+  });
+});
+
+describe('abandon', () => {
+  it('drops the request without calling its handlers but the finally handler', () => {
+    const h = handlers();
+    const transportError = vi.fn();
+    document.body.innerHTML = '<button id="save"></button>';
+    const button = document.getElementById('save');
+
+    const request = new AsyncRequest('/save')
+      .setStatusElement(button)
+      .setTransportErrorHandler(transportError)
+      .setTimeoutHandler(1000, transportError);
+    send(request, h);
+    request.abandon();
+
+    expect(requests[0].aborted).toBe(true);
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).not.toHaveBeenCalled();
+    expect(transportError).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+    expect(button.classList.contains('async-saving')).toBe(false);
+  });
+});

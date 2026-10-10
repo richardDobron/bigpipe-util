@@ -187,6 +187,8 @@ export default class AsyncRequest {
     this.timeoutHandler = null;
     this.transportErrorHandler = null;
     this.uploadProgressHandler = null;
+    this.options = { retries: 0 };
+    this.abandoned = false;
 
     if (uri !== undefined) {
       this.setURI(uri);
@@ -320,6 +322,33 @@ export default class AsyncRequest {
   }
 
   /**
+   * Aborts the request without calling any of its handlers but the finally handler, e.g. when its
+   * response is no longer needed.
+   */
+  abandon() {
+    this.abandoned = true;
+    this.abort();
+  }
+
+  /**
+   * Sets an option of the request: `retries`, how many times a request that failed with a network
+   * error is sent again (0 by default).
+   */
+  setOption(name, value) {
+    warning(
+      Object.prototype.hasOwnProperty.call(this.options, name),
+      'AsyncRequest: unknown option "%s".',
+      name
+    );
+    this.options[name] = value;
+    return this;
+  }
+
+  getOption(name) {
+    return this.options[name];
+  }
+
+  /**
    * The element gets the status class while the request is running, e.g. to show a spinner or to
    * disable a button.
    */
@@ -410,108 +439,132 @@ export default class AsyncRequest {
       data = null;
     }
 
-    const request = new XMLHttpRequest();
     const self = this;
+    const { headers, uploadProgressHandler } = this;
+    let remainingRetries = this.getOption('retries') || 0;
 
-    this.transport = request;
+    const open = () => {
+      const request = new XMLHttpRequest();
 
-    request.open(method, uri, true);
+      this.transport = request;
+      timedOut = false;
 
-    // Listening to upload events must start before send(), see XMLHttpRequest.upload.
-    if (this.uploadProgressHandler && request.upload) {
-      const uploadProgressHandler = this.uploadProgressHandler;
-      request.upload.onprogress = event => uploadProgressHandler(event);
-    }
+      request.open(method, uri, true);
 
-    request.onload = function () {
-      try {
-        if (this.status >= 200 && this.status < 400) {
-          let response;
-          try {
-            const safeJson = self._unshieldResponseText(this.responseText);
-            response = JSON.parse(safeJson);
-          } catch (e) {
-            transportErrorHandler(
+      // Listening to upload events must start before send(), see XMLHttpRequest.upload.
+      if (uploadProgressHandler && request.upload) {
+        request.upload.onprogress = event => {
+          if (!self.abandoned) {
+            uploadProgressHandler(event);
+          }
+        };
+      }
+
+      request.onload = function () {
+        try {
+          if (self.abandoned) {
+            return;
+          }
+
+          if (this.status >= 200 && this.status < 400) {
+            let response;
+            try {
+              const safeJson = self._unshieldResponseText(this.responseText);
+              response = JSON.parse(safeJson);
+            } catch (e) {
+              transportErrorHandler(
+                this,
+                createError(ERROR_TYPE.INVALID_RESPONSE, this, {
+                  summary: 'Invalid response',
+                  description: e.message
+                })
+              );
+              reportError(
+                new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
+              );
+              return;
+            }
+
+            if (preResponseHandler && preResponseHandler(response) === false) {
+              return;
+            }
+
+            // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
+            new AsyncResponse().handle(response, self.relative);
+
+            if (response.error) {
+              errorHandler(this, createServerError(this, response));
+            } else {
+              handler(response);
+            }
+          } else {
+            transportErrorHandler(this, createHttpError(this));
+          }
+        } finally {
+          finish(this);
+        }
+      };
+
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      if (typeof data === 'string') {
+        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      }
+
+      if (csrf && csrf.header && !hasHeader(this.headers, csrf.header)) {
+        request.setRequestHeader(csrf.header, csrf.token);
+      }
+
+      Object.keys(headers).forEach(name => {
+        request.setRequestHeader(name, headers[name]);
+      });
+
+      request.onerror = function () {
+        if (!self.abandoned && remainingRetries > 0) {
+          remainingRetries -= 1;
+          open();
+          return;
+        }
+
+        try {
+          if (!self.abandoned) {
+            transportErrorHandler(this, createNetworkError(this));
+          }
+        } finally {
+          finish(this);
+        }
+      };
+
+      request.onabort = function () {
+        try {
+          if (timedOut && !self.abandoned) {
+            timeoutHandler(
               this,
-              createError(ERROR_TYPE.INVALID_RESPONSE, this, {
-                summary: 'Invalid response',
-                description: e.message
+              createError(ERROR_TYPE.TIMEOUT, this, {
+                summary: 'Request timed out',
+                description: 'The server did not respond in time. Try again.',
+                isTransient: true
               })
             );
-            reportError(
-              new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
-            );
-            return;
           }
-
-          if (preResponseHandler && preResponseHandler(response) === false) {
-            return;
-          }
-
-          // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
-          new AsyncResponse().handle(response, self.relative);
-
-          if (response.error) {
-            errorHandler(this, createServerError(this, response));
-          } else {
-            handler(response);
-          }
-        } else {
-          transportErrorHandler(this, createHttpError(this));
+        } finally {
+          finish(this);
         }
-      } finally {
-        finish(this);
+      };
+
+      request.send(data);
+
+      if (timeout > 0) {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          timedOut = true;
+          request.abort();
+        }, timeout);
       }
+
+      return request;
     };
 
-    request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-    if (typeof data === 'string') {
-      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    }
-
-    if (csrf && csrf.header && !hasHeader(this.headers, csrf.header)) {
-      request.setRequestHeader(csrf.header, csrf.token);
-    }
-
-    Object.keys(this.headers).forEach(name => {
-      request.setRequestHeader(name, this.headers[name]);
-    });
-
-    request.onerror = function () {
-      try {
-        transportErrorHandler(this, createNetworkError(this));
-      } finally {
-        finish(this);
-      }
-    };
-
-    request.onabort = function () {
-      try {
-        if (timedOut) {
-          timeoutHandler(
-            this,
-            createError(ERROR_TYPE.TIMEOUT, this, {
-              summary: 'Request timed out',
-              description: 'The server did not respond in time. Try again.',
-              isTransient: true
-            })
-          );
-        }
-      } finally {
-        finish(this);
-      }
-    };
-
-    request.send(data);
-
-    if (timeout > 0) {
-      timer = setTimeout(() => {
-        timedOut = true;
-        request.abort();
-      }, timeout);
-    }
-
-    return request;
+    return open();
   }
 }
