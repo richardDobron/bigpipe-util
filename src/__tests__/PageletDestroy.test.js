@@ -112,6 +112,21 @@ describe('pagelet destructors', () => {
     expect(bigPipe.pagelets.has('sidebar')).toBe(false);
   });
 
+  it('does not display a replaced pagelet when its CSS loads later', () => {
+    bigPipe.onPageletArrive({
+      id: 'feed',
+      css: ['/feed.css'],
+      js: [],
+      domops: [['setContent', '#pagelet_feed', false, { __html: 'old' }]],
+      jsmods: {}
+    });
+    arrive('feed', 'new');
+
+    bigPipe.fileLoaded(bigPipe.resolveResourceName('/feed.css'));
+
+    expect(document.getElementById('pagelet_feed').innerHTML).toBe('new');
+  });
+
   it('finds the pagelet of a node', () => {
     const feed = arrive('feed', '<ul><li id="post">Post</li></ul>');
 

@@ -129,7 +129,7 @@ export default class Pagelet {
    * loading the JS of all pagelets, and every JS file calls it when it is loaded.
    */
   onJsFinished() {
-    if (this.phase !== PAGELET_PHASE.DISPLAY_END) {
+    if (this.destroyed || this.phase !== PAGELET_PHASE.DISPLAY_END) {
       return;
     }
 
@@ -161,7 +161,11 @@ export default class Pagelet {
   }
 
   onCssFinished() {
-    if (this.phase !== PAGELET_PHASE.LOADING_CSS || !areAllResourcesLoaded(this.cssResources)) {
+    if (
+      this.destroyed ||
+      this.phase !== PAGELET_PHASE.LOADING_CSS ||
+      !areAllResourcesLoaded(this.cssResources)
+    ) {
       return;
     }
 
