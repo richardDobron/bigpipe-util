@@ -49,3 +49,18 @@ the registered `pagelets`.
 With a nonce-based policy, `BigPipe` adds the nonce of the page to the stylesheets and scripts it loads. It takes the
 nonce from the `CSPNonce` module, which the PHP library defines in the page script after `BigPipe::setNonce()`, or
 else from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
+
+## Loading pagelets from an endpoint
+
+Like the `UIPagelet` of Facebook, a pagelet can be loaded later from an endpoint, e.g. a pagelet below the fold. The
+server prints its placeholder, the root element of the pagelet, and calls `UIPagelet.loadFromEndpoint()` with it, see
+`LazyPagelet` in the PHP library:
+
+```javascript
+UIPagelet.loadFromEndpoint('/pagelets/feed', 'pagelet_feed', { page: 2 }, { load: 'visible' });
+```
+
+It requests the URL with the data when the placeholder comes within 300 pixels of the viewport (`visible`, default),
+when the browser is idle (`idle`) or right away (`load`). The response puts the pagelet in the place of the
+placeholder, and `BigPipe` loads its CSS and JS like on a page. While it loads, the placeholder has the `async-saving`
+class, and errors go to the [default error handler](async_request.md#default-error-handler).

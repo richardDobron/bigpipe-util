@@ -13,6 +13,7 @@ import BigPipe from './BigPipe';
 import Pagelet from './Pagelet';
 import Primer from './Primer';
 import ServerJS from './ServerJS';
+import UIPagelet from './UIPagelet';
 import requireModule, {
   registerBuiltins,
   registerModules,
@@ -34,7 +35,8 @@ registerBuiltins({
   BigPipe,
   Pagelet,
   Primer,
-  ServerJS
+  ServerJS,
+  UIPagelet
 });
 
 export function setModuleLoader(loader, { global = true } = {}) {
