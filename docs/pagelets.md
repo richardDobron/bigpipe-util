@@ -64,3 +64,16 @@ It requests the URL with the data when the placeholder comes within 300 pixels o
 when the browser is idle (`idle`) or right away (`load`). The response puts the pagelet in the place of the
 placeholder, and `BigPipe` loads its CSS and JS like on a page. While it loads, the placeholder has the `async-saving`
 class, and errors go to the [default error handler](async_request.md#default-error-handler).
+
+## Infinite scroll
+
+A list loads its next page when the user scrolls to its end. The server
+prints a plain "See more" link handled by the [Primer](primer.md) and creates `MorePagerFetchOnScroll` with it, see
+`MorePager` in the PHP library:
+
+```javascript
+new MorePagerFetchOnScroll(document.getElementById('more_pager'), 300);
+```
+
+It clicks the link when it comes within the offset of the viewport. The response appends the items and replaces the
+link with the one of the next page, or removes it. `remove()` stops waiting.

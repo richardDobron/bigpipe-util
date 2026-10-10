@@ -11,6 +11,7 @@ import ServerRedirect from './core/ServerRedirect';
 import waitForLoad from './core/waitForLoad';
 import BigPipe from './BigPipe';
 import Pagelet from './Pagelet';
+import MorePagerFetchOnScroll from './MorePagerFetchOnScroll';
 import Primer from './Primer';
 import ServerJS from './ServerJS';
 import UIPagelet from './UIPagelet';
@@ -33,6 +34,7 @@ registerBuiltins({
   'core/ServerRedirect': ServerRedirect,
   'core/waitForLoad': waitForLoad,
   BigPipe,
+  MorePagerFetchOnScroll,
   Pagelet,
   Primer,
   ServerJS,
