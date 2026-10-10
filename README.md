@@ -131,6 +131,20 @@ There is a large number of PHP projects for which moving to modern frameworks li
 
 The purpose of this library is to rapidly reduce the continuously repetitive code to work with the DOM and improve the communication barrier between PHP and JavaScript.
 
+## 📑 Versioning
+
+| bigpipe-util | richarddobron/bigpipe |
+|--------------|-----------------------|
+| 0.2.x        | 1.x                   |
+| 2.x          | 2.x                   |
+
+From 2.0, `bigpipe-util` and the PHP library share the major and minor version: a release that changes what the server
+sends comes out in both, e.g. 2.1.x of `bigpipe-util` works with 2.1.0 of the PHP library. Fixes are released on their
+own as patch versions.
+
+A release is a tag of the version in `package.json`, e.g. `npm version minor && git push --follow-tags`. The `Release`
+workflow then tests, builds and publishes it to npm; `dist` is built on publish and isn't in the repository.
+
 ## 🤝 Contributing
 
 We welcome contributions! If you'd like to help improve this project, feel free to open an issue or submit a pull request.

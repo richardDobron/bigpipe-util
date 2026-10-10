@@ -8,3 +8,5 @@ website/build/
 website/node_modules
 website/.docusaurus
 !website/package-lock.json
+
+dist/
