@@ -8,7 +8,7 @@ export default class AutoFocus {
 
   enable() {
     this.subscription = this.layer.subscribe('aftershow', () => {
-      focusWithinLayer(this.layer.getRoot());
+      focusWithinLayer(this.layer.getFocusRoot());
     });
   }
 

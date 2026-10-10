@@ -166,3 +166,13 @@ menu.setPosition('right');
 
 It is positioned again while it is shown when the window is resized or scrolled and informs `reposition` with the
 side and alignment. A layer whose context is not on the page is not shown.
+
+## Dialogs
+
+[Dialogs](dialog.md) are layers: `DialogLayer` wraps a `modal-vanilla` modal, keeps its events and markup, and adds the
+layer events and behaviors (`AutoFocus`, `TabIsolation`, `RefocusOnHide`, `HideOnTransition`, and `HideOnSuccess` which hides
+the layer when a request sent from inside succeeds, see the [success event](async_request.md#success-event)). A dialog
+is always shown through the modal, so it does not use `ModalLayer` and the fades, which the modal has built in.
+
+`calculateTopMargin(height, options)` from `core/layer/DialogPosition` is the top margin of a dialog for the `position`
+option: `options.top` when it is set, else a third of the free height of the window (half with `centered`), at least 40.

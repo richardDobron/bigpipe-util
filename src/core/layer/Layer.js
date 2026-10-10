@@ -226,6 +226,10 @@ export default class Layer {
     return this.getRoot();
   }
 
+  getFocusRoot() {
+    return this.getRoot();
+  }
+
   getCausalElement() {
     return this.causalElement;
   }
@@ -277,7 +281,6 @@ export default class Layer {
     }
 
     invariant(this.root, 'Layer: the layer was destroyed.');
-    listen();
     this.inform('beforeshow');
 
     this.root.style.visibility = 'hidden';
@@ -301,6 +304,7 @@ export default class Layer {
   }
 
   markShown() {
+    listen();
     this.shown = true;
     this.inform('show');
     Layer.inform('show', this);

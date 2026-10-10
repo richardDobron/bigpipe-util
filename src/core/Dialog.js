@@ -1,5 +1,11 @@
 import Modal from 'modal-vanilla/lib/modal';
 import DOM from './DOM';
+import AutoFocus from './layer/AutoFocus';
+import DialogLayer from './layer/DialogLayer';
+import HideOnSuccess from './layer/HideOnSuccess';
+import HideOnTransition from './layer/HideOnTransition';
+import RefocusOnHide from './layer/RefocusOnHide';
+import TabIsolation from './layer/TabIsolation';
 import requireModule from './requireModule';
 
 const DEFAULT_Z_INDEX = 1040;
@@ -18,6 +24,35 @@ Modal.prototype._handleKeydownEvent = function (event) {
     }
   }
 };
+
+function layerConfig(source) {
+  const enabled = (name, fallback) =>
+    source[name] !== null && source[name] !== undefined ? source[name] : fallback;
+  const behaviors = [];
+
+  if (enabled('autoFocus', true)) {
+    behaviors.push(AutoFocus);
+  }
+  if (enabled('trapFocus', true)) {
+    behaviors.push(TabIsolation);
+  }
+  if (enabled('refocus', true)) {
+    behaviors.push(RefocusOnHide);
+  }
+  if (enabled('hideOnTransition', true)) {
+    behaviors.push(HideOnTransition);
+  }
+  if (source.hideOnSuccess) {
+    behaviors.push(HideOnSuccess);
+  }
+
+  return {
+    behaviors,
+    causalElement: source.causalElement,
+    hideOnSuccess: source.hideOnSuccess,
+    position: source.position
+  };
+}
 
 export default class Dialog {
   close(limit = -1) {
@@ -54,7 +89,8 @@ export default class Dialog {
           backdropTransition: this._getOption(options, 'backdropTransition', 0)
         },
         options.controller,
-        args
+        args,
+        layerConfig(options)
       )
     );
   }
@@ -73,7 +109,8 @@ export default class Dialog {
           backdropTransition: this._getOption(model, 'backdropTransition', 0)
         },
         model.controller,
-        args
+        args,
+        layerConfig(model)
       )
     );
   }
@@ -89,13 +126,14 @@ export default class Dialog {
     return obj[key] !== null && obj[key] !== undefined ? obj[key] : defaultVal;
   }
 
-  _show(options, controller, args) {
+  _show(options, controller, args = [], layerOptions = {}) {
     if (originalBodyPad === null) {
       originalBodyPad = document.body.style.paddingRight;
     }
 
     const _modal = new Modal(options);
     stack.push(_modal);
+    new DialogLayer(_modal, layerOptions);
 
     if (controller) {
       if (typeof controller === 'string') {
@@ -111,7 +149,12 @@ export default class Dialog {
       .on('shown', function ({ el }) {
         zIndex = DEFAULT_Z_INDEX + 10 * stack.length;
         el.style.zIndex = zIndex;
-        setTimeout(() => (document.querySelector('.modal-backdrop').style.zIndex = zIndex - 1));
+        setTimeout(() => {
+          const backdrop = document.querySelector('.modal-backdrop');
+          if (backdrop) {
+            backdrop.style.zIndex = zIndex - 1;
+          }
+        });
       })
       .on('showBackdrop', this._fixBackdrop)
       .on('hidden', function ({ el }) {
