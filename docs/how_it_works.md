@@ -63,6 +63,11 @@ Each operation is an array `[type, selector, targetRelative, content]`:
 - `content`: HTML wrapped in the `__html` [transport marker](server_js.md#transport-markers), or JavaScript code
   for `eval`, which runs with `this` bound to the element.
 
+The content of a pagelet of the page may be `{"__container": "u_0_5"}` instead, the id of a hidden `<code>` element
+the page printed before the script of the pagelet, with the HTML in a comment, where `` and `-` are escaped with a
+backslash (see `BigPipe::setHtmlContainers()` in the PHP library). The HTML is then not escaped in the JSON of the
+script, and the browser does not parse it until the pagelet is displayed. The container is removed.
+
 Operations whose selector matches nothing are skipped. With `__DEV__` defined and truthy (see
 [Getting started](getting_started.md#optional-debug-messages)), an error is logged to the
 console.
