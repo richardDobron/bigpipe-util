@@ -44,9 +44,14 @@ The server calls it with `$response->reload($delay)`.
 import ServerRedirect from 'bigpipe-util/dist/core/ServerRedirect';
 
 new ServerRedirect().redirectPageTo('/onboarding', 500); // delay in ms
+new ServerRedirect().redirectPageTo('/feed', 0, true, true); // replace the history entry, page transition
 ```
 
-The server calls it with `$response->redirect($url, $delay)`.
+It loads the URL in full, or with `transition` with a [page transition](page_transitions.md) when the page has them
+on. `replace` replaces the current history entry, e.g. of a form that should not be sent again with the back button.
+A redirect with a delay does not happen once the page is left with a page transition.
+
+The server calls it with `$response->redirect($url, $delay, $replace, $transition)`.
 
 ## DataStore
 
