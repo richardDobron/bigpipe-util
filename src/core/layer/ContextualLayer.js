@@ -112,7 +112,12 @@ export default class ContextualLayer extends Layer {
     this.autoFlip = config.autoFlip !== false;
     this.keepInViewport = config.keepInViewport !== false;
     this.actualPosition = this.position;
-    this.reposition = () => window.requestAnimationFrame(() => this.updatePosition());
+    this.reposition = () =>
+      window.requestAnimationFrame(() => {
+        if (this.shown) {
+          this.updatePosition();
+        }
+      });
     this.parentSubscription = null;
 
     this.subscribe('show', () => {

@@ -407,6 +407,9 @@ export default class Layer {
     this.inform('destroy');
     Layer.inform('destroy', this);
     DataStore.remove(this.root, 'layer');
+    // show() fails from now on instead of putting the root back.
+    this.root = null;
+    this.causalElement = null;
     this.destroyed = true;
   }
 }

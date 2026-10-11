@@ -147,13 +147,15 @@ describe('DestroyOnHide and RemoveOnHide', () => {
     const destroyed = vi.fn();
     layer.subscribe('destroy', destroyed);
     layer.show();
+    const root = layer.getRoot();
 
     layer.hide();
     expect(destroyed).not.toHaveBeenCalled();
     vi.runAllTimers();
 
     expect(destroyed).toHaveBeenCalledOnce();
-    expect(layer.getRoot().isConnected).toBe(false);
+    expect(root.isConnected).toBe(false);
+    expect(layer.getRoot()).toBeNull();
   });
 
   it('removes the root from the page when hidden, and shows it again', () => {

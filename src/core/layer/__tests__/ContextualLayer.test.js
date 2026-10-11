@@ -180,6 +180,17 @@ describe('ContextualLayer', () => {
     expect(layer.getRoot().style.zIndex).toBe('');
   });
 
+  it('does not position itself after it was destroyed', () => {
+    const frames = [];
+    window.requestAnimationFrame.mockImplementation(callback => frames.push(callback));
+    create().show();
+
+    window.dispatchEvent(new Event('resize'));
+    layer.destroy();
+
+    expect(() => frames.forEach(callback => callback())).not.toThrow();
+  });
+
   it('informs reposition', () => {
     const repositioned = vi.fn();
     create();

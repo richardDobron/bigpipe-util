@@ -140,6 +140,20 @@ describe('Layer', () => {
     layer = null;
   });
 
+  it('can not be shown again once destroyed', () => {
+    layer = new Layer('<div>Menu</div>', { causalElement: document.getElementById('opener') });
+    layer.show();
+    const root = layer.getRoot();
+    layer.destroy();
+
+    expect(layer.getRoot()).toBeNull();
+    expect(layer.getCausalElement()).toBeNull();
+    expect(() => layer.show()).toThrow('the layer was destroyed');
+    expect(root.isConnected).toBe(false);
+    layer.destroy();
+    layer = null;
+  });
+
   it('tracks the topmost shown layer', () => {
     layer = new Layer('<div>One</div>');
     const second = new Layer('<div>Two</div>');
