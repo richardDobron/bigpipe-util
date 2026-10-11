@@ -30,5 +30,6 @@ export const BIGPIPE_EVENT = Object.freeze({
   // Every pagelet of a phase of the page is displayed, with the phase; see last_in_phase.
   PHASE_DISPLAYED: 'BigPipe/phaseDisplayed',
   DISPLAYED: 'BigPipe/allPageletsDisplayed',
-  LOADED: 'BigPipe/allPageletsLoaded'
+  LOADED: 'BigPipe/allPageletsLoaded',
+  NEW_REVISION: 'BigPipe/newRevision'
 });

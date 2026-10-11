@@ -54,6 +54,22 @@ The request is [streamed](async_request.md#streamed-responses): a server that se
 rendered shows the next page progressively, like a page streamed with `BigPipe::stream()`. The page transition
 completes once the pagelets of the last part are displayed.
 
+## A new deploy
+
+The page keeps the scripts it was loaded with. When the server defines the revision of its deploy as the
+`BigPipeRevision` module (`BigPipe::setRevision()` in the PHP library), every response carries the revision of the
+server too. The first response of a newer deploy informs `BigPipe/newRevision` as a state, with the `revision` and the
+one of the `page`, e.g. to offer to reload, and the next page transition loads the page in full, with the new
+scripts:
+
+```javascript
+new Arbiter().subscribe('BigPipe/newRevision', ({ revision }) => {
+  showBanner('A new version is available.');
+});
+```
+
+`isOutdated()` from `bigpipe-util/dist/core/Revision` tells it later.
+
 ## Leaving a page
 
 A page that is left runs its leave hooks, its timers are cleared, and its requests in flight are abandoned unless they

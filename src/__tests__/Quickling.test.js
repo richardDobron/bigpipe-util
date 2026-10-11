@@ -197,6 +197,19 @@ describe('Quickling', () => {
     expect(loaded).toHaveBeenCalledOnce();
   });
 
+  it('loads the next page in full once a response came from a newer deploy', async () => {
+    const { default: AsyncResponse } = await import('../async/AsyncResponse');
+    const { default: ServerJS } = await import('../ServerJS');
+    new ServerJS().handle({ define: [['BigPipeRevision', 'r1']] });
+    Quickling.init(canvas, { version: 'r1' });
+
+    new AsyncResponse().handle({ revision: 'r2' });
+    PageTransitions.go('/feed');
+
+    expect(requests).toHaveLength(0);
+    expect(goOrReplace).toHaveBeenCalledWith(window.location, href('/feed'), false);
+  });
+
   it('loads a page of another version in full', () => {
     Quickling.init(canvas, { version: 'v1' });
     PageTransitions.go('/feed');

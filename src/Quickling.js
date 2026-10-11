@@ -5,6 +5,7 @@ import Arbiter from './core/Arbiter';
 import DOM from './core/DOM';
 import DocumentTitle from './core/DocumentTitle';
 import goOrReplace from './core/goOrReplace';
+import { isOutdated } from './core/Revision';
 import { clearAll as clearAllTimers } from './core/TimerStorage';
 
 export const QUICKLING_EVENT = Object.freeze({
@@ -146,7 +147,8 @@ function transitionHandler(uri) {
     return false;
   }
 
-  if (!Quickling.isPageActive(uri.href) || !canvas || !canvas.isConnected) {
+  // A newer deploy: the page is loaded in full, with its scripts.
+  if (isOutdated() || !Quickling.isPageActive(uri.href) || !canvas || !canvas.isConnected) {
     return false;
   }
 

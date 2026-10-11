@@ -2,6 +2,7 @@ import AsyncDOM from './AsyncDOM';
 import BigPipe from '../BigPipe';
 import Bootloader from '../Bootloader';
 import ServerJS from '../ServerJS';
+import { checkRevision } from '../core/Revision';
 
 const _AsyncDOM = new AsyncDOM();
 const _ServerJS = new ServerJS();
@@ -15,6 +16,8 @@ export default class AsyncResponse {
     if (response !== null && typeof response === 'object') {
       const { domops, pagelets, jsmods } = response;
       const bigPipe = new BigPipe();
+
+      checkRevision(response.revision);
 
       if (response.resource_map) {
         Bootloader.setResourceMap(response.resource_map);
