@@ -39,10 +39,18 @@ function scroll(y) {
   window.dispatchEvent(new Event('scroll'));
 }
 
-// Goes back or forward in the history and waits for its popstate.
-function traverse(delta) {
+// Goes back or forward in the history and waits for its popstate, or for as many as it causes.
+function traverse(delta, popStates = 1) {
   return new Promise(resolve => {
-    window.addEventListener('popstate', () => resolve(), { once: true });
+    let count = 0;
+    const listener = () => {
+      count += 1;
+      if (count === popStates) {
+        window.removeEventListener('popstate', listener);
+        resolve();
+      }
+    };
+    window.addEventListener('popstate', listener);
     window.history.go(delta);
   });
 }
@@ -57,7 +65,7 @@ describe('PageTransitions', () => {
     expect(event.defaultPrevented).toBe(true);
     expect(handler.mock.calls[0][0].href).toBe(window.location.origin + '/feed?page=2');
     expect(window.location.pathname + window.location.search).toBe('/feed?page=2');
-    expect(window.history.state).toEqual({ uri: '/feed?page=2' });
+    expect(window.history.state).toEqual({ uri: '/feed?page=2', index: 1 });
     expect(informed).toHaveBeenCalledOnce();
     subscription.remove();
   });
@@ -112,12 +120,13 @@ describe('PageTransitions', () => {
   it('replaces the history entry with go(uri, true)', () => {
     PageTransitions.go('/list');
     const length = window.history.length;
+    const { index } = window.history.state;
 
     PageTransitions.go('/list?sort=new', true);
 
     expect(window.location.pathname + window.location.search).toBe('/list?sort=new');
     expect(window.history.length).toBe(length);
-    expect(window.history.state).toEqual({ uri: '/list?sort=new' });
+    expect(window.history.state).toEqual({ uri: '/list?sort=new', index });
   });
 
   it('lets a page replace the entry of a delaying handler before it is added', async () => {
@@ -207,6 +216,51 @@ describe('PageTransitions', () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 420);
   });
 
+  it('asks before leaving a page with a before leave hook', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const hook = PageTransitions.addBeforeLeaveHook(() => 'You have unsaved changes.');
+
+    PageTransitions.go('/away');
+
+    expect(confirm).toHaveBeenCalledWith('You have unsaved changes.');
+    expect(handler).not.toHaveBeenCalled();
+    hook.remove();
+    confirm.mockRestore();
+  });
+
+  it('goes back to the entry of the page and keeps the next ones when the user stays', async () => {
+    PageTransitions.go('/one');
+    PageTransitions.go('/two');
+    PageTransitions.go('/three');
+    await traverse(-1);
+    const length = window.history.length;
+    handler.mockClear();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const hook = PageTransitions.addBeforeLeaveHook(() => 'You have unsaved changes.');
+
+    await traverse(-1, 2);
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(handler).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/two');
+    expect(window.history.length).toBe(length);
+
+    hook.remove();
+    confirm.mockRestore();
+    await traverse(1);
+    expect(handler.mock.calls[0][0].pathname).toBe('/three');
+  });
+
+  it('runs the leave hooks once', () => {
+    const hook = vi.fn();
+    PageTransitions.addLeaveHook(hook);
+
+    PageTransitions.runLeaveHooks();
+    PageTransitions.runLeaveHooks();
+
+    expect(hook).toHaveBeenCalledOnce();
+  });
+
   it('loads the page of an entry another script added', async () => {
     PageTransitions.go('/tabs');
     window.history.pushState({ tab: 2 }, '', '/tabs?tab=2');
@@ -232,27 +286,5 @@ describe('PageTransitions', () => {
     expect(goOrReplace).not.toHaveBeenCalled();
     expect(document.getElementById('reviews').scrollIntoView).toHaveBeenCalled();
     expect(PageTransitions.getCurrentURI().hash).toBe('#reviews');
-  });
-
-  it('asks before leaving a page with a before leave hook', () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const hook = PageTransitions.addBeforeLeaveHook(() => 'You have unsaved changes.');
-
-    PageTransitions.go('/away');
-
-    expect(confirm).toHaveBeenCalledWith('You have unsaved changes.');
-    expect(handler).not.toHaveBeenCalled();
-    hook.remove();
-    confirm.mockRestore();
-  });
-
-  it('runs the leave hooks once', () => {
-    const hook = vi.fn();
-    PageTransitions.addLeaveHook(hook);
-
-    PageTransitions.runLeaveHooks();
-    PageTransitions.runLeaveHooks();
-
-    expect(hook).toHaveBeenCalledOnce();
   });
 });

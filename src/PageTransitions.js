@@ -16,6 +16,7 @@ let beforeLeaveHooks = [];
 let leaveHooks = [];
 let completionCallbacks = [];
 let pendingHistory = null;
+let currentIndex = 0;
 const scrollPositions = new Map();
 
 function toURI(uri) {
@@ -38,8 +39,17 @@ function scrollTo(position) {
   window.scrollTo(position.x, position.y);
 }
 
+function indexOf(state) {
+  return state && typeof state.index === 'number' ? state.index : null;
+}
+
+// Every entry has its index in the history, to go back to it when the user stays on the page
+// after all. The index of an entry another script added is not known.
 function updateHistory(uri, replace) {
-  const state = { uri: key(uri) };
+  if (!replace) {
+    currentIndex = currentIndex === null ? null : currentIndex + 1;
+  }
+  const state = { uri: key(uri), index: currentIndex };
   if (replace) {
     window.history.replaceState(state, '', uri.href);
   } else {
@@ -154,7 +164,7 @@ function onSubmit(event) {
 
 // The entry can also be one without a state of ours, e.g. added by a script for a tab or by a
 // change of the fragment: its URL is loaded all the same.
-function onPopState() {
+function onPopState(event) {
   // The entry of the page left with the back button is not added after all.
   if (pendingHistory) {
     window.clearTimeout(pendingHistory.timer);
@@ -166,7 +176,8 @@ function onPopState() {
     return;
   }
 
-  load(uri, true, false, () => goOrReplace(window.location, uri.href, true));
+  const entry = { index: indexOf(event.state) };
+  load(uri, entry, false, () => goOrReplace(window.location, uri.href, true));
 }
 
 function onScroll() {
@@ -182,11 +193,15 @@ function onPageShow(event) {
   }
 }
 
-function load(uri, fromHistory, replace, fallback) {
+// The page of the back or forward button comes with its history entry, the page of a link or of
+// go() gets a new one.
+function load(uri, entry, replace, fallback) {
   // The back button to an entry of the same page, e.g. without the fragment, only scrolls too.
-  if ((uri.hash || fromHistory) && withoutHash(uri) === withoutHash(currentURI)) {
+  if ((uri.hash || entry) && withoutHash(uri) === withoutHash(currentURI)) {
     new Arbiter().inform('pre_page_fragment_transition', { from: currentURI.hash, to: uri.hash });
-    if (!fromHistory) {
+    if (entry) {
+      currentIndex = entry.index;
+    } else {
       addToHistory(uri, replace, false);
     }
     currentURI = uri;
@@ -204,12 +219,16 @@ function load(uri, fromHistory, replace, fallback) {
   const message = runHooks(beforeLeaveHooks).find(Boolean);
   if (message) {
     if (!window.confirm(message)) {
-      if (fromHistory) {
-        updateHistory(currentURI, false);
+      if (entry) {
+        stay(entry);
       }
       return;
     }
     leaveConfirmed = true;
+  }
+
+  if (entry) {
+    currentIndex = entry.index;
   }
 
   new Arbiter().inform('pre_page_transition', { from: currentURI, to: uri });
@@ -224,9 +243,23 @@ function load(uri, fromHistory, replace, fallback) {
   }
 
   currentURI = uri;
-  if (!fromHistory) {
+  if (!entry) {
     addToHistory(uri, replace, result === DELAY_HISTORY);
   }
+}
+
+// The user stays on the page after the back or forward button: the history goes back to its entry
+// and keeps the entries after it. Without the indexes, the entry of the button becomes the page's.
+function stay(entry) {
+  if (entry.index !== null && currentIndex !== null) {
+    if (currentIndex !== entry.index) {
+      window.history.go(currentIndex - entry.index);
+    }
+    return;
+  }
+
+  currentIndex = entry.index;
+  updateHistory(currentURI, true);
 }
 
 function runHooks(hooks) {
@@ -267,6 +300,8 @@ const PageTransitions = {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
+    // A reloaded page keeps the index of its entry.
+    currentIndex = indexOf(window.history.state) || 0;
     updateHistory(currentURI, true);
 
     document.addEventListener('click', onClick);
