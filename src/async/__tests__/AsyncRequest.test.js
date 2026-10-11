@@ -535,6 +535,28 @@ describe('timeout', () => {
     );
   });
 
+  it('does not fire once a streamed response started', () => {
+    const h = handlers();
+    const timeoutHandler = vi.fn();
+    const part = (content, finished = false) =>
+      JSON.stringify({ content, finished }) + '/*<!-- fetch-stream -->*/';
+
+    send(
+      new AsyncRequest('/feed').setOption('stream', true).setTimeoutHandler(1000, timeoutHandler),
+      h
+    );
+    vi.advanceTimersByTime(500);
+    requests[0].progress(200, part({ payload: 1 }));
+    vi.advanceTimersByTime(5000);
+
+    expect(requests[0].aborted).toBe(false);
+    expect(timeoutHandler).not.toHaveBeenCalled();
+
+    requests[0].respond(200, part({ payload: 1 }) + part({ payload: 2 }, true));
+    expect(h.success).toHaveBeenCalledTimes(2);
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
   it('does not fire after the response', () => {
     const h = handlers();
 

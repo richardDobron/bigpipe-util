@@ -524,6 +524,10 @@ export default class AsyncRequest {
 
     // Handles one response, or one part of a streamed response: is_first and is_last tell which.
     const handleResponse = (transport, response, isLast) => {
+      if (parts === 0) {
+        clearTimeout(timer);
+      }
+
       response.is_first = parts === 0;
       response.is_last = isLast;
       parts += 1;
