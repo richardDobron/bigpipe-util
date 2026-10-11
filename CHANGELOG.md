@@ -7,6 +7,19 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ## Unreleased
 
 ### Added
+- A new deploy: a response with a `revision` other than the `BigPipeRevision` of the page informs `BigPipe/newRevision`,
+  and the next Quickling page transition loads the page in full.
+- HTML containers: the content of a DOM operation can be `{"__container": id}`, a hidden `<code>` element of the page
+  with the HTML in a comment, which the PHP library prints for the pagelets of a page.
+- Trusted Types: the HTML of the server, the scripts the Bootloader loads and the code of the `eval` DOM operation
+  go through the `bigpipe` policy, so a Content Security Policy with `require-trusted-types-for 'script'` works with
+  `trusted-types bigpipe`.
+- Modules the server chooses: a define `{"__rc": module}` makes a module stand for the one the server chose, e.g. by a
+  feature flag, or `null` to turn it off. Only the resources of the chosen module are loaded.
+- `last_in_phase` of a pagelet completes its phase: the time to interactive no longer waits for the next phase,
+  and `BigPipe/phaseDisplayed` is informed with every phase that is displayed; see `BigPipe.isPhaseDisplayed()`.
+- `BigPipeQueue`: the inline scripts of the PHP library push their calls to `window.__bigpipe`, and `ModuleRegistry`
+  runs them once the module loader is set, so the entrypoint can be loaded `async`, `defer` or as a module script.
 - `Bootloader.getErrorURLs()` lists the stylesheets and scripts that failed to load.
 - `ServerRedirect.redirectPageTo()` takes `replace` and `transition`: replace the history entry, or load the page with
   a page transition.
@@ -15,8 +28,16 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - `BigPipe.startPage()` makes the pagelets of a response the next page, see Quickling.
 
 ### Changed
+- The other events are named the same way: `Pagelet/event`, `Pagelet/destroy` and `Pagelet/error`; the steps of a
+  pagelet `cssLoad`, `displayStart`, `jsStart` and `jsDone`; `Quickling/send`, `Quickling/firstResponse`,
+  `Quickling/beforeClearCanvas`, `Quickling/unload` and `Quickling/response`; `PageTransitions/beforeTransition`,
+  `PageTransitions/transition`, `PageTransitions/beforeFragmentTransition` and `PageTransitions/fragmentTransition`,
+  exported as `PAGE_TRANSITION_EVENT`; `DocumentTitle/update`, `Visibility/hidden`, `Visibility/visible` and
+  `UserActivity/activity`, whose `last_inform` is `lastInform`.
+- The page events are named like `BigPipe/init`: `tti_bigpipe` is `BigPipe/tti`, `all_pagelets_displayed` is
+  `BigPipe/allPageletsDisplayed` and `all_pagelets_loaded` is `BigPipe/allPageletsLoaded`, see `BIGPIPE_EVENT`.
 - The pagelets of a response, e.g. a lazy pagelet, are kept apart from the page: they load their JS once all of them
-  are displayed, and no longer start the JS of the page or inform `all_pagelets_displayed` and `all_pagelets_loaded`.
+  are displayed, and no longer start the JS of the page or inform `BigPipe/allPageletsDisplayed` and `BigPipe/allPageletsLoaded`.
 - A response whose error is a warning goes to the handler, not to the error handler.
 - Only a 2xx status is a success. A BigPipe response with an error status, e.g. `send(422)`, is applied and its error
   goes to the error handler.
@@ -41,7 +62,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - A stylesheet that does not load in 5 seconds no longer holds up the page.
 - An async, deferred or module script, or a stylesheet in the body, that is on the page is waited for until it loaded.
 - A call waits for the bootloadable modules of its arguments and the classes of the instances it uses.
-- A Quickling page transition clears the `all_pagelets_loaded` state of the previous page.
+- A Quickling page transition clears the `BigPipe/allPageletsLoaded` state of the previous page.
 
 #### Page transitions
 - `PageTransitions.go(uri, true)` replaces the current history entry, so the back button no longer returns to a URL
