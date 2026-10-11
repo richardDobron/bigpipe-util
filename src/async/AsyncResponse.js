@@ -34,7 +34,7 @@ export default class AsyncResponse {
       }
 
       if (jsmods) {
-        _ServerJS.handle(jsmods);
+        _ServerJS.handle(jsmods, element instanceof Element ? element : null);
       }
     }
   }

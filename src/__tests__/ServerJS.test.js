@@ -177,3 +177,35 @@ describe('define', () => {
     expect(requireModule('TokenData').token).toBe('second');
   });
 });
+
+describe('relative element', () => {
+  it('passes the element that sent the request for a __rel marker', () => {
+    document.body.innerHTML = '<a id="open">Open</a>';
+    const link = document.getElementById('open');
+
+    new ServerJS().handle(
+      { require: [['Dashboard', 'add', [{ causalElement: { __rel: 1 } }]]] },
+      link
+    );
+    handle({ require: [['Dashboard', 'add', [{ __rel: 1 }]]] });
+
+    expect(modules.Dashboard.add).toHaveBeenNthCalledWith(1, { causalElement: link });
+    expect(modules.Dashboard.add).toHaveBeenNthCalledWith(2, null);
+  });
+
+  it('keeps the element for a call that waits for its module', async () => {
+    const { default: Bootloader } = await import('../Bootloader');
+    const { registerModules } = await import('../core/requireModule');
+    document.body.innerHTML = '<a id="open">Open</a>';
+    const link = document.getElementById('open');
+    const Editor = { open: vi.fn() };
+    Bootloader.enableBootload({ RelEditor: ['/rel-editor.js'] });
+
+    new ServerJS().handle({ require: [['RelEditor', 'open', [{ __rel: 1 }]]] }, link);
+    new ServerJS().handle({ require: [['Dashboard', 'add', [{ __rel: 1 }]]] });
+    registerModules({ RelEditor: Editor });
+    Bootloader.done('/rel-editor.js');
+
+    expect(Editor.open).toHaveBeenCalledWith(link);
+  });
+});

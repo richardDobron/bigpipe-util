@@ -31,10 +31,10 @@ function collectModules(value, modules) {
   }
 }
 
-function handler(dependencies, guard, context) {
+function handler(dependencies, guard, context, relativeTo) {
   dependencies.forEach(args => {
     try {
-      guard.apply(context, args);
+      guard.call(context, relativeTo, ...args);
     } catch (error) {
       reportError(error);
     }
@@ -42,32 +42,32 @@ function handler(dependencies, guard, context) {
 }
 
 export default class ServerJS {
-  get _relativeTo() {
-    return document.body;
+  /**
+   * Handles the modules of a response. `relativeTo` is the element that sent its request, which a
+   * `__rel` marker stands for.
+   */
+  handle(jsMods, relativeTo = null) {
+    handler(jsMods.define || [], this._handleDefine, this, relativeTo);
+    handler(jsMods.instances || [], this._handleInstance, this, relativeTo);
+    handler(jsMods.require || [], this._handleRequireLazy, this, relativeTo);
   }
 
-  handle(jsMods) {
-    handler(jsMods.define || [], this._handleDefine, this);
-    handler(jsMods.instances || [], this._handleInstance, this);
-    handler(jsMods.require || [], this._handleRequireLazy, this);
-  }
-
-  _handleDefine(name, exports) {
+  _handleDefine(relativeTo, name, exports) {
     defineModule(name, () => {
       const holder = [exports];
-      replaceTransportMarkers(this._relativeTo, holder);
+      replaceTransportMarkers(relativeTo, holder);
       return holder[0];
     });
   }
 
-  _handleInstance(id, modulePath, marker) {
+  _handleInstance(relativeTo, id, modulePath, marker) {
     const modules = new Set([modulePath]);
     collectModules(marker, modules);
     instanceModules.set(id, Array.from(modules));
 
     defineInstance(id, () => {
       if (marker) {
-        replaceTransportMarkers(this._relativeTo, marker);
+        replaceTransportMarkers(relativeTo, marker);
       }
 
       const Constructor = requireModule(modulePath);
@@ -86,23 +86,25 @@ export default class ServerJS {
    * Calls the module once it is loaded, with the modules of its arguments and of the instances it
    * uses, when they are bootloadable.
    */
-  _handleRequireLazy(modulePath, method, marker) {
+  _handleRequireLazy(relativeTo, modulePath, method, marker) {
     const modules = new Set();
     addModule(modulePath, modules);
     collectModules(marker, modules);
     const bootloadable = Array.from(modules).filter(module => Bootloader.isBootloadable(module));
 
     if (bootloadable.length > 0) {
-      Bootloader.loadModules(bootloadable, () => this._handleRequire(modulePath, method, marker));
+      Bootloader.loadModules(bootloadable, () =>
+        this._handleRequire(relativeTo, modulePath, method, marker)
+      );
     } else {
-      this._handleRequire(modulePath, method, marker);
+      this._handleRequire(relativeTo, modulePath, method, marker);
     }
   }
 
-  _handleRequire(modulePath, method, marker) {
+  _handleRequire(relativeTo, modulePath, method, marker) {
     if (method && typeof method === 'string') {
       if (marker) {
-        replaceTransportMarkers(this._relativeTo, marker);
+        replaceTransportMarkers(relativeTo, marker);
       }
 
       const factory = requireModule(modulePath);
@@ -115,7 +117,7 @@ export default class ServerJS {
       context[method].apply(context, marker || []);
     } else {
       if (marker) {
-        replaceTransportMarkers(this._relativeTo, marker);
+        replaceTransportMarkers(relativeTo, marker);
       }
 
       const factory = requireModule(modulePath);

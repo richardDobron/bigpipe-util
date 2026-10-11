@@ -116,10 +116,12 @@ called:
 
 | Marker    | Replaced with                                      | PHP                                   |
 |-----------|----------------------------------------------------|---------------------------------------|
-| `__e`     | The element with this `id`.                        | `TransportMarker::transportElement()` |
-| `__m`     | The module, resolved the same way as `require`.    | `TransportMarker::transportModule()`  |
-| `__map`   | A `Map` created from the list of `[key, value]`.   | `TransportMarker::transportMap()`     |
-| `__set`   | A `Set` created from the list of values.           | `TransportMarker::transportSet()`     |
-| `__html`  | Used for the HTML content of DOM operations.       | `TransportMarker::transportHtml()`    |
+| `__e`     | The element with this `id`.                        | `TransportMarker::element()`          |
+| `__m`     | The module, resolved the same way as `require`.    | `TransportMarker::module()`           |
+| `__rel`   | The element that sent the request, e.g. the link of the [Primer](primer.md), or `null`. | `TransportMarker::relative()` |
+| `__map`   | A `Map` created from the list of `[key, value]`.   | `TransportMarker::map()`              |
+| `__set`   | A `Set` created from the list of values.           | `TransportMarker::set()`              |
+| `__html`  | Used for the HTML content of DOM operations; a module gets the object. | `TransportMarker::html()` |
 
-Markers are replaced at any depth of the arguments.
+Markers are replaced at any depth of the arguments. `handle(jsmods, relativeTo)` takes the element of `__rel`;
+`AsyncResponse` passes the relative element of the request.

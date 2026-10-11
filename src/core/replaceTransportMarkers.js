@@ -14,6 +14,8 @@ export default function replaceTransportMarkers(markerValue, markers, key) {
         markers[key] = requireModule(marker.__m);
       } else if (marker.__e) {
         markers[key] = $(marker.__e);
+      } else if (marker.__rel) {
+        markers[key] = markerValue || null;
       } else if (marker.__map) {
         markers[key] = new Map(marker.__map);
       } else if (marker.__set) {
