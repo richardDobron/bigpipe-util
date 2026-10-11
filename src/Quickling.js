@@ -90,7 +90,9 @@ function onPreResponse(request, uri, response) {
   if (typeof payload.title === 'string') {
     DocumentTitle.set(payload.title);
   }
-  document.body.className = payload.body_class || '';
+  if (typeof payload.body_class === 'string') {
+    document.body.className = payload.body_class;
+  }
   window.scrollTo(0, 0);
 
   clearCanvas();

@@ -163,6 +163,17 @@ describe('Quickling', () => {
     expect(informed).not.toHaveBeenCalled();
   });
 
+  it('keeps the title and the class of the body when the response has none', () => {
+    Quickling.init(canvas, { version: 'v1' });
+    PageTransitions.go('/feed');
+
+    requests[0].respond(200, feedResponse({ title: null, body_class: null }));
+
+    expect(canvas.innerHTML).toBe('<div id="pagelet_feed">Posts</div>');
+    expect(document.title).toBe('Home');
+    expect(document.body.className).toBe('home');
+  });
+
   it('informs the events of the next page, but not for a lazy pagelet of the page', async () => {
     const { default: Arbiter } = await import('../core/Arbiter');
     const { default: AsyncRequest } = await import('../async/AsyncRequest');

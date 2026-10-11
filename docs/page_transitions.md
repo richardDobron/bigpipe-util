@@ -42,8 +42,8 @@ fails, or the server sends a page of another version, e.g. after a deploy.
 [AsyncResponse](async_request.md) whose `payload` has:
 
 - `version`: the version of the page, compared with the one of `Quickling.init()`.
-- `title`: the title of the page.
-- `body_class`: the class of `<body>`.
+- `title`: the title of the page, the title is kept without one.
+- `body_class`: the class of `<body>`, the class is kept without one.
 - `redirect`: a URL to go to instead, with a page transition, or in full with `force`.
 
 Before the response is applied, the pagelets in the canvas are destroyed, `pagelet/destroy` is informed with the
