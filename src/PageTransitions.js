@@ -15,6 +15,7 @@ let handlers = [];
 let beforeLeaveHooks = [];
 let leaveHooks = [];
 let completionCallbacks = [];
+let pendingHistory = null;
 const scrollPositions = new Map();
 
 function toURI(uri) {
@@ -44,6 +45,32 @@ function updateHistory(uri, replace) {
   } else {
     window.history.pushState(state, '', uri.href);
   }
+}
+
+// The entry of a handler that delays it is added on the next tick, once the handler, e.g. Quickling,
+// has left the page. A page that replaces it before then, e.g. a redirect, takes its place.
+function addToHistory(uri, replace, delayed) {
+  if (pendingHistory) {
+    const pending = pendingHistory;
+    window.clearTimeout(pending.timer);
+    pendingHistory = null;
+    if (replace) {
+      replace = pending.replace;
+    } else {
+      updateHistory(pending.uri, pending.replace);
+    }
+  }
+
+  if (!delayed) {
+    updateHistory(uri, replace);
+    return;
+  }
+
+  const timer = window.setTimeout(() => {
+    pendingHistory = null;
+    updateHistory(uri, replace);
+  }, 0);
+  pendingHistory = { uri, replace, timer };
 }
 
 function handleTransition(uri) {
@@ -125,13 +152,21 @@ function onSubmit(event) {
   PageTransitions.go(uri.href);
 }
 
-function onPopState(event) {
-  const state = event.state;
-  if (!state || typeof state.uri !== 'string') {
+// The entry can also be one without a state of ours, e.g. added by a script for a tab or by a
+// change of the fragment: its URL is loaded all the same.
+function onPopState() {
+  // The entry of the page left with the back button is not added after all.
+  if (pendingHistory) {
+    window.clearTimeout(pendingHistory.timer);
+    pendingHistory = null;
+  }
+
+  const uri = toURI(window.location.href);
+  if (uri.href === currentURI.href) {
     return;
   }
 
-  load(toURI(state.uri), true, () => goOrReplace(window.location, toURI(state.uri).href, true));
+  load(uri, true, false, () => goOrReplace(window.location, uri.href, true));
 }
 
 function onScroll() {
@@ -147,11 +182,12 @@ function onPageShow(event) {
   }
 }
 
-function load(uri, fromHistory, fallback) {
-  if (uri.hash && withoutHash(uri) === withoutHash(currentURI)) {
+function load(uri, fromHistory, replace, fallback) {
+  // The back button to an entry of the same page, e.g. without the fragment, only scrolls too.
+  if ((uri.hash || fromHistory) && withoutHash(uri) === withoutHash(currentURI)) {
     new Arbiter().inform('pre_page_fragment_transition', { from: currentURI.hash, to: uri.hash });
     if (!fromHistory) {
-      updateHistory(uri, false);
+      addToHistory(uri, replace, false);
     }
     currentURI = uri;
     if (!PageTransitions.restoreScrollPosition(uri)) {
@@ -189,11 +225,7 @@ function load(uri, fromHistory, fallback) {
 
   currentURI = uri;
   if (!fromHistory) {
-    if (result === DELAY_HISTORY) {
-      window.setTimeout(() => updateHistory(uri, false), 0);
-    } else {
-      updateHistory(uri, false);
-    }
+    addToHistory(uri, replace, result === DELAY_HISTORY);
   }
 }
 
@@ -319,8 +351,14 @@ const PageTransitions = {
       return;
     }
 
+    // A link to an empty fragment of the page, e.g. `href="#"`, goes nowhere: its click is
+    // usually handled by a script.
+    if (next.href.endsWith('#') && withoutHash(next) === withoutHash(currentURI)) {
+      return;
+    }
+
     scrollPositions.delete(key(next));
-    load(next, false, () => goOrReplace(window.location, next.href, replace));
+    load(next, false, replace, () => goOrReplace(window.location, next.href, replace));
   },
 
   /**

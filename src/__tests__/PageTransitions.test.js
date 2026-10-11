@@ -33,6 +33,20 @@ function click(html, init = {}) {
   return event;
 }
 
+function scroll(y) {
+  window.scrollX = 0;
+  window.scrollY = y;
+  window.dispatchEvent(new Event('scroll'));
+}
+
+// Goes back or forward in the history and waits for its popstate.
+function traverse(delta) {
+  return new Promise(resolve => {
+    window.addEventListener('popstate', () => resolve(), { once: true });
+    window.history.go(delta);
+  });
+}
+
 describe('PageTransitions', () => {
   it('loads a same-origin link with a handler and adds it to the history', () => {
     const informed = vi.fn();
@@ -95,6 +109,37 @@ describe('PageTransitions', () => {
     PageTransitions.removeHandler(delaying, 3);
   });
 
+  it('replaces the history entry with go(uri, true)', () => {
+    PageTransitions.go('/list');
+    const length = window.history.length;
+
+    PageTransitions.go('/list?sort=new', true);
+
+    expect(window.location.pathname + window.location.search).toBe('/list?sort=new');
+    expect(window.history.length).toBe(length);
+    expect(window.history.state).toEqual({ uri: '/list?sort=new' });
+  });
+
+  it('lets a page replace the entry of a delaying handler before it is added', async () => {
+    const delaying = () => DELAY_HISTORY;
+    PageTransitions.registerHandler(delaying, 3);
+    const length = window.history.length;
+
+    PageTransitions.go('/old');
+    PageTransitions.go('/new', true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(window.location.pathname).toBe('/new');
+    expect(window.history.length).toBe(length + 1);
+
+    PageTransitions.go('/newer', true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(window.location.pathname).toBe('/newer');
+    expect(window.history.length).toBe(length + 1);
+    PageTransitions.removeHandler(delaying, 3);
+  });
+
   it('submits a GET form as a page transition', () => {
     document.body.innerHTML =
       '<form action="/search"><input name="q" value="pipes"><button name="sort" value="new">Go</button></form>';
@@ -123,22 +168,70 @@ describe('PageTransitions', () => {
     expect(window.location.hash).toBe('#comments');
   });
 
-  it('loads the page of the back button and restores its scroll position', () => {
+  it.each(['#', '/article#'])('does nothing for a link to %s on the page', href => {
+    PageTransitions.go('/article');
+    handler.mockClear();
+    const length = window.history.length;
+
+    const event = click(`<a href="${href}">Menu</a>`);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(handler).not.toHaveBeenCalled();
+    expect(goOrReplace).not.toHaveBeenCalled();
+    expect(window.history.length).toBe(length);
+    expect(window.location.href).toBe(window.location.origin + '/article');
+  });
+
+  it('loads another page linked with an empty fragment', () => {
+    PageTransitions.go('/article');
+    handler.mockClear();
+
+    click('<a href="/feed#">Feed</a>');
+
+    expect(handler.mock.calls[0][0].pathname).toBe('/feed');
+  });
+
+  it('loads the page of the back button and restores its scroll position', async () => {
     PageTransitions.go('/first');
     PageTransitions.transitionComplete();
-    window.scrollX = 0;
-    window.scrollY = 420;
-    window.dispatchEvent(new Event('scroll'));
+    scroll(420);
     PageTransitions.go('/second');
     PageTransitions.transitionComplete();
     handler.mockClear();
     vi.mocked(window.scrollTo).mockClear();
 
-    window.dispatchEvent(new PopStateEvent('popstate', { state: { uri: '/first' } }));
+    await traverse(-1);
     PageTransitions.transitionComplete();
 
     expect(handler.mock.calls[0][0].pathname).toBe('/first');
     expect(window.scrollTo).toHaveBeenCalledWith(0, 420);
+  });
+
+  it('loads the page of an entry another script added', async () => {
+    PageTransitions.go('/tabs');
+    window.history.pushState({ tab: 2 }, '', '/tabs?tab=2');
+    window.history.pushState(null, '', '/tabs?tab=3');
+    handler.mockClear();
+
+    await traverse(-1);
+
+    expect(handler.mock.calls[0][0].search).toBe('?tab=2');
+    expect(PageTransitions.getCurrentURI().search).toBe('?tab=2');
+  });
+
+  it('only scrolls for an entry of another fragment of the page', async () => {
+    PageTransitions.go('/doc');
+    window.history.pushState(null, '', '/doc#reviews');
+    window.history.pushState(null, '', '/doc#specs');
+    document.body.innerHTML = '<h2 id="reviews">Reviews</h2>';
+    handler.mockClear();
+
+    await traverse(-1);
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(goOrReplace).not.toHaveBeenCalled();
+    expect(document.getElementById('reviews').scrollIntoView).toHaveBeenCalled();
+    expect(PageTransitions.getCurrentURI().hash).toBe('#reviews');
   });
 
   it('asks before leaving a page with a before leave hook', () => {

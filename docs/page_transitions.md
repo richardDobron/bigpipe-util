@@ -24,10 +24,13 @@ Quickling.init(document.getElementById('content'), {
 `PageTransitions` takes over the clicks on the links of the page and the GET forms. A link is left to the browser when
 it goes to another origin, opens a new window (`target`), is a `download`, is handled by the [Primer](primer.md)
 (`rel="async"`, `rel="dialog"`, `ajaxify`), has `rel="external"`, or is clicked with a modifier key or another button
-than the main one. A link to a fragment of the current page only scrolls to it.
+than the main one. A link to a fragment of the current page only scrolls to it, and a link to an empty fragment of it,
+like `href="#"`, does nothing.
 
-`PageTransitions.go(url)` loads a page from JavaScript. The back and forward buttons load the page of the history entry
-and restore its scroll position.
+`PageTransitions.go(url)` loads a page from JavaScript; `PageTransitions.go(url, true)` replaces the current history
+entry instead of adding one, as a `redirect` of the server does. The back and forward buttons load the page of the
+history entry and restore its scroll position, also for the entries other scripts added with `history.pushState()`;
+an entry of the same page with another fragment only scrolls to it.
 
 When a page transition can't be used, the page is loaded in full: when the page must not be handled, the request
 fails, or the server sends a page of another version, e.g. after a deploy.

@@ -185,6 +185,22 @@ describe('Quickling', () => {
     expect(goOrReplace).toHaveBeenCalledWith(window.location, href('/login'), true);
   });
 
+  it('replaces the history entry of the page that redirects', async () => {
+    const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+    Quickling.init(canvas, { version: 'v1' });
+
+    PageTransitions.go('/old');
+    await tick();
+    expect(window.location.pathname).toBe('/old');
+    const length = window.history.length;
+
+    requests[0].respond(200, asyncResponse({ payload: { redirect: '/new' } }));
+    await tick();
+
+    expect(window.location.pathname).toBe('/new');
+    expect(window.history.length).toBe(length);
+  });
+
   it('loads in full the pages it must not handle', () => {
     Quickling.init(canvas, { inactivePageRegex: '^/admin', badRequestKeys: ['print'] });
 
