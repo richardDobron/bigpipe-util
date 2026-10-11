@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AutoFocus from '../AutoFocus';
+import { getTabbable } from '../focusWithinLayer';
 import Layer from '../Layer';
 import RefocusOnHide from '../RefocusOnHide';
 import RemoveOnHide from '../RemoveOnHide';
@@ -68,6 +69,37 @@ describe('AutoFocus', () => {
     layer.inform('aftershow');
 
     expect(document.activeElement.id).toBe('b');
+  });
+});
+
+describe('getTabbable', () => {
+  it('skips disabled, hidden and invisible elements', () => {
+    document.body.innerHTML = `<div id="root">
+      <button id="a">A</button>
+      <button disabled>Disabled</button>
+      <input type="hidden">
+      <button tabindex="-1">Not tabbable</button>
+      <button hidden>Hidden</button>
+      <button style="display: none">None</button>
+      <div style="display: none"><input></div>
+      <div style="visibility: hidden">
+        <a href="/x">Invisible</a>
+        <button id="b" style="visibility: visible">B</button>
+      </div>
+      <div hidden><textarea></textarea></div>
+      <span id="c" tabindex="0">C</span>
+    </div>`;
+
+    const ids = getTabbable(document.getElementById('root')).map(element => element.id);
+
+    expect(ids).toEqual(['a', 'b', 'c']);
+  });
+
+  it('skips the elements of a root that is not displayed', () => {
+    document.body.innerHTML =
+      '<div style="display: none"><div id="root"><button>A</button></div></div>';
+
+    expect(getTabbable(document.getElementById('root'))).toEqual([]);
   });
 });
 

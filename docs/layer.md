@@ -104,7 +104,7 @@ new Layer(menuElement, { behaviors: [HideOnBlur, HideOnEscape] }).show();
 | `RefocusOnHide`  | Gives the focus back to the `causalElement`, or else the element that had it before the layer was shown, when the focus was in the layer. |
 
 `focusWithinLayer(element)` from `core/layer/focusWithinLayer` is the focus logic of `AutoFocus`, and `getTabbable(element)`
-lists the elements <kbd>Tab</kbd> reaches.
+lists the elements <kbd>Tab</kbd> reaches: not disabled, not hidden (`hidden`, `display: none`) and visible.
 
 ## Fading
 

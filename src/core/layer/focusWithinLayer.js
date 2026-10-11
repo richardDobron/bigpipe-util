@@ -1,13 +1,34 @@
 const TABBABLE =
   'a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
 
+// From the computed styles rather than the layout, so that it works without one (jsdom) too.
+function isDisplayed(element, cache) {
+  if (!element) {
+    return true;
+  }
+
+  if (!cache.has(element)) {
+    cache.set(
+      element,
+      window.getComputedStyle(element).display !== 'none' &&
+        isDisplayed(element.parentElement, cache)
+    );
+  }
+  return cache.get(element);
+}
+
 export function getTabbable(root) {
+  const displayed = new Map();
+
   return Array.from(root.querySelectorAll(TABBABLE)).filter(
     element =>
       !element.disabled &&
       !element.closest('[hidden],[inert]') &&
       element.getAttribute('type') !== 'hidden' &&
-      element.getAttribute('tabindex') !== '-1'
+      element.getAttribute('tabindex') !== '-1' &&
+      // visibility is inherited, unlike display.
+      !['hidden', 'collapse'].includes(window.getComputedStyle(element).visibility) &&
+      isDisplayed(element, displayed)
   );
 }
 
