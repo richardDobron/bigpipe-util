@@ -152,6 +152,35 @@ describe('Bootloader', () => {
     expect(callback).toHaveBeenCalledOnce();
   });
 
+  it('waits for an async script or a stylesheet in the body that is on the page, until the page loaded', () => {
+    const readyState = vi.spyOn(document, 'readyState', 'get').mockReturnValue('interactive');
+    document.head.innerHTML =
+      '<script src="/blocking.js"></script><script src="/app.js" type="module"></script>';
+    document.body.innerHTML =
+      '<link rel="stylesheet" href="/late.css"><script src="/analytics.js" async></script>';
+    const blocking = vi.fn();
+    const scripts = vi.fn();
+
+    Bootloader.loadResources(['/blocking.js'], blocking);
+    Bootloader.loadResources(['/app.js', '/analytics.js', '/late.css'], scripts);
+
+    expect(blocking).toHaveBeenCalledOnce();
+    expect(scripts).not.toHaveBeenCalled();
+    expect(document.querySelectorAll('link, script')).toHaveLength(4);
+
+    Bootloader.enableBootload({ Blocking: ['/blocking.js'], Analytics: ['/analytics.js'] });
+    expect(Bootloader.isLoaded('Blocking')).toBe(true);
+    expect(Bootloader.isLoaded('Analytics')).toBe(false);
+
+    document.querySelector('script[src="/analytics.js"]').dispatchEvent(new Event('load'));
+    expect(scripts).not.toHaveBeenCalled();
+
+    readyState.mockReturnValue('complete');
+    window.dispatchEvent(new Event('load'));
+    expect(scripts).toHaveBeenCalledOnce();
+    readyState.mockRestore();
+  });
+
   it('loads the resources of a pagelet and a response by name', () => {
     window.require = () => ({});
 

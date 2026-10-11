@@ -37,14 +37,36 @@ function getResource(name, type) {
   );
 }
 
-function isOnPage(url, type) {
+function findOnPage(url, type) {
   if (type === 'css') {
-    return Array.from(document.querySelectorAll('link[rel~="stylesheet"]')).some(
+    return Array.from(document.querySelectorAll('link[rel~="stylesheet"]')).find(
       link => link.href === url
     );
   }
 
-  return Array.from(document.querySelectorAll('script[src]')).some(script => script.src === url);
+  return Array.from(document.querySelectorAll('script[src]')).find(script => script.src === url);
+}
+
+// A blocking script and a stylesheet in the head have loaded before the code that asks. An async,
+// deferred or module script, or a stylesheet in the body, has loaded once the page has.
+function hasLoaded(element, type) {
+  if (document.readyState === 'complete') {
+    return true;
+  }
+
+  if (type === 'css') {
+    return element.parentNode === document.head;
+  }
+
+  return (
+    !element.hasAttribute('async') && !element.hasAttribute('defer') && element.type !== 'module'
+  );
+}
+
+function isOnPage(url, type) {
+  const element = findOnPage(url, type);
+
+  return Boolean(element) && hasLoaded(element, type);
 }
 
 function isNetworkIdle() {
@@ -113,8 +135,16 @@ function request({ type, src }) {
   entry = { loaded: false, callbacks: [] };
   requests.set(url, entry);
 
-  if (isOnPage(url, type)) {
-    entry.loaded = true;
+  const onPage = findOnPage(url, type);
+  if (onPage) {
+    if (hasLoaded(onPage, type)) {
+      entry.loaded = true;
+    } else {
+      const done = () => Bootloader.done(url);
+      onPage.addEventListener('load', done);
+      onPage.addEventListener('error', done);
+      window.addEventListener('load', done, { once: true });
+    }
     return entry;
   }
 
