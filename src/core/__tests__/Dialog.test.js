@@ -80,6 +80,23 @@ describe('events', () => {
     expect(lower.layer.isShown()).toBe(true);
   });
 
+  it('tells apart dialogs with the same markup', () => {
+    const model = { body: 'Same', transition: 300 };
+    const lower = dialog.showFromModel(model);
+    const upper = dialog.showFromModel(model);
+    vi.advanceTimersByTime(0);
+    expect(lower.el.isEqualNode(upper.el)).toBe(true);
+
+    press('Escape');
+    vi.runAllTimers();
+    expect(upper.layer.isShown()).toBe(false);
+    expect(lower.layer.isShown()).toBe(true);
+
+    press('Escape');
+    vi.runAllTimers();
+    expect(lower.layer.isShown()).toBe(false);
+  });
+
   it('closes dialogs with close() and closeCurrent()', () => {
     const lower = open();
     const upper = open();

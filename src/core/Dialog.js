@@ -18,7 +18,7 @@ let originalBodyPad = null;
 Modal.prototype._handleKeydownEvent = function (event) {
   if (event.which === 27 && this._options.keyboard) {
     const currentModal = stack[stack.length - 1];
-    if (currentModal.el.isEqualNode(this.el)) {
+    if (currentModal && currentModal.el === this.el) {
       this.emit('dismiss', this, event, null);
       this.hide();
     }
@@ -159,7 +159,7 @@ export default class Dialog {
       .on('showBackdrop', this._fixBackdrop)
       .on('hidden', function ({ el }) {
         stack = stack.filter(modal => {
-          return !modal.el.isEqualNode(el);
+          return modal.el !== el;
         });
 
         if (stack.length) {
