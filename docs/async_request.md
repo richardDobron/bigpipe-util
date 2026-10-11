@@ -99,8 +99,10 @@ new AsyncRequest('/ajax/save')
 
 - `server`: the server sent an error with `$response->setError()`. The DOM operations and modules of the response
   are applied anyway, e.g. to mark an invalid field. An error the server marked as a warning (`$isWarning`) is not a
-  failure: the handler gets the response, with its `error`, `errorSummary` and `errorDescription`.
+  failure: the handler gets the response, with its `error`, `errorSummary` and `errorDescription`. The response may
+  have an error status, e.g. `send(422)`: it is applied the same way, and `status` is the status.
 - `http`: the server answered with a status other than 2xx, e.g. 404 or 500. Redirects are followed by the browser.
+  A BigPipe response with an error status but without an error is applied too.
 - `invalid_response`: the response is not a BigPipe response, e.g. a PHP fatal error page.
 - `network`: there is no response, e.g. the browser is offline.
 - `timeout`: there was no response in time, see `setTimeoutHandler()`.

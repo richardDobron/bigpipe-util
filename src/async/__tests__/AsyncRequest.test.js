@@ -233,6 +233,52 @@ describe('responses', () => {
     );
   });
 
+  it('applies a response with an error status and passes its error', () => {
+    document.body.innerHTML = '<p class="status"></p>';
+    const h = handlers();
+
+    send(new AsyncRequest('/save'), h);
+    requests[0].respond(
+      422,
+      asyncResponse({
+        payload: { field: 'title' },
+        error: 1,
+        errorSummary: 'Invalid title',
+        domops: [['setContent', '.status', false, { __html: 'Too long' }]]
+      })
+    );
+
+    expect(document.querySelector('.status').innerHTML).toBe('Too long');
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledOnce();
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({
+        type: ERROR_TYPE.SERVER,
+        status: 422,
+        summary: 'Invalid title',
+        payload: { field: 'title' }
+      })
+    );
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
+  it('applies a streamed response with an error status and passes its error', () => {
+    const h = handlers();
+    const part = (content, finished = false) =>
+      JSON.stringify({ content, finished }) + '/*<!-- fetch-stream -->*/';
+
+    send(new AsyncRequest('/save').setOption('stream', true), h);
+    requests[0].respond(
+      422,
+      part({ error: 1, errorSummary: 'Invalid title' }) + part({ payload: 'rest' }, true)
+    );
+
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledOnce();
+    expect(h.error.mock.calls[0][1]).toMatchObject({ type: ERROR_TYPE.SERVER, status: 422 });
+  });
+
   it('calls the finally handler when the handler throws', () => {
     const h = handlers();
     h.success.mockImplementation(() => {

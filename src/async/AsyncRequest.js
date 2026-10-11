@@ -539,6 +539,7 @@ export default class AsyncRequest {
     let parts = 0;
     let stopped = false;
     let failed = false;
+    let failedStatus = false;
     let restarting = false;
     let tokenRefreshed = false;
 
@@ -573,12 +574,17 @@ export default class AsyncRequest {
         failed = true;
         errorHandler(transport, createServerError(transport, response));
       } else if (!failed) {
-        handler(response);
+        if (failedStatus) {
+          failed = true;
+          transportErrorHandler(transport, createHttpError(transport));
+        } else {
+          handler(response);
 
-        if (isLast && self.relative instanceof Element) {
-          self.relative.dispatchEvent(
-            new CustomEvent('success', { bubbles: true, detail: { response } })
-          );
+          if (isLast && self.relative instanceof Element) {
+            self.relative.dispatchEvent(
+              new CustomEvent('success', {bubbles: true, detail: {response}})
+            );
+          }
         }
       }
     };
@@ -648,6 +654,30 @@ export default class AsyncRequest {
       }
     };
 
+    // A BigPipe response, also of a server that answers a streamed request without streaming.
+    const isBigPipeResponse = text =>
+      SHIELD_REGEX.test(text) || (stream && text.includes(STREAM_DELIMITER));
+
+    const readResponse = transport => {
+      if (stream) {
+        readParts(transport, true);
+        return;
+      }
+
+      let text;
+      try {
+        text = self._unshieldResponseText(transport.responseText);
+      } catch (e) {
+        reportInvalidResponse(transport, e.message, transport.responseText);
+        return;
+      }
+
+      const response = parse(transport, text);
+      if (response) {
+        handleResponse(transport, response, true);
+      }
+    };
+
     const open = () => {
       const request = new XMLHttpRequest();
       const { body, target } = prepare();
@@ -658,6 +688,7 @@ export default class AsyncRequest {
       parts = 0;
       stopped = false;
       failed = false;
+      failedStatus = false;
 
       request.open(method, target, true);
 
@@ -677,23 +708,7 @@ export default class AsyncRequest {
           }
 
           if (isSuccessStatus(this.status)) {
-            if (stream) {
-              readParts(this, true);
-              return;
-            }
-
-            let text;
-            try {
-              text = self._unshieldResponseText(this.responseText);
-            } catch (e) {
-              reportInvalidResponse(this, e.message, this.responseText);
-              return;
-            }
-
-            const response = parse(this, text);
-            if (response) {
-              handleResponse(this, response, true);
-            }
+            readResponse(this);
           } else if (
             this.status === CSRF_EXPIRED_STATUS &&
             csrf &&
@@ -742,6 +757,11 @@ export default class AsyncRequest {
             };
 
             refresh.send();
+          } else if (isBigPipeResponse(this.responseText || '')) {
+            // A response with an error status, e.g. 422 for an invalid form: it is applied and the
+            // error handler gets its error.
+            failedStatus = true;
+            readResponse(this);
           } else {
             transportErrorHandler(this, createHttpError(this));
           }
