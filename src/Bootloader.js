@@ -2,6 +2,7 @@ import getCSPNonce from './core/getCSPNonce';
 import reportError from './core/reportError';
 import requireModule, { resolveCondition } from './core/requireModule';
 import { requestIdleCallbackAcrossTransitions } from './core/TimerStorage';
+import { trustedScriptURL } from './core/trustedTypes';
 import warning from './core/warning';
 
 const MAX_PRELOADS = 2;
@@ -158,7 +159,7 @@ function request({ type, src }) {
       element.href = src;
     } else {
       element = document.createElement('script');
-      element.src = src;
+      element.src = trustedScriptURL(src);
       element.async = false;
     }
 

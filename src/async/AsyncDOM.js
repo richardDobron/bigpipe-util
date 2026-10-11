@@ -1,4 +1,5 @@
 import DOM from '../core/DOM';
+import { trustedScript } from '../core/trustedTypes';
 import warning from '../core/warning';
 
 export default class AsyncDOM {
@@ -25,7 +26,7 @@ export default class AsyncDOM {
             'The eval DOM operation is deprecated: a Content Security Policy without ' +
               "'unsafe-eval' blocks it. Call a module with jsmods instead."
           );
-          new Function(content).apply(node);
+          new Function(trustedScript(content)).apply(node);
           break;
         case 'hide':
           node.style.display = 'none';

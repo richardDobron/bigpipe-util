@@ -27,6 +27,8 @@
  * SOFTWARE.
  */
 
+import { trustedHTML } from './trustedTypes';
+
 /**
  * Updates `from` to match the element `to`, keeping the nodes that stay. Children are matched by
  * the key that `key(element)` returns, or else by their position and tag.
@@ -196,7 +198,7 @@ function setAttribute(el, name, value) {
 
   const escapedValue = value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
-  attributeHost.innerHTML = `<span ${name}="${escapedValue}"></span>`;
+  attributeHost.innerHTML = trustedHTML(`<span ${name}="${escapedValue}"></span>`);
 
   const attr = attributeHost.firstElementChild.getAttributeNode(name);
 

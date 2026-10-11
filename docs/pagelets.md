@@ -109,6 +109,18 @@ With a nonce-based policy, `BigPipe` adds the nonce of the page to the styleshee
 nonce from the `CSPNonce` module, which the PHP library defines in the page script after `BigPipe::setNonce()`, or
 else from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
 
+With [Trusted Types](https://developer.mozilla.org/docs/Web/API/Trusted_Types_API), a policy that requires them
+(`require-trusted-types-for 'script'`) blocks strings in `innerHTML`, `insertAdjacentHTML`, the `src` of a script and
+the `Function` constructor. BigPipe passes the HTML of the server, the scripts the Bootloader loads and the code of the
+deprecated `eval` DOM operation through its own policy, `bigpipe`, so allow it:
+
+```text
+Content-Security-Policy: require-trusted-types-for 'script'; trusted-types bigpipe
+```
+
+The policy passes the values as they are: they come from the server of the page, like the page itself. Browsers
+without Trusted Types get the strings.
+
 ## Loading pagelets from an endpoint
 
 A pagelet can be loaded later from an endpoint, e.g. a pagelet below the fold. The server prints its placeholder,

@@ -2,6 +2,7 @@ import DataStore from '../DataStore';
 import KeyEventController from '../KeyEventController';
 import invariant from '../invariant';
 import reportError from '../reportError';
+import { trustedHTML } from '../trustedTypes';
 
 const layers = [];
 const globalListeners = new Map();
@@ -55,7 +56,7 @@ function inform(listeners, name, data) {
 
 function createRoot(html) {
   const template = document.createElement('template');
-  template.innerHTML = html.trim();
+  template.innerHTML = trustedHTML(html.trim());
   return template.content.firstElementChild;
 }
 
