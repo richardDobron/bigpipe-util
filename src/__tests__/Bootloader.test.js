@@ -36,8 +36,74 @@ describe('Bootloader', () => {
     document.querySelector('link').onload();
     expect(callback).not.toHaveBeenCalled();
 
-    document.querySelector('script').onerror();
+    document.querySelector('script').onload();
     expect(callback).toHaveBeenCalledOnce();
+  });
+
+  it('requests a script that failed again, then counts it as loaded and reports it', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    Bootloader.loadResources(['/feed.js'], callback);
+    document.querySelector('script').onerror();
+    expect(srcs()).toEqual(['/feed.js']);
+
+    vi.advanceTimersByTime(500);
+    expect(srcs()).toEqual(['/feed.js']);
+    document.querySelector('script').onerror();
+
+    vi.advanceTimersByTime(2000);
+    document.querySelector('script').onerror();
+
+    expect(callback).toHaveBeenCalledOnce();
+    expect(Bootloader.getErrorURLs()).toEqual([window.location.origin + '/feed.js']);
+    expect(() => vi.runAllTimers()).toThrow('Bootloader: failed to load');
+    vi.useRealTimers();
+  });
+
+  it('loads a script once it loads on a retry', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    Bootloader.loadResources(['/feed.js'], callback);
+    document.querySelector('script').onerror();
+    vi.advanceTimersByTime(500);
+    document.querySelector('script').onload();
+
+    expect(callback).toHaveBeenCalledOnce();
+    expect(Bootloader.getErrorURLs()).toEqual([]);
+    vi.useRealTimers();
+  });
+
+  it('stops waiting for a stylesheet that does not load in 5 seconds', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    Bootloader.loadResources(['/feed.css', '/feed.js'], callback);
+    document.querySelector('script').onload();
+    vi.advanceTimersByTime(4999);
+    expect(callback).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(callback).toHaveBeenCalledOnce();
+    expect(Bootloader.getErrorURLs()).toEqual([]);
+
+    document.querySelector('link').onload();
+    expect(callback).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it('does not request a stylesheet that failed again', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    Bootloader.loadResources(['/feed.css'], callback);
+    document.querySelector('link').onerror();
+
+    expect(callback).toHaveBeenCalledOnce();
+    expect(Bootloader.getErrorURLs()).toEqual([window.location.origin + '/feed.css']);
+    expect(() => vi.runAllTimers()).toThrow('Bootloader: failed to load');
+    vi.useRealTimers();
   });
 
   it('keeps the first resource of a name', () => {

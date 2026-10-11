@@ -87,6 +87,11 @@ describe('Primer with AsyncRequest loaded on demand', () => {
     const link = document.getElementById('get');
     click(link);
 
+    // The script fails on every attempt.
+    document.querySelector(`script[src="${SCRIPT}"]`).onerror();
+    vi.advanceTimersByTime(500);
+    document.querySelector(`script[src="${SCRIPT}"]`).onerror();
+    vi.advanceTimersByTime(2000);
     document.querySelector(`script[src="${SCRIPT}"]`).onerror();
     expect(requests).toHaveLength(0);
     expect(() => vi.runAllTimers()).toThrow(/AsyncRequest/);

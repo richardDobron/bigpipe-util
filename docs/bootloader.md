@@ -38,7 +38,10 @@ Bootloader.loadResources(['editor.css', '/static/editor.js'], () => openEditor()
 ```
 
 `loadResources(names, callback, type)` calls back once all the resources are loaded, right away when they already
-are. A resource that fails to load counts as loaded, so one broken file does not stop the page. A URL that is not in
+are. A script that fails to load is requested again twice, after half a second and after two more seconds. A resource
+that still fails counts as loaded, so one broken file does not stop the page: it is reported with an error and
+`getErrorURLs()` lists it, e.g. to load the page in full when a script is missing. A stylesheet that has not loaded
+after 5 seconds counts as loaded too, so a slow file does not hold up its pagelet and the JS of the page. A URL that is not in
 the map is loaded as the given `type`, or by its extension (`.css` as a stylesheet, anything else as a script).
 Scripts run in the order they were added.
 

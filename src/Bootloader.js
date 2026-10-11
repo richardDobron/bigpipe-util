@@ -2,8 +2,15 @@ import getCSPNonce from './core/getCSPNonce';
 import reportError from './core/reportError';
 import requireModule from './core/requireModule';
 import { requestIdleCallbackAcrossTransitions } from './core/TimerStorage';
+import warning from './core/warning';
 
 const MAX_PRELOADS = 2;
+
+// The delays before a script that failed to load is requested again, e.g. after a network hiccup.
+const JS_RETRY_DELAYS = [500, 2000];
+
+// A stylesheet that neither loads nor fails in time stops holding up its pagelet and the JS of the page.
+const CSS_TIMEOUT = 5000;
 
 const resourceMap = new Map();
 const requests = new Map();
@@ -11,6 +18,7 @@ const bootloadable = new Map();
 const preloadQueue = [];
 const preloading = new Set();
 const preloaded = new Set();
+const failed = new Set();
 
 function resolveURL(src) {
   try {
@@ -110,25 +118,57 @@ function request({ type, src }) {
     return entry;
   }
 
-  let element;
-  if (type === 'css') {
-    element = document.createElement('link');
-    element.rel = 'stylesheet';
-    element.href = src;
-  } else {
-    element = document.createElement('script');
-    element.src = src;
-    element.async = false;
-  }
+  let retries = 0;
 
-  const nonce = getCSPNonce();
-  if (nonce) {
-    element.setAttribute('nonce', nonce);
-  }
+  const insert = () => {
+    let element;
+    if (type === 'css') {
+      element = document.createElement('link');
+      element.rel = 'stylesheet';
+      element.href = src;
+    } else {
+      element = document.createElement('script');
+      element.src = src;
+      element.async = false;
+    }
 
-  element.onload = () => Bootloader.done(url);
-  element.onerror = () => Bootloader.done(url);
-  (type === 'css' ? document.head : document.body).appendChild(element);
+    const nonce = getCSPNonce();
+    if (nonce) {
+      element.setAttribute('nonce', nonce);
+    }
+
+    const timer =
+      type === 'css'
+        ? setTimeout(() => {
+            warning(false, 'Bootloader: the stylesheet %s did not load in %sms.', url, CSS_TIMEOUT);
+            Bootloader.done(url);
+          }, CSS_TIMEOUT)
+        : null;
+
+    element.onload = () => {
+      clearTimeout(timer);
+      Bootloader.done(url);
+    };
+    element.onerror = () => {
+      clearTimeout(timer);
+      if (type === 'js' && retries < JS_RETRY_DELAYS.length) {
+        setTimeout(() => {
+          element.remove();
+          insert();
+        }, JS_RETRY_DELAYS[retries]);
+        retries += 1;
+        return;
+      }
+
+      // A file that fails to load does not stop the page: it counts as loaded, and is reported.
+      failed.add(url);
+      Bootloader.done(url);
+      reportError(new Error('Bootloader: failed to load ' + url));
+    };
+    (type === 'css' ? document.head : document.body).appendChild(element);
+  };
+
+  insert();
 
   return entry;
 }
@@ -241,6 +281,13 @@ const Bootloader = {
       const entry = requests.get(url);
       return entry ? entry.loaded : isOnPage(url, type);
     });
+  },
+
+  /**
+   * The URLs of the stylesheets and scripts that failed to load, scripts after their retries.
+   */
+  getErrorURLs() {
+    return Array.from(failed);
   },
 
   /**
