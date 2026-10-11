@@ -46,7 +46,9 @@ import Primer from './Primer';
 import Quickling from './Quickling';
 import ServerJS from './ServerJS';
 import UIPagelet from './UIPagelet';
+import processQueue from './BigPipeQueue';
 import requireModule, {
+  canResolveAppModules,
   registerBuiltins,
   registerModules,
   setModuleLoader as setLoader
@@ -103,12 +105,41 @@ registerBuiltins({
   UIPagelet
 });
 
+// The inline scripts of the page queue their calls until the modules of the app can be resolved,
+// see BigPipeQueue: once setModuleLoader() is called, after the entrypoint when the page defines its
+// own window.require, or at the latest once the document is parsed.
+if (typeof window !== 'undefined') {
+  Promise.resolve().then(() => {
+    if (canResolveAppModules()) {
+      processQueue();
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => processQueue(), { once: true });
+  } else {
+    setTimeout(() => processQueue(), 0);
+  }
+}
+
 export function setModuleLoader(loader, { global = true } = {}) {
   setLoader(loader);
 
   if (global && typeof window !== 'undefined') {
     window.require = requireModule;
   }
+
+  if (loader && typeof window !== 'undefined') {
+    processQueue();
+  }
 }
 
-export { ifRequired, registerModules, requireCond, requireDeferred, requireLazy, requireModule };
+export {
+  ifRequired,
+  processQueue,
+  registerModules,
+  requireCond,
+  requireDeferred,
+  requireLazy,
+  requireModule
+};

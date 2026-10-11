@@ -62,7 +62,7 @@ setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
 ```html
 <?= \dobron\BigPipe\BigPipe::render() ?>
 ```
-It prints the script that sends the pagelets and the modules of the page to the browser, so load the entrypoint with a classic `<script src>` before it. With a `<script type="module">` entrypoint, as Vite adds it, call `BigPipe::setScriptType('module')` so the script runs after it. See the [getting started guide](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
+It prints the script that sends the pagelets and the modules of the page to the browser. It queues them until the entrypoint has run, so the entrypoint can be a classic, `async`, `defer` or module script, before or after it. See the [getting started guide](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
 
 ## 🚀 Quick start
 

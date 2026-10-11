@@ -36,6 +36,19 @@ export function defineModule(name, create) {
   defined.set(name, lazy(create));
 }
 
+/**
+ * Whether the modules of the app can be resolved: a module loader is set, or the page defines its
+ * own `window.require`.
+ */
+export function canResolveAppModules() {
+  return (
+    loader !== null ||
+    (typeof window !== 'undefined' &&
+      typeof window.require === 'function' &&
+      window.require !== requireModule)
+  );
+}
+
 export function isModuleDefined(name) {
   return registered.has(name) || defined.has(name);
 }

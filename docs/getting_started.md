@@ -91,27 +91,25 @@ loader above replaces the `bigpipe-util/` branch of the old function: you only w
 ## 3. Handle the modules of the first page load
 
 At the end of the page, print the script that sends the [pagelets](pagelets.md) and the modules required during the
-page render to the browser. With PHP it's one line, and the entrypoint has to be loaded by then, so add it with a
-classic `<script src>` before it:
+page render to the browser. With PHP it's one line:
 
 ```php title="layout.php"
 <?= \dobron\BigPipe\BigPipe::render() ?>
 ```
 
-When the entrypoint is a deferred `<script type="module">`, as Vite adds it, pass the modules to
-[ServerJS](server_js.md) yourself once `DOMContentLoaded` fires. This does not send pagelets:
+The entrypoint can be loaded any way: a classic `<script src>`, `async`, `defer` or a `<script type="module">` as Vite
+adds it, before or after this script. The inline scripts queue their calls in `window.__bigpipe`, and
+`ModuleRegistry` runs them in their order once the module loader is set, and every later one right away:
 
-```php title="layout.php"
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
-    });
-</script>
+```javascript
+(window.__bigpipe = window.__bigpipe || []).push(['arrive', pagelet]); // BigPipe.onPageletArrive()
+(window.__bigpipe = window.__bigpipe || []).push(['handle', jsmods]);  // ServerJS.handle()
 ```
 
-Vite adds your entrypoint as `<script type="module">`, and module scripts are deferred: they run after the HTML is
-parsed, so an inline script at the end of the page would run before `window.require` exists. Module scripts run
-before `DOMContentLoaded`, so this works with every bundler.
+With an entrypoint loaded before the pagelets, e.g. a classic script in the `<head>`, every pagelet is displayed as
+soon as it arrives. A deferred entrypoint displays the pagelets that arrived before it once it runs. Without
+`setModuleLoader()`, the queue runs after the entrypoint when the page defines its own `window.require`, or else
+once the document is parsed; `processQueue()` from `ModuleRegistry` runs it yourself.
 
 ## Optional: debug messages
 
