@@ -152,8 +152,26 @@ new Arbiter().subscribe('tti_bigpipe', ({ phase, ts }) => {
 ```
 
 The event is informed once per page as a state, so a module that subscribes later is called right away. It waits until
-no pagelet of the phases up to `tti_phase` can arrive any more, i.e. a pagelet of a later phase or the last pagelet
-has arrived. A page transition forgets it for the next page.
+no pagelet of the phases up to `tti_phase` can arrive any more: the server marked the last pagelet of the phase with
+`last_in_phase`, or a pagelet of a later phase or the last pagelet has arrived. A page transition forgets it for the
+next page.
+
+## Phases
+
+The server marks the last pagelet of every phase with `last_in_phase`, so the browser knows a phase is complete
+without waiting for the next one, which may take longer to render. Once every pagelet of a phase and of the phases
+before it is displayed, `BigPipe/phaseDisplayed` is informed with the phase, e.g. to start what can wait for the
+first screen; `new BigPipe().isPhaseDisplayed(phase)` tells it later:
+
+```javascript
+new Arbiter().subscribe('BigPipe/phaseDisplayed', ({ phase }) => {
+  if (phase === 0) {
+    startChat();
+  }
+});
+```
+
+Without `last_in_phase`, a phase is complete once the last pagelet of the page has arrived.
 
 Right after the time to interactive, the browser downloads the `js` and `allResources` of the pagelets of the later
 phases in the background (`<link rel="preload">`), without running them. The scripts then are in the cache when the pagelets

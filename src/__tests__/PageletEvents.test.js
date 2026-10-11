@@ -66,9 +66,11 @@ describe('page events', () => {
   it('informs the page events as states, so a later subscriber gets them too', () => {
     const events = {};
     const arbiter = new Arbiter();
-    Object.values(BIGPIPE_EVENT).forEach(event => {
-      arbiter.subscribe(event, data => (events[event] = data));
-    });
+    Object.values(BIGPIPE_EVENT)
+      .filter(event => event !== BIGPIPE_EVENT.PHASE_DISPLAYED)
+      .forEach(event => {
+        arbiter.subscribe(event, data => (events[event] = data));
+      });
     expect(Object.keys(events)).toEqual([BIGPIPE_EVENT.INIT]);
 
     bigPipe.onPageletArrive({

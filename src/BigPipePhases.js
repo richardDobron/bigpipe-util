@@ -27,6 +27,8 @@ export const PAGELET_EVENT = Object.freeze({
 export const BIGPIPE_EVENT = Object.freeze({
   INIT: 'BigPipe/init',
   TTI: 'tti_bigpipe',
+  // Every pagelet of a phase of the page is displayed, with the phase; see last_in_phase.
+  PHASE_DISPLAYED: 'BigPipe/phaseDisplayed',
   DISPLAYED: 'all_pagelets_displayed',
   LOADED: 'all_pagelets_loaded'
 });

@@ -24,6 +24,9 @@ export default class BigPipe {
   lastArrived = false;
   pageGroup = PAGE;
   groups = new Map();
+  // The phases of the page whose last pagelet arrived (`last_in_phase`), and those displayed.
+  arrivedPhases = new Set();
+  displayedPhases = new Set();
 
   constructor() {
     if (instance) {
@@ -88,6 +91,12 @@ export default class BigPipe {
       this.ttiPhase = Number(pageletData.tti_phase);
     }
 
+    // The server marks the last pagelet of every phase: the phase is complete without waiting for
+    // the next one, which may take longer to render.
+    if (pageletData.last_in_phase && this.isPage(group)) {
+      this.arrivedPhases.add(pageletData.phase || 0);
+    }
+
     if (pageletData.is_last) {
       if (this.isPage(group)) {
         this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
@@ -111,6 +120,7 @@ export default class BigPipe {
       pagelet.prefetchJs();
     }
     this.checkTti();
+    this.checkPhases();
   }
 
   /**
@@ -208,6 +218,7 @@ export default class BigPipe {
   pageletDisplayed(pagelet) {
     this.displayWaitingPagelets();
     this.checkTti();
+    this.checkPhases();
 
     if (pagelet && !this.isPage(pagelet.group)) {
       this.loadGroupJSResources(pagelet.group);
@@ -245,7 +256,9 @@ export default class BigPipe {
 
     const pagelets = this.getGroupPagelets(this.pageGroup);
     const complete =
-      this.lastArrived || pagelets.some(pagelet => pagelet.displayPhase > this.ttiPhase);
+      this.lastArrived ||
+      Array.from(this.arrivedPhases).some(phase => phase >= this.ttiPhase) ||
+      pagelets.some(pagelet => pagelet.displayPhase > this.ttiPhase);
     const isEarly = pagelet => pagelet.displayPhase <= this.ttiPhase;
 
     if (
@@ -261,12 +274,48 @@ export default class BigPipe {
   }
 
   /**
-   * Forgets the time to interactive of the page, for the next page of a page transition.
+   * Informs `BigPipe/phaseDisplayed` with the phase once all the pagelets of a phase of the page
+   * arrived, see `last_in_phase`, and they and the pagelets of the phases before are displayed.
+   */
+  checkPhases() {
+    const pagelets = this.getGroupPagelets(this.pageGroup);
+    const arrived = new Set(this.arrivedPhases);
+
+    if (this.lastArrived) {
+      pagelets.forEach(pagelet => arrived.add(pagelet.displayPhase));
+    }
+
+    Array.from(arrived)
+      .sort((a, b) => a - b)
+      .forEach(phase => {
+        const displayed = pagelets
+          .filter(pagelet => pagelet.displayPhase <= phase)
+          .every(pagelet => pagelet.phase >= PAGELET_PHASE.DISPLAY_END);
+
+        if (displayed && !this.displayedPhases.has(phase)) {
+          this.displayedPhases.add(phase);
+          new Arbiter().inform(BIGPIPE_EVENT.PHASE_DISPLAYED, { phase, ts: performanceNow() });
+        }
+      });
+  }
+
+  /**
+   * Whether every pagelet of the phase of the page arrived and is displayed, see checkPhases().
+   */
+  isPhaseDisplayed(phase) {
+    return this.displayedPhases.has(phase);
+  }
+
+  /**
+   * Forgets the time to interactive and the phases of the page, for the next page of a page
+   * transition.
    */
   resetTti() {
     this.ttiPhase = null;
     this.ttiReached = false;
     this.lastArrived = false;
+    this.arrivedPhases.clear();
+    this.displayedPhases.clear();
     new Arbiter().clearState(BIGPIPE_EVENT.TTI);
   }
 

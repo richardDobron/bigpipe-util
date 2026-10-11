@@ -152,3 +152,43 @@ describe('second flush', () => {
     expect(preloads()).toEqual([]);
   });
 });
+
+describe('last pagelet of a phase', () => {
+  it('reaches the time to interactive without waiting for the next phase', () => {
+    arrive('feed', { phase: 0, tti_phase: 0 });
+    expect(tti).not.toHaveBeenCalled();
+
+    arrive('sidebar', { phase: 0, tti_phase: 0, last_in_phase: true });
+
+    expect(tti).toHaveBeenCalledOnce();
+  });
+
+  it('informs every phase once it arrived and is displayed, in their order', async () => {
+    const { default: Arbiter } = await import('../core/Arbiter');
+    const phases = [];
+    new Arbiter().subscribe('BigPipe/phaseDisplayed', ({ phase }) => phases.push(phase));
+
+    arrive('feed', { phase: 0, css: ['/feed.css'], last_in_phase: true });
+    arrive('sidebar', { phase: 1, last_in_phase: true });
+    expect(phases).toEqual([]);
+
+    loadCss('/feed.css');
+    expect(phases).toEqual([0, 1]);
+    expect(bigPipe.isPhaseDisplayed(1)).toBe(true);
+
+    arrive('chat', { phase: 2 });
+    expect(phases).toEqual([0, 1]);
+
+    arrive('__bigpipe_last', { phase: 2, is_last: true });
+    expect(phases).toEqual([0, 1, 2]);
+  });
+
+  it('forgets the phases for the next page', async () => {
+    arrive('feed', { phase: 0, last_in_phase: true });
+    expect(bigPipe.isPhaseDisplayed(0)).toBe(true);
+
+    bigPipe.startPage(1);
+
+    expect(bigPipe.isPhaseDisplayed(0)).toBe(false);
+  });
+});
