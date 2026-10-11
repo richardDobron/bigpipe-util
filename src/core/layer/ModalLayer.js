@@ -139,9 +139,11 @@ export default class ModalLayer {
     removeFromStack(this.entry);
     this.entry = null;
     if (options.center) {
-      ['position', 'top', 'left', 'transform', 'maxWidth', 'maxHeight', 'overflow'].forEach(name => {
-        style[name] = '';
-      });
+      ['position', 'top', 'left', 'transform', 'maxWidth', 'maxHeight', 'overflow'].forEach(
+        name => {
+          style[name] = '';
+        }
+      );
     }
 
     if (!stack.length) {

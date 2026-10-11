@@ -13,8 +13,14 @@ beforeEach(() => {
   document.body.innerHTML = '<button id="button">Menu</button>';
   button = document.getElementById('button');
   button.getBoundingClientRect = () => rect(100, 200, 80, 30);
-  Object.defineProperty(document.documentElement, 'clientWidth', { value: 1000, configurable: true });
-  Object.defineProperty(document.documentElement, 'clientHeight', { value: 600, configurable: true });
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    value: 1000,
+    configurable: true
+  });
+  Object.defineProperty(document.documentElement, 'clientHeight', {
+    value: 600,
+    configurable: true
+  });
   vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => callback());
 });
 
@@ -198,7 +204,10 @@ describe('ContextualLayer', () => {
 
     layer.show();
 
-    expect(repositioned).toHaveBeenCalledWith({ position: 'below', alignment: 'start' }, 'reposition');
+    expect(repositioned).toHaveBeenCalledWith(
+      { position: 'below', alignment: 'start' },
+      'reposition'
+    );
   });
 });
 

@@ -38,7 +38,9 @@ function tab(shiftKey = false) {
 
 describe('AutoFocus', () => {
   it('focuses the element with autofocus', () => {
-    const layer = create('<div><button id="a">A</button><input id="b" autofocus></div>', [AutoFocus]);
+    const layer = create('<div><button id="a">A</button><input id="b" autofocus></div>', [
+      AutoFocus
+    ]);
 
     layer.show();
 
@@ -242,9 +244,13 @@ describe('RefocusOnHide', () => {
   it('prefers the causal element', () => {
     document.body.innerHTML += '<button id="trigger">Trigger</button>';
     const trigger = document.getElementById('trigger');
-    const layer = create('<div><button id="a">A</button></div>', [AutoFocus, RefocusOnHide, RemoveOnHide], {
-      causalElement: trigger
-    });
+    const layer = create(
+      '<div><button id="a">A</button></div>',
+      [AutoFocus, RefocusOnHide, RemoveOnHide],
+      {
+        causalElement: trigger
+      }
+    );
     document.getElementById('opener').focus();
 
     layer.show();

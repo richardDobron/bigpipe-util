@@ -63,14 +63,19 @@ describe('Form.serialize', () => {
 
   it('adds the submitter that belongs to the form', () => {
     build('<input name="a" value="1"><button name="action" value="save">Save</button>');
-    document.body.insertAdjacentHTML('beforeend', '<button id="out" name="action" value="out">x</button>');
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<button id="out" name="action" value="out">x</button>'
+    );
 
     expect(Form.serialize(form, form.querySelector('button'))).toEqual({ a: '1', action: 'save' });
     expect(Form.serialize(form, document.getElementById('out'))).toEqual({ a: '1' });
   });
 
   it('does not let a name pollute prototypes', () => {
-    build('<input name="__proto__[polluted]" value="1"><input name="constructor[prototype][x]" value="1">');
+    build(
+      '<input name="__proto__[polluted]" value="1"><input name="constructor[prototype][x]" value="1">'
+    );
 
     Form.serialize(form);
 
@@ -81,7 +86,9 @@ describe('Form.serialize', () => {
 
 describe('Form.createFormData', () => {
   it('has the files and the submitter', () => {
-    build('<input name="a" value="1"><input type="file" name="file"><button name="go" value="1">Go</button>');
+    build(
+      '<input name="a" value="1"><input type="file" name="file"><button name="go" value="1">Go</button>'
+    );
     const file = new File(['abc'], 'a.txt');
     const input = form.elements.file;
     Object.defineProperty(input, 'files', { value: [file] });
@@ -102,7 +109,9 @@ describe('Form.createFormData', () => {
 
 describe('Form.setDisabled', () => {
   beforeEach(() => {
-    build('<input id="a"><input id="b" disabled><button id="c">Go</button><select id="d"></select>');
+    build(
+      '<input id="a"><input id="b" disabled><button id="c">Go</button><select id="d"></select>'
+    );
   });
 
   it('disables the controls and enables only those it disabled', () => {

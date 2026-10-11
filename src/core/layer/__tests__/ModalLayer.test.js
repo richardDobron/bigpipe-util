@@ -72,7 +72,9 @@ describe('ModalLayer', () => {
     const lowerBackdrop = lower.getRoot().previousElementSibling;
     const upperBackdrop = upper.getRoot().previousElementSibling;
 
-    expect(Number(upper.getRoot().style.zIndex)).toBeGreaterThan(Number(lower.getRoot().style.zIndex));
+    expect(Number(upper.getRoot().style.zIndex)).toBeGreaterThan(
+      Number(lower.getRoot().style.zIndex)
+    );
     expect(lowerBackdrop.style.display).toBe('none');
     expect(upperBackdrop.style.display).toBe('');
     expect(ModalLayer.getTopmostModal().layer).toBe(upper);
