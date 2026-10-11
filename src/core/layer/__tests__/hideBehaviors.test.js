@@ -27,13 +27,28 @@ function create(behaviors) {
   return layer;
 }
 
-function press(key) {
+function press(key, target = document.body) {
   const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
-  document.body.dispatchEvent(event);
+  target.dispatchEvent(event);
   return event;
 }
 
 describe('HideOnEscape', () => {
+  it('leaves Escape to a text field that is not empty', () => {
+    const layer = create([HideOnEscape]);
+    layer.getRoot().innerHTML = '<input id="search" value="query">';
+    layer.show();
+    vi.runAllTimers();
+    const search = document.getElementById('search');
+
+    expect(press('Escape', search).defaultPrevented).toBe(false);
+    expect(layer.isShown()).toBe(true);
+
+    search.value = '';
+    expect(press('Escape', search).defaultPrevented).toBe(true);
+    expect(layer.isShown()).toBe(false);
+  });
+
   it('hides the topmost layer on Escape and handles the key', () => {
     const lower = create([HideOnEscape]);
     const upper = create([HideOnEscape]);

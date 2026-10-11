@@ -103,6 +103,17 @@ describe('events', () => {
     menu.destroy();
   });
 
+  it('leaves Escape to a text field that is not empty', () => {
+    const modal = open();
+    const name = document.getElementById('name');
+    name.value = 'Jane';
+
+    press('Escape', name);
+    vi.runAllTimers();
+
+    expect(modal.layer.isShown()).toBe(true);
+  });
+
   it('does not close with Escape when keyboard is false', () => {
     const modal = open({ keyboard: false });
 

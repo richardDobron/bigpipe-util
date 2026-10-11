@@ -121,6 +121,18 @@ describe('TabIsolation', () => {
     expect(backward.defaultPrevented).toBe(true);
   });
 
+  it('keeps Tab inside from a text field that is not empty', () => {
+    const layer = create('<div><button id="a">A</button><input id="b" value="text"></div>', [
+      TabIsolation
+    ]);
+    layer.show();
+    vi.runAllTimers();
+
+    document.getElementById('b').focus();
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement.id).toBe('a');
+  });
+
   it('leaves Tab between the controls inside alone', () => {
     const layer = create(html, [TabIsolation]);
     layer.show();

@@ -43,7 +43,7 @@ the event is about, where it says so.
 | `starthide`  | The layer starts to hide. Returning `false` postpones it: call `finishHide()` when ready, e.g. after a fade. |
 | `hide`       | It is hidden.                                                                                   |
 | `destroy`    | It is destroyed.                                                                                |
-| `key`        | A key was pressed while it is open, with the `KeyboardEvent`, topmost layer first. Returning `false` handles the key. |
+| `key`        | A key was pressed while it is open, with the `KeyboardEvent`, topmost layer first. Returning `false` handles the key: its default action is prevented and it does not reach the layers below or the page. Keys typed in a text field are not informed, except for keys like <kbd>Esc</kbd> in an empty one, and <kbd>Tab</kbd>. |
 | `blur`       | The user clicked outside of the layer, with `{ target }`. Returning `false` stops it from reaching the layers below. |
 
 `Layer.subscribe(name, callback)` listens to `show`, `hide` and `destroy` of all layers, with the layer as the data.

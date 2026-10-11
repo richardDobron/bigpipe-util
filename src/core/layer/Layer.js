@@ -1,4 +1,5 @@
 import DataStore from '../DataStore';
+import KeyEventController from '../KeyEventController';
 import invariant from '../invariant';
 import reportError from '../reportError';
 
@@ -72,7 +73,18 @@ function containsIncludingLayers(root, target) {
   return false;
 }
 
+// Typing in a text field is not for the layers, except for keys like Escape in an empty one; Tab
+// always is, it only moves the focus. Only the target part of defaultFilter(): keys with modifiers
+// still reach the layers.
+function isLayerKey({ key, target }) {
+  return key === 'Tab' || KeyEventController.defaultFilter({ key, target }, 'onkeydown');
+}
+
 function onKeyDown(event) {
+  if (!isLayerKey(event)) {
+    return;
+  }
+
   for (let i = layers.length - 1; i >= 0; i -= 1) {
     if (layers[i].inform('key', event) === false) {
       // Handled: the shortcuts of the page don't get it either.
