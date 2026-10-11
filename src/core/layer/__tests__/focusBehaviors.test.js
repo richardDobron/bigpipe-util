@@ -195,6 +195,55 @@ describe('RefocusOnHide', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('falls back to a visible ancestor of a causal element that is hidden by now', () => {
+    document.body.innerHTML += '<div id="toolbar"><button id="trigger">Trigger</button></div>';
+    const trigger = document.getElementById('trigger');
+    const layer = create('<div><button id="a">A</button></div>', [AutoFocus, RefocusOnHide], {
+      causalElement: trigger
+    });
+
+    layer.show();
+    trigger.style.display = 'none';
+    layer.hide();
+
+    const toolbar = document.getElementById('toolbar');
+    expect(document.activeElement).toBe(toolbar);
+    expect(toolbar.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('falls back to the opener of the hidden layer the causal element is in', () => {
+    const opener = document.getElementById('opener');
+    const menu = create('<div><button id="more">More</button></div>', [], {
+      causalElement: opener
+    });
+    const submenu = create('<div><button id="a">A</button></div>', [AutoFocus, RefocusOnHide], {
+      causalElement: null
+    });
+    menu.show();
+    submenu.setCausalElement(document.getElementById('more')).show();
+
+    menu.hide();
+    submenu.hide();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('gives up when the causal element is not on the page anymore', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const layer = create(
+      '<div><button id="a">A</button></div>',
+      [RemoveOnHide, AutoFocus, RefocusOnHide],
+      { causalElement: trigger }
+    );
+
+    layer.show();
+    trigger.remove();
+    layer.hide();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('does not take the focus from somewhere else', () => {
     document.body.innerHTML += '<input id="other">';
     const layer = create('<div><button id="a">A</button></div>', [RefocusOnHide]);

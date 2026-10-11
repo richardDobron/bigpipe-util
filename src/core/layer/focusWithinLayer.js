@@ -17,6 +17,18 @@ function isDisplayed(element, cache) {
   return cache.get(element);
 }
 
+/**
+ * Whether the element is displayed and not invisible. `cache` keeps the ancestors that were checked,
+ * for checking many elements.
+ */
+export function isVisible(element, cache = new Map()) {
+  // visibility is inherited, unlike display.
+  return (
+    !['hidden', 'collapse'].includes(window.getComputedStyle(element).visibility) &&
+    isDisplayed(element, cache)
+  );
+}
+
 export function getTabbable(root) {
   const displayed = new Map();
 
@@ -26,9 +38,7 @@ export function getTabbable(root) {
       !element.closest('[hidden],[inert]') &&
       element.getAttribute('type') !== 'hidden' &&
       element.getAttribute('tabindex') !== '-1' &&
-      // visibility is inherited, unlike display.
-      !['hidden', 'collapse'].includes(window.getComputedStyle(element).visibility) &&
-      isDisplayed(element, displayed)
+      isVisible(element, displayed)
   );
 }
 
