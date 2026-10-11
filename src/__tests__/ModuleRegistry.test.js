@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AsyncRequest from '../async/AsyncRequest';
 import ServerJS from '../ServerJS';
+import ContextualLayer from '../core/layer/ContextualLayer';
+import HideOnEscape from '../core/layer/HideOnEscape';
 import { registerModules, requireModule, setModuleLoader } from '../ModuleRegistry';
 
 afterEach(() => {
@@ -18,6 +20,11 @@ describe('built-in modules', () => {
 
   it('resolves modules in sub folders', () => {
     expect(requireModule('bigpipe-util/src/async/AsyncRequest')).toBe(AsyncRequest);
+  });
+
+  it('resolves the layers and their behaviors, so the server can create them', () => {
+    expect(requireModule('bigpipe-util/dist/core/layer/ContextualLayer')).toBe(ContextualLayer);
+    expect(requireModule('bigpipe-util/dist/core/layer/HideOnEscape')).toBe(HideOnEscape);
   });
 });
 

@@ -22,6 +22,20 @@ import TimerStorage from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
 import Visibility from './core/Visibility';
 import WebStorage from './core/WebStorage';
+import AutoFocus from './core/layer/AutoFocus';
+import ContextualLayer from './core/layer/ContextualLayer';
+import DestroyOnHide from './core/layer/DestroyOnHide';
+import FadeOnHide from './core/layer/FadeOnHide';
+import FadeOnShow from './core/layer/FadeOnShow';
+import HideOnBlur from './core/layer/HideOnBlur';
+import HideOnEscape from './core/layer/HideOnEscape';
+import HideOnSuccess from './core/layer/HideOnSuccess';
+import HideOnTransition from './core/layer/HideOnTransition';
+import Layer from './core/layer/Layer';
+import ModalLayer from './core/layer/ModalLayer';
+import RefocusOnHide from './core/layer/RefocusOnHide';
+import RemoveOnHide from './core/layer/RemoveOnHide';
+import TabIsolation from './core/layer/TabIsolation';
 import BigPipe from './BigPipe';
 import Bootloader, { requireLazy } from './Bootloader';
 import Pagelet from './Pagelet';
@@ -63,6 +77,20 @@ registerBuiltins({
   'core/UserActivity': UserActivity,
   'core/Visibility': Visibility,
   'core/WebStorage': WebStorage,
+  'core/layer/AutoFocus': AutoFocus,
+  'core/layer/ContextualLayer': ContextualLayer,
+  'core/layer/DestroyOnHide': DestroyOnHide,
+  'core/layer/FadeOnHide': FadeOnHide,
+  'core/layer/FadeOnShow': FadeOnShow,
+  'core/layer/HideOnBlur': HideOnBlur,
+  'core/layer/HideOnEscape': HideOnEscape,
+  'core/layer/HideOnSuccess': HideOnSuccess,
+  'core/layer/HideOnTransition': HideOnTransition,
+  'core/layer/Layer': Layer,
+  'core/layer/ModalLayer': ModalLayer,
+  'core/layer/RefocusOnHide': RefocusOnHide,
+  'core/layer/RemoveOnHide': RemoveOnHide,
+  'core/layer/TabIsolation': TabIsolation,
   BigPipe,
   Bootloader,
   MorePagerFetchOnScroll,

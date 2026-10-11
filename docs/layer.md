@@ -183,5 +183,26 @@ layer events and behaviors (`AutoFocus`, `TabIsolation`, `RefocusOnHide`, `HideO
 the layer when a request sent from inside succeeds, see the [success event](async_request.md#success-event)). A dialog
 is always shown through the modal, so it does not use `ModalLayer` and the fades, which the modal has built in.
 
+## From the server
+
+With `bigpipe-util/dist/ModuleRegistry`, the layers and the behaviors are modules the server can require, e.g. a menu
+the server keeps as an instance and shows later:
+
+```php
+use dobron\BigPipe\TransportMarker;
+
+$menu = $response->instance('bigpipe-util/dist/core/layer/ContextualLayer', [
+    '<div class="menu">…</div>',
+    [
+        'context' => TransportMarker::element('menu-button'),
+        'behaviors' => [
+            TransportMarker::module('bigpipe-util/dist/core/layer/HideOnBlur'),
+            TransportMarker::module('bigpipe-util/dist/core/layer/HideOnEscape'),
+        ],
+    ],
+]);
+$menu->call('show');
+```
+
 `calculateTopMargin(height, options)` from `core/layer/DialogPosition` is the top margin of a dialog for the `position`
 option: `options.top` when it is set, else a third of the free height of the window (half with `centered`), at least 40.
