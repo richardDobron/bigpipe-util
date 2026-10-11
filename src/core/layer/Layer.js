@@ -73,7 +73,9 @@ function containsIncludingLayers(root, target) {
 function onKeyDown(event) {
   for (let i = layers.length - 1; i >= 0; i -= 1) {
     if (layers[i].inform('key', event) === false) {
+      // Handled: the shortcuts of the page don't get it either.
       event.preventDefault();
+      event.stopPropagation();
       return;
     }
   }

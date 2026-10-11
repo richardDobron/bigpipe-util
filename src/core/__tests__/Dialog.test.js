@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Arbiter from '../Arbiter';
 import Dialog from '../Dialog';
+import HideOnEscape from '../layer/HideOnEscape';
+import Layer from '../layer/Layer';
 
 let dialog;
 
@@ -27,9 +29,9 @@ function open(model = {}) {
   return modal;
 }
 
-function press(key) {
+function press(key, target = document.body) {
   const event = new KeyboardEvent('keydown', { key, which: key === 'Escape' ? 27 : 0, bubbles: true });
-  document.body.dispatchEvent(event);
+  target.dispatchEvent(event);
 }
 
 describe('events', () => {
@@ -78,6 +80,35 @@ describe('events', () => {
 
     expect(upper.layer.isShown()).toBe(false);
     expect(lower.layer.isShown()).toBe(true);
+  });
+
+  it('gives Escape to a layer above the dialog first', () => {
+    const modal = open();
+    const menu = new Layer('<div><button id="item">Item</button></div>', {
+      behaviors: [HideOnEscape],
+      causalElement: document.getElementById('ok')
+    });
+    menu.show();
+    vi.runAllTimers();
+
+    press('Escape', document.getElementById('item'));
+    vi.runAllTimers();
+    expect(menu.isShown()).toBe(false);
+    expect(modal.layer.isShown()).toBe(true);
+
+    press('Escape');
+    vi.runAllTimers();
+    expect(modal.layer.isShown()).toBe(false);
+    menu.destroy();
+  });
+
+  it('does not close with Escape when keyboard is false', () => {
+    const modal = open({ keyboard: false });
+
+    press('Escape');
+    vi.runAllTimers();
+
+    expect(modal.layer.isShown()).toBe(true);
   });
 
   it('tells apart dialogs with the same markup', () => {

@@ -15,13 +15,13 @@ let dialogId = 1;
 let zIndex;
 let originalBodyPad = null;
 
+const handleKeydownEvent = Modal.prototype._handleKeydownEvent;
+
+// The Escape of a dialog goes through the layers (DialogLayer), so that the topmost layer, e.g. a
+// menu opened inside of the dialog, gets it first.
 Modal.prototype._handleKeydownEvent = function (event) {
-  if (event.which === 27 && this._options.keyboard) {
-    const currentModal = stack[stack.length - 1];
-    if (currentModal && currentModal.el === this.el) {
-      this.emit('dismiss', this, event, null);
-      this.hide();
-    }
+  if (!this.layer) {
+    handleKeydownEvent.call(this, event);
   }
 };
 

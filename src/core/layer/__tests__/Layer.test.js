@@ -164,12 +164,17 @@ describe('Layer', () => {
     second.show();
     vi.runAllTimers();
 
+    const page = vi.fn();
+    document.addEventListener('keydown', page);
+
     const event = new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
     document.body.dispatchEvent(event);
+    document.removeEventListener('keydown', page);
 
     expect(handled).toHaveBeenCalledOnce();
     expect(first).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(true);
+    expect(page).not.toHaveBeenCalled();
     second.destroy();
   });
 
