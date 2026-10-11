@@ -71,32 +71,32 @@ The JS of the pagelets still loads only when all of them are displayed.
 
 ## Events and timing
 
-Every pagelet informs `pagelet_event` through [Arbiter](arbiter.md) on each step of its
+Every pagelet informs `Pagelet/event` through [Arbiter](arbiter.md) on each step of its
 lifecycle, with the `event`, the `id` of the pagelet and the time `ts` from `performance.now()`:
 
-| Event           | When                                              |
-| --------------- | ------------------------------------------------- |
-| `arrive`        | The pagelet arrived.                              |
-| `css`           | Its CSS files start loading.                      |
-| `css_load`      | Its CSS files are loaded.                         |
-| `display_start` | Its DOM operations are about to be applied.       |
-| `display`       | It is displayed.                                  |
-| `jsstart`       | The JS files start loading.                       |
-| `jsdone`        | Its JS files are loaded, its `jsmods` run next.   |
-| `onload`        | Its `jsmods` have run.                            |
+| Event          | When                                            |
+|----------------|-------------------------------------------------|
+| `arrive`       | The pagelet arrived.                            |
+| `css`          | Its CSS files start loading.                    |
+| `cssLoad`      | Its CSS files are loaded.                       |
+| `displayStart` | Its DOM operations are about to be applied.     |
+| `display`      | It is displayed.                                |
+| `jsStart`      | The JS files start loading.                     |
+| `jsDone`       | Its JS files are loaded, its `jsmods` run next. |
+| `onload`       | Its `jsmods` have run.                          |
 
 The times are kept in `pagelet.timings` and marked with `performance.mark()` as `pagelet_<id>_<event>`, so they
 show in the performance panel of the browser. The names are exported as `PAGELET_EVENT`.
 
 The page informs its own events, exported as `BIGPIPE_EVENT`, with the time `ts`: `BigPipe/init` when `BigPipe` is
-created, `tti_bigpipe` when the [time to interactive](#time-to-interactive) is reached, `all_pagelets_displayed`
-when the last pagelet has arrived and all are displayed, and `all_pagelets_loaded` when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
+created, `BigPipe/tti` when the [time to interactive](#time-to-interactive) is reached, `BigPipe/allPageletsDisplayed`
+when the last pagelet has arrived and all are displayed, and `BigPipe/allPageletsLoaded` when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
 away, and they are marked with `performance.mark()` as well. The pagelets of a response, e.g. a lazy pagelet, do
 not count for them: they load their JS on their own, once the last of them has arrived and all are displayed. The
 pagelets of a [page transition](page_transitions.md) are the next page, which informs them again.
 
 ```javascript
-new Arbiter().subscribe('pagelet_event', ({ event, id, ts }) => {
+new Arbiter().subscribe('Pagelet/event', ({ event, id, ts }) => {
   if (event === 'display') {
     analytics.track('pagelet_displayed', { id, ts });
   }
@@ -146,7 +146,7 @@ server tells which ones with `tti_phase`, a field of a pagelet: the time to inte
 of the phases up to it is displayed.
 
 ```javascript
-new Arbiter().subscribe('tti_bigpipe', ({ phase, ts }) => {
+new Arbiter().subscribe('BigPipe/tti', ({ phase, ts }) => {
   analytics.track('interactive', { phase, ts });
 });
 ```
@@ -182,7 +182,7 @@ pagelet of a later phase that arrives after the time to interactive is prefetche
 
 A pagelet is destroyed when a pagelet with the same id replaces it, e.g. when the server refreshes it, or when the
 DOM operations of a response remove its root element. Destroying a pagelet destroys the pagelets inside it, runs its
-destructors, informs `pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root
+destructors, informs `Pagelet/destroy` with its `id` and `root` through [Arbiter](arbiter.md) and empties its root
 element.
 
 A module stops what it started for a pagelet in a destructor, e.g. a subscription or a timer:
@@ -210,12 +210,12 @@ the root of a displayed pagelet, and `removePagelet(pagelet)` destroys a pagelet
 ## Errors
 
 A failing pagelet does not stop the page. A pagelet that fails to arrive is reported, and the next pagelets arrive as
-usual. When the DOM operations of a pagelet fail, the error is reported, `pagelet/error` is informed through
+usual. When the DOM operations of a pagelet fail, the error is reported, `Pagelet/error` is informed through
 [Arbiter](arbiter.md) with its `id` and the `error`, and the pagelet still counts as displayed: its modules run and the
 JS of the page loads. Every module call is isolated too, see [ServerJS](server_js.md).
 
 ```javascript
-new Arbiter().subscribe('pagelet/error', ({ id }) => {
+new Arbiter().subscribe('Pagelet/error', ({ id }) => {
   document.getElementById('pagelet_' + id).classList.add('pagelet-failed');
 });
 ```

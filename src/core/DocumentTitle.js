@@ -40,7 +40,7 @@ const DocumentTitle = {
   },
 
   /**
-   * Sets the title and informs `update_title`. With `keep`, the title is temporary and the
+   * Sets the title and informs `DocumentTitle/update`. With `keep`, the title is temporary and the
    * true title stays, see get().
    */
   set(title, keep = false) {
@@ -52,7 +52,7 @@ const DocumentTitle = {
     } else {
       trueTitle = text;
       temporaryTitle = null;
-      new Arbiter().inform('update_title', text);
+      new Arbiter().inform('DocumentTitle/update', text);
     }
   },
 

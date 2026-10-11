@@ -46,7 +46,7 @@ fails, or the server sends a page of another version, e.g. after a deploy.
 - `body_class`: the class of `<body>`, the class is kept without one.
 - `redirect`: a URL to go to instead, with a page transition, or in full with `force`.
 
-Before the response is applied, the pagelets in the canvas are destroyed, `pagelet/destroy` is informed with the
+Before the response is applied, the pagelets in the canvas are destroyed, `Pagelet/destroy` is informed with the
 canvas as `root`, and the canvas is emptied. Its DOM operations then fill the canvas (the element the request is
 relative to) and its pagelets are loaded like on a page. Only the response of the latest page transition is applied.
 
@@ -78,18 +78,19 @@ for the timers that outlive it. The plain browser functions outlive the page too
 
 ## Events
 
-Informed through [Arbiter](arbiter.md):
+Informed through [Arbiter](arbiter.md), exported as `PAGE_TRANSITION_EVENT` from `PageTransitions` and
+`QUICKLING_EVENT` from `Quickling`:
 
-| Event                          | When                                                       |
-|--------------------------------|------------------------------------------------------------|
-| `pre_page_transition`          | Before a page is left, with `from` and `to`.               |
-| `page_transition`              | A handler loads the next page, with its `uri`.             |
-| `onload/exit`                  | The page is left for the next one.                         |
-| `ajaxpipe/send`                | The request for the next page is sent.                     |
-| `ajaxpipe/first_response`      | The response is about to be applied.                       |
-| `ajaxpipe/onbeforeclearcanvas` | The canvas is about to be emptied.                         |
-| `quickling/response`           | The response was applied.                                  |
-| `page_fragment_transition`     | A link to a fragment of the page was followed.             |
+| Event                                | When                                           |
+|--------------------------------------|------------------------------------------------|
+| `PageTransitions/beforeTransition`   | Before a page is left, with `from` and `to`.   |
+| `PageTransitions/transition`         | A handler loads the next page, with its `uri`. |
+| `Quickling/unload`                   | The page is left for the next one.             |
+| `Quickling/send`                     | The request for the next page is sent.         |
+| `Quickling/firstResponse`            | The response is about to be applied.           |
+| `Quickling/beforeClearCanvas`        | The canvas is about to be emptied.             |
+| `Quickling/response`                 | The response was applied.                      |
+| `PageTransitions/fragmentTransition` | A link to a fragment of the page was followed. |
 
 Handlers of other kinds of page transitions can be added with `PageTransitions.registerHandler(handler, priority)`: a
 handler gets the URL and returns `true` when it loads the page.

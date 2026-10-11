@@ -16,19 +16,19 @@ export const PAGELET_PHASE = Object.freeze({
 export const PAGELET_EVENT = Object.freeze({
   ARRIVE: 'arrive',
   CSS: 'css',
-  CSS_LOAD: 'css_load',
-  DISPLAY_START: 'display_start',
+  CSS_LOAD: 'cssLoad',
+  DISPLAY_START: 'displayStart',
   DISPLAY: 'display',
-  JS_START: 'jsstart',
-  JS_DONE: 'jsdone',
+  JS_START: 'jsStart',
+  JS_DONE: 'jsDone',
   ONLOAD: 'onload'
 });
 
 export const BIGPIPE_EVENT = Object.freeze({
   INIT: 'BigPipe/init',
-  TTI: 'tti_bigpipe',
+  TTI: 'BigPipe/tti',
   // Every pagelet of a phase of the page is displayed, with the phase; see last_in_phase.
   PHASE_DISPLAYED: 'BigPipe/phaseDisplayed',
-  DISPLAYED: 'all_pagelets_displayed',
-  LOADED: 'all_pagelets_loaded'
+  DISPLAYED: 'BigPipe/allPageletsDisplayed',
+  LOADED: 'BigPipe/allPageletsLoaded'
 });

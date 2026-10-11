@@ -8,11 +8,11 @@ import goOrReplace from './core/goOrReplace';
 import { clearAll as clearAllTimers } from './core/TimerStorage';
 
 export const QUICKLING_EVENT = Object.freeze({
-  SEND: 'ajaxpipe/send',
-  FIRST_RESPONSE: 'ajaxpipe/first_response',
-  BEFORE_CLEAR_CANVAS: 'ajaxpipe/onbeforeclearcanvas',
-  UNLOAD: 'onload/exit',
-  RESPONSE: 'quickling/response'
+  SEND: 'Quickling/send',
+  FIRST_RESPONSE: 'Quickling/firstResponse',
+  BEFORE_CLEAR_CANVAS: 'Quickling/beforeClearCanvas',
+  UNLOAD: 'Quickling/unload',
+  RESPONSE: 'Quickling/response'
 });
 
 const REQUEST_PARAMS = /^(?:quickling|__req)(?:\[|$)/;
@@ -52,7 +52,7 @@ function clearCanvas() {
   });
 
   new Arbiter().inform(QUICKLING_EVENT.BEFORE_CLEAR_CANVAS, { canvas });
-  new Arbiter().inform('pagelet/destroy', { id: null, root: canvas });
+  new Arbiter().inform('Pagelet/destroy', { id: null, root: canvas });
   DOM.empty(canvas);
 }
 

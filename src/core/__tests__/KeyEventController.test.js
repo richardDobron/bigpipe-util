@@ -72,7 +72,7 @@ describe('KeyEventController', () => {
     KeyEventController.registerKey('n', page);
     KeyEventController.registerKeyAcrossTransitions('n', across);
 
-    new Arbiter().inform('page_transition', {});
+    new Arbiter().inform('PageTransitions/transition', {});
     press('n');
 
     expect(page).not.toHaveBeenCalled();

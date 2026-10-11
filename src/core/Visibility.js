@@ -13,7 +13,7 @@ function isHidden() {
 
 if (isSupported()) {
   document.addEventListener('visibilitychange', event => {
-    new Arbiter().inform('visibility/' + (isHidden() ? HIDDEN : VISIBLE), {
+    new Arbiter().inform('Visibility/' + (isHidden() ? HIDDEN : VISIBLE), {
       changeTime: event.timeStamp
     });
   });
@@ -34,6 +34,6 @@ export default {
    * Returns a subscription whose `remove()` stops it.
    */
   subscribe(event, callback) {
-    return new Arbiter().subscribe('visibility/' + event, callback);
+    return new Arbiter().subscribe('Visibility/' + event, callback);
   }
 };

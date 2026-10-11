@@ -143,8 +143,8 @@ describe('Quickling', () => {
 
   it('forgets that the pagelets of the previous page were displayed and loaded', async () => {
     const { default: Arbiter } = await import('../core/Arbiter');
-    new BigPipe().inform('all_pagelets_displayed');
-    new BigPipe().inform('all_pagelets_loaded');
+    new BigPipe().inform('BigPipe/allPageletsDisplayed');
+    new BigPipe().inform('BigPipe/allPageletsLoaded');
     Quickling.init(canvas, { version: 'v1' });
     PageTransitions.go('/feed');
 
@@ -156,8 +156,8 @@ describe('Quickling', () => {
       })
     );
     const informed = vi.fn();
-    new Arbiter().subscribe('all_pagelets_displayed', informed);
-    new Arbiter().subscribe('all_pagelets_loaded', informed);
+    new Arbiter().subscribe('BigPipe/allPageletsDisplayed', informed);
+    new Arbiter().subscribe('BigPipe/allPageletsLoaded', informed);
 
     expect(document.title).toBe('Feed');
     expect(informed).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('Quickling', () => {
     const { default: Arbiter } = await import('../core/Arbiter');
     const { default: AsyncRequest } = await import('../async/AsyncRequest');
     const loaded = vi.fn();
-    new Arbiter().subscribe('all_pagelets_loaded', loaded);
+    new Arbiter().subscribe('BigPipe/allPageletsLoaded', loaded);
     Quickling.init(canvas, { version: 'v1' });
     PageTransitions.go('/feed');
 

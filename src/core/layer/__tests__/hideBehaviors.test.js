@@ -124,7 +124,7 @@ describe('HideOnTransition', () => {
     const layer = create([HideOnTransition]);
     layer.show();
 
-    new Arbiter().inform('pre_page_transition', { from: '/a', to: '/b' });
+    new Arbiter().inform('PageTransitions/beforeTransition', { from: '/a', to: '/b' });
 
     expect(layer.isShown()).toBe(false);
   });
@@ -138,10 +138,10 @@ describe('HideOnTransition', () => {
     const layer = create([OnlyFeed]);
     layer.show();
 
-    new Arbiter().inform('pre_page_transition', { to: '/other' });
+    new Arbiter().inform('PageTransitions/beforeTransition', { to: '/other' });
     expect(layer.isShown()).toBe(true);
 
-    new Arbiter().inform('pre_page_transition', { to: '/feed' });
+    new Arbiter().inform('PageTransitions/beforeTransition', { to: '/feed' });
     expect(layer.isShown()).toBe(false);
   });
 
@@ -150,7 +150,7 @@ describe('HideOnTransition', () => {
     layer.show();
     layer.disableBehaviors([HideOnTransition]);
 
-    new Arbiter().inform('pre_page_transition', {});
+    new Arbiter().inform('PageTransitions/beforeTransition', {});
 
     expect(layer.isShown()).toBe(true);
   });

@@ -76,7 +76,7 @@ title with it too.
 ```javascript
 import DocumentTitle from 'bigpipe-util/dist/core/DocumentTitle';
 
-DocumentTitle.set('Messages');        // informs update_title
+DocumentTitle.set('Messages');        // informs DocumentTitle/update
 DocumentTitle.set('(2) Messages', true); // a temporary title, get() still returns 'Messages'
 
 const blinking = DocumentTitle.blink('New message'); // alternates every 1.5 seconds

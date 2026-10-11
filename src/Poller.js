@@ -78,7 +78,7 @@ export default class Poller {
     }
 
     if (clearOnQuicklingEvents) {
-      this.subscriptions.push(new Arbiter().subscribe('onload/exit', () => this.destroy()));
+      this.subscriptions.push(new Arbiter().subscribe('Quickling/unload', () => this.destroy()));
     }
   }
 

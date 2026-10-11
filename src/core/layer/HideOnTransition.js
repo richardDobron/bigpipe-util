@@ -8,7 +8,7 @@ export default class HideOnTransition {
   }
 
   enable() {
-    this.subscription = new Arbiter().subscribe('pre_page_transition', transition => {
+    this.subscription = new Arbiter().subscribe('PageTransitions/beforeTransition', transition => {
       if (this.isTransitionRelevant(transition)) {
         this.layer.hide(HideSources.TRANSITION);
       }

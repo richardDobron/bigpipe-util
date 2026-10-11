@@ -11,7 +11,7 @@ beforeEach(async () => {
   bigPipe = new BigPipe();
 
   tti = vi.fn();
-  new Arbiter().subscribe('tti_bigpipe', tti);
+  new Arbiter().subscribe('BigPipe/tti', tti);
 
   document.head.innerHTML = '';
   document.body.innerHTML =
@@ -82,7 +82,7 @@ describe('time to interactive', () => {
     arrive('feed', { tti_phase: 0, is_last: true });
     const late = vi.fn();
 
-    new Arbiter().subscribe('tti_bigpipe', late);
+    new Arbiter().subscribe('BigPipe/tti', late);
 
     expect(late).toHaveBeenCalledOnce();
   });
@@ -102,7 +102,7 @@ describe('time to interactive', () => {
 
     expect(bigPipe.ttiReached).toBe(false);
     const late = vi.fn();
-    new Arbiter().subscribe('tti_bigpipe', late);
+    new Arbiter().subscribe('BigPipe/tti', late);
     expect(late).not.toHaveBeenCalled();
     arrive('sidebar', { tti_phase: 0, is_last: true });
     expect(late).toHaveBeenCalledOnce();

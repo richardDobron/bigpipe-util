@@ -197,10 +197,10 @@ describe('Run.onCleanupOrLeave', () => {
     const callback = vi.fn();
     Run.onCleanupOrLeave(document.getElementById('time'), callback);
 
-    new Arbiter().inform('pagelet/destroy', { id: 'other', root: document.createElement('div') });
+    new Arbiter().inform('Pagelet/destroy', { id: 'other', root: document.createElement('div') });
     expect(callback).not.toHaveBeenCalled();
 
-    new Arbiter().inform('pagelet/destroy', {
+    new Arbiter().inform('Pagelet/destroy', {
       id: 'feed',
       root: document.getElementById('pagelet_feed')
     });
@@ -222,7 +222,7 @@ describe('Run.onCleanupOrLeave', () => {
     const callback = vi.fn();
     Run.onCleanupOrLeave(document.body, callback).remove();
 
-    new Arbiter().inform('pagelet/destroy', { id: null, root: document.body });
+    new Arbiter().inform('Pagelet/destroy', { id: null, root: document.body });
     PageTransitions.runLeaveHooks();
 
     expect(callback).not.toHaveBeenCalled();

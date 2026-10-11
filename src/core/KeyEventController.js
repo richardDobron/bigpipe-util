@@ -92,7 +92,7 @@ function getHandlers() {
     ['keydown', 'keyup', 'keypress'].forEach(type =>
       document.addEventListener(type, event => onKeyEvent('on' + type, event))
     );
-    new Arbiter().subscribe('page_transition', resetHandlers);
+    new Arbiter().subscribe('PageTransitions/transition', resetHandlers);
   }
   return handlers;
 }

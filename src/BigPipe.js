@@ -246,7 +246,7 @@ export default class BigPipe {
   }
 
   /**
-   * Informs `tti_bigpipe` once every pagelet of the phases up to `tti_phase` is displayed and no
+   * Informs `BigPipe/tti` once every pagelet of the phases up to `tti_phase` is displayed and no
    * more of them can arrive, then loads the JS files of the later phases in the background.
    */
   checkTti() {

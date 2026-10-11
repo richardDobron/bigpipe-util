@@ -11,7 +11,7 @@ beforeEach(async () => {
   bigPipe = new BigPipe();
 
   displayed = [];
-  new Arbiter().subscribe('pagelet_event', ({ event, id }) => {
+  new Arbiter().subscribe('Pagelet/event', ({ event, id }) => {
     if (event === 'display') {
       displayed.push(id);
     }

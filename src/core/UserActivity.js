@@ -1,6 +1,6 @@
 import Arbiter from './Arbiter';
 
-const EVENT = 'useractivity/activity';
+const EVENT = 'UserActivity/activity';
 
 let lastActivity = Date.now();
 let lastInformTime = lastActivity;
@@ -11,7 +11,7 @@ function onActivity(event) {
 
   if (idleness > 500) {
     lastInformTime = lastActivity;
-    new Arbiter().inform(EVENT, { event, idleness, last_inform: lastInformTime });
+    new Arbiter().inform(EVENT, { event, idleness, lastInform: lastInformTime });
   } else if (idleness < -5) {
     lastInformTime = lastActivity;
   }

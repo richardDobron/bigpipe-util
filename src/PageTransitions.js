@@ -6,6 +6,18 @@ import reportError from './core/reportError';
 
 export const DELAY_HISTORY = 'delay_history';
 
+/** The events of page transitions, informed through Arbiter. */
+export const PAGE_TRANSITION_EVENT = Object.freeze({
+  // Before a page is left, with `from` and `to`; see HideOnTransition.
+  BEFORE_TRANSITION: 'PageTransitions/beforeTransition',
+  // A handler loads the next page, with its `uri`.
+  TRANSITION: 'PageTransitions/transition',
+  // Before a link to a fragment of the page is followed, with `from` and `to`.
+  BEFORE_FRAGMENT_TRANSITION: 'PageTransitions/beforeFragmentTransition',
+  // A link to a fragment of the page was followed, with the `fragment`.
+  FRAGMENT_TRANSITION: 'PageTransitions/fragmentTransition'
+});
+
 const SKIPPED_REL = /(?:^|\s)(?:async(?:-post)?|dialog|external)(?:\s|$)/;
 
 let initialized = false;
@@ -112,7 +124,7 @@ function handleTransition(uri) {
     for (let i = list ? list.length - 1 : -1; i >= 0; i -= 1) {
       const result = list[i](uri);
       if (result === true || result === DELAY_HISTORY) {
-        new Arbiter().inform('page_transition', { uri });
+        new Arbiter().inform(PAGE_TRANSITION_EVENT.TRANSITION, { uri });
         return result;
       }
       list.splice(i, 1);
@@ -231,7 +243,10 @@ function onPageShow(event) {
 function load(uri, entry, replace, fallback) {
   // The back button to an entry of the same page, e.g. without the fragment, only scrolls too.
   if ((uri.hash || entry) && withoutHash(uri) === withoutHash(currentURI)) {
-    new Arbiter().inform('pre_page_fragment_transition', { from: currentURI.hash, to: uri.hash });
+    new Arbiter().inform(PAGE_TRANSITION_EVENT.BEFORE_FRAGMENT_TRANSITION, {
+      from: currentURI.hash,
+      to: uri.hash
+    });
     if (entry) {
       enter(entry);
     } else {
@@ -244,7 +259,7 @@ function load(uri, entry, replace, fallback) {
         target.scrollIntoView();
       }
     }
-    new Arbiter().inform('page_fragment_transition', { fragment: uri.hash });
+    new Arbiter().inform(PAGE_TRANSITION_EVENT.FRAGMENT_TRANSITION, { fragment: uri.hash });
     return;
   }
 
@@ -264,7 +279,7 @@ function load(uri, entry, replace, fallback) {
     enter(entry);
   }
 
-  new Arbiter().inform('pre_page_transition', { from: currentURI, to: uri });
+  new Arbiter().inform(PAGE_TRANSITION_EVENT.BEFORE_TRANSITION, { from: currentURI, to: uri });
 
   transitioning = true;
   const result = handleTransition(uri);

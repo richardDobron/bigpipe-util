@@ -172,7 +172,7 @@ describe('Poller', () => {
     respond(0);
     respond(1);
 
-    new Arbiter().inform('onload/exit', { transition_type: 'quickling' });
+    new Arbiter().inform('Quickling/unload', { transition_type: 'quickling' });
     vi.advanceTimersByTime(5000);
 
     expect(requests.map(request => request.url.split('?')[0])).toEqual([

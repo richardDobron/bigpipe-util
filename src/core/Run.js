@@ -125,7 +125,7 @@ const Run = {
 
   onCleanupOrLeave(element, callback) {
     let leave;
-    const destroyed = new Arbiter().subscribe('pagelet/destroy', ({ root }) => {
+    const destroyed = new Arbiter().subscribe('Pagelet/destroy', ({ root }) => {
       if (root && element && root.contains(element)) {
         run();
       }

@@ -34,7 +34,7 @@ const pagelet = (id, data = {}) => ({
 describe('pagelet errors', () => {
   it('reports a pagelet whose DOM operations fail and goes on with the page', () => {
     const failed = vi.fn();
-    new Arbiter().subscribe('pagelet/error', failed);
+    new Arbiter().subscribe('Pagelet/error', failed);
     const init = vi.fn();
     window.require = () => ({ init });
 

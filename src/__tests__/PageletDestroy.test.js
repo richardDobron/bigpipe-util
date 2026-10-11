@@ -35,12 +35,12 @@ describe('pagelet destructors', () => {
     expect(feed.getRoot()).toBe(document.getElementById('pagelet_feed'));
   });
 
-  it('runs the destructors once, also when one throws, and announces pagelet/destroy', () => {
+  it('runs the destructors once, also when one throws, and announces Pagelet/destroy', () => {
     vi.useFakeTimers();
     const feed = arrive('feed', '<p>Posts</p>');
     const destructor = vi.fn();
     const destroyed = vi.fn();
-    new Arbiter().subscribe('pagelet/destroy', destroyed);
+    new Arbiter().subscribe('Pagelet/destroy', destroyed);
 
     feed.addDestructor(() => {
       throw new Error('destructor failed');

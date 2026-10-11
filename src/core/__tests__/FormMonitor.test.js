@@ -144,7 +144,7 @@ describe('leaving the page', () => {
     monitor = new FormMonitor(form);
     type('Other');
 
-    new Arbiter().inform('pagelet/destroy', { id: null, root: document.body });
+    new Arbiter().inform('Pagelet/destroy', { id: null, root: document.body });
 
     expect(beforeUnload().defaultPrevented).toBe(false);
   });

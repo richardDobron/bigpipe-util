@@ -58,7 +58,7 @@ function traverse(delta, popStates = 1) {
 describe('PageTransitions', () => {
   it('loads a same-origin link with a handler and adds it to the history', () => {
     const informed = vi.fn();
-    const subscription = new Arbiter().subscribe('page_transition', informed);
+    const subscription = new Arbiter().subscribe('PageTransitions/transition', informed);
 
     const event = click('<a href="/feed?page=2">Feed</a>');
 

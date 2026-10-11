@@ -16,9 +16,9 @@ afterEach(() => {
 });
 
 describe('DocumentTitle', () => {
-  it('sets the title and informs update_title', () => {
+  it('sets the title and informs DocumentTitle/update', () => {
     const updated = vi.fn();
-    new Arbiter().subscribe('update_title', updated);
+    new Arbiter().subscribe('DocumentTitle/update', updated);
 
     DocumentTitle.set('Messages');
 

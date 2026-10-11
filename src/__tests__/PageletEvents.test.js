@@ -24,10 +24,10 @@ afterEach(() => {
 });
 
 describe('pagelet events', () => {
-  it('informs pagelet_event with the time of every lifecycle event', () => {
+  it('informs Pagelet/event with the time of every lifecycle event', () => {
     const mark = vi.spyOn(performance, 'mark');
     const events = [];
-    new Arbiter().subscribe('pagelet_event', data => events.push(data));
+    new Arbiter().subscribe('Pagelet/event', data => events.push(data));
 
     bigPipe.onPageletArrive({
       id: 'feed',
@@ -45,11 +45,11 @@ describe('pagelet events', () => {
     expect(events.map(({ event }) => event)).toEqual([
       'arrive',
       'css',
-      'css_load',
-      'display_start',
+      'cssLoad',
+      'displayStart',
       'display',
-      'jsstart',
-      'jsdone',
+      'jsStart',
+      'jsDone',
       'onload'
     ]);
     expect(events.every(({ id }) => id === 'feed')).toBe(true);
@@ -81,19 +81,21 @@ describe('page events', () => {
       jsmods: { require: [['Feed', 'init']] },
       is_last: true
     });
-    expect(Object.keys(events)).toEqual(['BigPipe/init', 'all_pagelets_displayed']);
+    expect(Object.keys(events)).toEqual(['BigPipe/init', 'BigPipe/allPageletsDisplayed']);
 
     bigPipe.fileLoaded(bigPipe.resolveResourceName('/feed.js'));
     expect(Object.keys(events)).toEqual([
       'BigPipe/init',
-      'all_pagelets_displayed',
-      'all_pagelets_loaded'
+      'BigPipe/allPageletsDisplayed',
+      'BigPipe/allPageletsLoaded'
     ]);
-    expect(events.all_pagelets_loaded.ts).toBeGreaterThanOrEqual(events['BigPipe/init'].ts);
+    expect(events['BigPipe/allPageletsLoaded'].ts).toBeGreaterThanOrEqual(
+      events['BigPipe/init'].ts
+    );
 
     const late = vi.fn();
     arbiter.subscribe(BIGPIPE_EVENT.LOADED, late);
-    expect(late).toHaveBeenCalledWith(events.all_pagelets_loaded);
+    expect(late).toHaveBeenCalledWith(events['BigPipe/allPageletsLoaded']);
   });
 });
 

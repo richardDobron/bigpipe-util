@@ -815,7 +815,9 @@ describe('page transitions', () => {
     send(new AsyncRequest('/page'), page);
     send(new AsyncRequest('/crossing').setAllowCrossPageTransition(true), crossing);
 
-    new Arbiter().inform('page_transition', { uri: new URL('/next', window.location.href) });
+    new Arbiter().inform('PageTransitions/transition', {
+      uri: new URL('/next', window.location.href)
+    });
 
     expect(requests[0].aborted).toBe(true);
     expect(requests[1].aborted).toBe(false);

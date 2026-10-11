@@ -33,7 +33,7 @@ function isStreamPart(part) {
 // The requests in flight. A page transition abandons the ones that must not outlive their page.
 const pending = new Set();
 
-new Arbiter().subscribe('page_transition', () => {
+new Arbiter().subscribe('PageTransitions/transition', () => {
   Array.from(pending).forEach(request => {
     if (!request.getAllowCrossPageTransition()) {
       request.abandon();
@@ -582,7 +582,7 @@ export default class AsyncRequest {
 
           if (isLast && self.relative instanceof Element) {
             self.relative.dispatchEvent(
-              new CustomEvent('success', {bubbles: true, detail: {response}})
+              new CustomEvent('success', { bubbles: true, detail: { response } })
             );
           }
         }

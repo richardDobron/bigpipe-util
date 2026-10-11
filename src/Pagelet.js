@@ -62,7 +62,7 @@ export default class Pagelet {
     this.jsPrefetched = false;
     this.timings = {};
     this.destructors = [
-      () => new Arbiter().inform('pagelet/destroy', { id: this.id, root: this.root })
+      () => new Arbiter().inform('Pagelet/destroy', { id: this.id, root: this.root })
     ];
   }
 
@@ -145,7 +145,7 @@ export default class Pagelet {
   }
 
   /**
-   * Records the time of a lifecycle event in `timings` and informs `pagelet_event` with it.
+   * Records the time of a lifecycle event in `timings` and informs `Pagelet/event` with it.
    */
   inform(event) {
     const ts = performanceNow();
@@ -155,7 +155,7 @@ export default class Pagelet {
       performance.mark(`pagelet_${this.id}_${event}`);
     }
 
-    new Arbiter().inform('pagelet_event', { event, id: this.id, ts });
+    new Arbiter().inform('Pagelet/event', { event, id: this.id, ts });
   }
 
   /**
@@ -250,13 +250,13 @@ export default class Pagelet {
   }
 
   /**
-   * Reports an error of the pagelet and informs `pagelet/error`, e.g. to show an error state in
+   * Reports an error of the pagelet and informs `Pagelet/error`, e.g. to show an error state in
    * it. The page goes on: the pagelet still counts as displayed and runs its modules.
    */
   fail(error) {
     this.error = error;
     reportError(error);
-    new Arbiter().inform('pagelet/error', { id: this.id, error });
+    new Arbiter().inform('Pagelet/error', { id: this.id, error });
   }
 
   setContent() {

@@ -31,7 +31,11 @@ function open(model = {}) {
 }
 
 function press(key, target = document.body) {
-  const event = new KeyboardEvent('keydown', { key, which: key === 'Escape' ? 27 : 0, bubbles: true });
+  const event = new KeyboardEvent('keydown', {
+    key,
+    which: key === 'Escape' ? 27 : 0,
+    bubbles: true
+  });
   target.dispatchEvent(event);
 }
 
@@ -40,7 +44,10 @@ describe('events', () => {
     const events = [];
     const modal = dialog.showFromModel({
       body: 'Body',
-      controller: m => ['show', 'shown', 'hide', 'hidden'].forEach(name => m.on(name, arg => events.push([name, arg === m])))
+      controller: m =>
+        ['show', 'shown', 'hide', 'hidden'].forEach(name =>
+          m.on(name, arg => events.push([name, arg === m]))
+        )
     });
 
     vi.runAllTimers();
@@ -302,12 +309,12 @@ describe('focus', () => {
 describe('hiding', () => {
   it('hides before a page transition unless turned off', () => {
     const first = open();
-    new Arbiter().inform('pre_page_transition', { to: '/next' });
+    new Arbiter().inform('PageTransitions/beforeTransition', { to: '/next' });
     vi.runAllTimers();
     expect(first.layer.isShown()).toBe(false);
 
     const second = open({ hideOnTransition: false });
-    new Arbiter().inform('pre_page_transition', { to: '/next' });
+    new Arbiter().inform('PageTransitions/beforeTransition', { to: '/next' });
     vi.runAllTimers();
     expect(second.layer.isShown()).toBe(true);
   });
