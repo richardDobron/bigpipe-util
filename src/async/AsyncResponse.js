@@ -8,9 +8,8 @@ const _ServerJS = new ServerJS();
 
 export default class AsyncResponse {
   handle(response, element) {
-    const { domops, pagelets, jsmods } = response;
-
-    if (typeof response === 'object') {
+    if (response !== null && typeof response === 'object') {
+      const { domops, pagelets, jsmods } = response;
       const bigPipe = new BigPipe();
 
       if (response.resource_map) {

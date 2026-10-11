@@ -200,6 +200,39 @@ describe('responses', () => {
     expect(() => vi.runAllTimers()).toThrow(/without the "for \(;;\);" shield/);
   });
 
+  it.each([
+    ['null', 'for (;;);null'],
+    ['a number', 'for (;;);1'],
+    ['an array', 'for (;;);[]']
+  ])('rejects a response that is %s', (name, text) => {
+    vi.useFakeTimers();
+    const h = handlers();
+
+    send(new AsyncRequest('/save'), h);
+    expect(() => requests[0].respond(200, text)).not.toThrow();
+
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.INVALID_RESPONSE })
+    );
+    expect(h.finally).toHaveBeenCalledOnce();
+    expect(() => vi.runAllTimers()).toThrow(/not a BigPipe response/);
+  });
+
+  it('does not handle a response with a status other than 2xx', () => {
+    const h = handlers();
+
+    send(new AsyncRequest('/save'), h);
+    requests[0].respond(304, asyncResponse({ payload: 'cached' }));
+
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.HTTP, status: 304 })
+    );
+  });
+
   it('calls the finally handler when the handler throws', () => {
     const h = handlers();
     h.success.mockImplementation(() => {
@@ -775,6 +808,23 @@ describe('streamed responses', () => {
     requests[1].respond(200, '{"broken' + '/*<!-- fetch-stream -->*/');
     expect(transportError).toHaveBeenCalledWith(
       requests[1],
+      expect.objectContaining({ type: ERROR_TYPE.INVALID_RESPONSE })
+    );
+    vi.clearAllTimers();
+  });
+
+  it('rejects a part without content', () => {
+    vi.useFakeTimers();
+    const h = handlers();
+
+    send(new AsyncRequest('/feed').setOption('stream', true), h);
+    expect(() =>
+      requests[0].respond(200, part({ payload: 1 }) + part(null) + part({ payload: 2 }, true))
+    ).not.toThrow();
+
+    expect(h.success).toHaveBeenCalledOnce();
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
       expect.objectContaining({ type: ERROR_TYPE.INVALID_RESPONSE })
     );
     vi.clearAllTimers();

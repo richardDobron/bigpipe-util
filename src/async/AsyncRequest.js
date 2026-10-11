@@ -18,6 +18,18 @@ function unshield(text) {
   return match ? text.substring(match[0].length) : null;
 }
 
+function isSuccessStatus(status) {
+  return status >= 200 && status < 300;
+}
+
+function isResponseObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isStreamPart(part) {
+  return isResponseObject(part) && isResponseObject(part.content);
+}
+
 // The requests in flight. A page transition abandons the ones that must not outlive their page.
 const pending = new Set();
 
@@ -545,21 +557,34 @@ export default class AsyncRequest {
       }
     };
 
-    const parse = (transport, text) => {
+    const reportInvalidResponse = (transport, description, text) => {
+      stopped = true;
+      transportErrorHandler(
+        transport,
+        createError(ERROR_TYPE.INVALID_RESPONSE, transport, {
+          summary: 'Invalid response',
+          description
+        })
+      );
+      reportError(new Error('Failed to handle response: ' + description + '\n' + text));
+    };
+
+    // Parses a response, or a part of a streamed response, and reports it when it is not valid.
+    const parse = (transport, text, isValid = isResponseObject) => {
+      let value;
       try {
-        return JSON.parse(text);
+        value = JSON.parse(text);
       } catch (e) {
-        stopped = true;
-        transportErrorHandler(
-          transport,
-          createError(ERROR_TYPE.INVALID_RESPONSE, transport, {
-            summary: 'Invalid response',
-            description: e.message
-          })
-        );
-        reportError(new Error('Failed to handle response: ' + e.message + '\n' + text));
+        reportInvalidResponse(transport, e.message, text);
         return null;
       }
+
+      if (!isValid(value)) {
+        reportInvalidResponse(transport, 'The response is not a BigPipe response.', text);
+        return null;
+      }
+
+      return value;
     };
 
     // Handles the parts of a streamed response received so far, and the rest once it is complete.
@@ -579,7 +604,7 @@ export default class AsyncRequest {
 
       let end = text.indexOf(STREAM_DELIMITER, offset);
       while (!stopped && end !== -1) {
-        const part = parse(transport, text.slice(offset, end));
+        const part = parse(transport, text.slice(offset, end), isStreamPart);
         offset = end + STREAM_DELIMITER.length;
         if (part) {
           handleResponse(transport, part.content, Boolean(part.finished));
@@ -590,7 +615,7 @@ export default class AsyncRequest {
       const rest = text.slice(offset).trim();
       if (complete && !stopped && rest) {
         offset = text.length;
-        const part = parse(transport, rest);
+        const part = parse(transport, rest, isStreamPart);
         if (part) {
           handleResponse(transport, part.content, true);
         }
@@ -624,30 +649,24 @@ export default class AsyncRequest {
             return;
           }
 
-          if (this.status >= 200 && this.status < 400) {
+          if (isSuccessStatus(this.status)) {
             if (stream) {
               readParts(this, true);
               return;
             }
 
-            let response;
+            let text;
             try {
-              response = JSON.parse(self._unshieldResponseText(this.responseText));
+              text = self._unshieldResponseText(this.responseText);
             } catch (e) {
-              transportErrorHandler(
-                this,
-                createError(ERROR_TYPE.INVALID_RESPONSE, this, {
-                  summary: 'Invalid response',
-                  description: e.message
-                })
-              );
-              reportError(
-                new Error('Failed to handle response: ' + e.message + '\n' + this.responseText)
-              );
+              reportInvalidResponse(this, e.message, this.responseText);
               return;
             }
 
-            handleResponse(this, response, true);
+            const response = parse(this, text);
+            if (response) {
+              handleResponse(this, response, true);
+            }
           } else if (
             this.status === CSRF_EXPIRED_STATUS &&
             csrf &&
@@ -707,7 +726,7 @@ export default class AsyncRequest {
 
       if (stream) {
         request.onprogress = function () {
-          if (!self.abandoned && this.status >= 200 && this.status < 400) {
+          if (!self.abandoned && isSuccessStatus(this.status)) {
             readParts(this, false);
           }
         };

@@ -99,7 +99,7 @@ new AsyncRequest('/ajax/save')
 
 - `server`: the server sent an error with `$response->setError()`. The DOM operations and modules of the response
   are applied anyway, e.g. to mark an invalid field.
-- `http`: the server answered with a 4xx/5xx status.
+- `http`: the server answered with a status other than 2xx, e.g. 404 or 500. Redirects are followed by the browser.
 - `invalid_response`: the response is not a BigPipe response, e.g. a PHP fatal error page.
 - `network`: there is no response, e.g. the browser is offline.
 - `timeout`: there was no response in time, see `setTimeoutHandler()`.
