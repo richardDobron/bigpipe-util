@@ -31,7 +31,11 @@ export function installFakeXHR() {
     }
 
     abort() {
+      if (this.done) {
+        return;
+      }
       this.aborted = true;
+      this.done = true;
       this.onabort && this.onabort.call(this);
     }
 
@@ -44,10 +48,12 @@ export function installFakeXHR() {
     respond(status, responseText) {
       this.status = status;
       this.responseText = responseText;
+      this.done = true;
       this.onload.call(this);
     }
 
     fail() {
+      this.done = true;
       this.onerror.call(this);
     }
   }

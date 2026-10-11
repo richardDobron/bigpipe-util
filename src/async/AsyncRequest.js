@@ -227,6 +227,7 @@ export default class AsyncRequest {
     this.options = { retries: 0, stream: false };
     this.abandoned = false;
     this.allowCrossPageTransition = false;
+    this.cancelRefresh = null;
 
     if (uri !== undefined) {
       this.setURI(uri);
@@ -354,7 +355,9 @@ export default class AsyncRequest {
   abort() {
     const { transport } = this;
 
-    if (transport) {
+    if (this.cancelRefresh) {
+      this.cancelRefresh();
+    } else if (transport) {
       transport.abort();
     }
   }
@@ -453,6 +456,13 @@ export default class AsyncRequest {
     const timeoutHandler = this.timeoutHandler || transportErrorHandler;
     let timer = null;
     let timedOut = false;
+
+    const createTimeoutError = transport =>
+      createError(ERROR_TYPE.TIMEOUT, transport, {
+        summary: 'Request timed out',
+        description: 'The server did not respond in time. Try again.',
+        isTransient: true
+      });
 
     let finished = false;
 
@@ -686,10 +696,11 @@ export default class AsyncRequest {
             tokenRefreshed = true;
             restarting = true;
 
-            new AsyncRequest(csrf.refresh)
+            const refresh = new AsyncRequest(csrf.refresh)
               .setMethod('GET')
               .setAllowCrossPageTransition(true)
               .setHandler(() => {
+                self.cancelRefresh = null;
                 if (self.abandoned) {
                   finish(failed);
                 } else {
@@ -697,14 +708,30 @@ export default class AsyncRequest {
                 }
               })
               .setErrorHandler(() => {
+                self.cancelRefresh = null;
                 transportErrorHandler(failed, createHttpError(failed));
                 finish(failed);
               })
               .setTransportErrorHandler(() => {
+                self.cancelRefresh = null;
                 transportErrorHandler(failed, createHttpError(failed));
                 finish(failed);
-              })
-              .send();
+              });
+
+            // The request is waiting for the token: a timeout or abort() ends the wait instead.
+            self.cancelRefresh = () => {
+              self.cancelRefresh = null;
+              refresh.abandon();
+              try {
+                if (timedOut && !self.abandoned) {
+                  timeoutHandler(failed, createTimeoutError(failed));
+                }
+              } finally {
+                finish(failed);
+              }
+            };
+
+            refresh.send();
           } else {
             transportErrorHandler(this, createHttpError(this));
           }
@@ -758,14 +785,7 @@ export default class AsyncRequest {
       request.onabort = function () {
         try {
           if (timedOut && !self.abandoned) {
-            timeoutHandler(
-              this,
-              createError(ERROR_TYPE.TIMEOUT, this, {
-                summary: 'Request timed out',
-                description: 'The server did not respond in time. Try again.',
-                isTransient: true
-              })
-            );
+            timeoutHandler(this, createTimeoutError(this));
           }
         } finally {
           finish(this);
@@ -778,7 +798,7 @@ export default class AsyncRequest {
         clearTimeout(timer);
         timer = setTimeout(() => {
           timedOut = true;
-          request.abort();
+          self.abort();
         }, timeout);
       }
 

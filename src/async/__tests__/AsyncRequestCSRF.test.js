@@ -220,6 +220,37 @@ describe('CSRF token refresh', () => {
     expect(other.transportError).toHaveBeenCalledOnce();
   });
 
+  it('times out while it waits for the new token', () => {
+    vi.useFakeTimers();
+    const h = handlers();
+    const timeoutHandler = vi.fn();
+    send(new AsyncRequest('/save').setTimeoutHandler(1000, timeoutHandler), h);
+
+    requests[0].respond(419, 'Page Expired');
+    vi.advanceTimersByTime(1000);
+
+    expect(requests[1].aborted).toBe(true);
+    expect(timeoutHandler).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.TIMEOUT })
+    );
+    expect(h.finally).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it('stops waiting for the new token when the request is aborted', () => {
+    const request = new AsyncRequest('/save');
+    const h = handlers();
+    send(request, h);
+
+    requests[0].respond(419, 'Page Expired');
+    request.abort();
+
+    expect(requests[1].aborted).toBe(true);
+    expect(h.transportError).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
   it('does not send again a request that was abandoned meanwhile', () => {
     const request = new AsyncRequest('/save');
     const h = handlers();
