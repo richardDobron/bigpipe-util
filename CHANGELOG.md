@@ -4,6 +4,70 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## Unreleased
+
+### Added
+- `Bootloader.getErrorURLs()` lists the stylesheets and scripts that failed to load.
+- `ServerRedirect.redirectPageTo()` takes `replace` and `transition`: replace the history entry, or load the page with
+  a page transition.
+- The `__rel` marker stands for the element that sent the request; `ServerJS.handle()` takes it.
+- The layers and their behaviors are built-in modules of `ModuleRegistry`, so the server can create them.
+- `BigPipe.startPage()` makes the pagelets of a response the next page, see Quickling.
+
+### Changed
+- The pagelets of a response, e.g. a lazy pagelet, are kept apart from the page: they load their JS once all of them
+  are displayed, and no longer start the JS of the page or inform `all_pagelets_displayed` and `all_pagelets_loaded`.
+- A response whose error is a warning goes to the handler, not to the error handler.
+- Only a 2xx status is a success. A BigPipe response with an error status, e.g. `send(422)`, is applied and its error
+  goes to the error handler.
+- A script that fails to load is requested again twice, and a failed resource is reported.
+- A delayed server redirect does not happen once the page is left with a page transition.
+- A page transition without a `body_class` keeps the class of `<body>`.
+- Escape and other keys typed in a text field that is not empty no longer reach the layer it is in.
+- Dialogs, modal layers and contextual layers share one stacking order.
+
+### Fixed
+
+#### Requests
+- A `rel="async"` link without `ajaxify` is sent to its `href`, not to `null`.
+- Whitespace or a byte order mark before the `for (;;);` shield no longer makes the response invalid, and
+  `for(;;);` is accepted.
+- A response that is `null` or not an object is an `invalid_response` error instead of an exception.
+- The rest of a streamed response that failed is applied but no longer handled as a success.
+- The timeout of a streamed response stops at its first part.
+- A timeout or `abort()` ends the wait for a new CSRF token.
+
+#### Pagelets and modules
+- A stylesheet that does not load in 5 seconds no longer holds up the page.
+- An async, deferred or module script, or a stylesheet in the body, that is on the page is waited for until it loaded.
+- A call waits for the bootloadable modules of its arguments and the classes of the instances it uses.
+- A Quickling page transition clears the `all_pagelets_loaded` state of the previous page.
+
+#### Page transitions
+- `PageTransitions.go(uri, true)` replaces the current history entry, so the back button no longer returns to a URL
+  the server redirected from.
+- A link to an empty fragment of the current page, like `href="#"`, no longer reloads the page.
+- The back and forward buttons load the page of history entries that other scripts added, and only scroll for an
+  entry of another fragment of the page.
+- Staying on a page after the back or forward button asked to confirm leaving it keeps the forward history.
+- Every history entry keeps its own scroll position, also in its `history.state`, so it is restored after a reload.
+- A page kept in the back/forward cache no longer runs its `Run.onLeave()` and `Run.onUnload()` hooks.
+- A finally handler set by a Poller's `setupRequest` no longer stops the polling.
+
+#### Layers and dialogs
+- `Dialog.close(0)` closes no dialog instead of every one.
+- Dialogs with the same markup are told apart.
+- Escape goes to the topmost layer first, so a menu open over a dialog closes before the dialog.
+- A contextual layer inserted in a positioned or transformed element is placed relative to it, it is placed above
+  the dialog its context is in, and it is not shown while its context is not displayed.
+- `getTabbable` and tab isolation skip hidden elements, and Tab stays in a dialog while a menu that does not trap is
+  open over it.
+- When the element that opened a layer is hidden, the focus goes back to the closest visible element.
+- A dialog gives the focus back to the element that sent its request, or the focused element inside of it.
+- A destroyed layer can no longer be shown again.
+- Nested contextual layers, like submenus, count as part of the layers they are opened from at any depth and hide
+  with them.
+
 ## v2.0.0 - 2026-10-10
 
 Works with `richarddobron/bigpipe` 2.x.
