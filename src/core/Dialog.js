@@ -6,13 +6,15 @@ import HideOnSuccess from './layer/HideOnSuccess';
 import HideOnTransition from './layer/HideOnTransition';
 import RefocusOnHide from './layer/RefocusOnHide';
 import TabIsolation from './layer/TabIsolation';
+import { addToStack, removeFromStack, updateStack } from './layer/overlayStack';
 import requireModule from './requireModule';
 
-const DEFAULT_Z_INDEX = 1040;
+// The z-index of the backdrop of the first dialog, the dialog is 1 above. The modal layers and the
+// dialogs share one stacking order, see overlayStack.
+const DEFAULT_Z_INDEX = 1049;
 
 let stack = [];
 let dialogId = 1;
-let zIndex;
 let originalBodyPad = null;
 
 const handleKeydownEvent = Modal.prototype._handleKeydownEvent;
@@ -143,20 +145,15 @@ export default class Dialog {
       }
     }
 
-    const self = this;
+    const entry = {
+      zIndex: DEFAULT_Z_INDEX,
+      root: _modal.el,
+      getBackdrop: () => _modal._html.backdrop || null
+    };
 
     return _modal
-      .on('shown', function ({ el }) {
-        zIndex = DEFAULT_Z_INDEX + 10 * stack.length;
-        el.style.zIndex = zIndex;
-        setTimeout(() => {
-          const backdrop = document.querySelector('.modal-backdrop');
-          if (backdrop) {
-            backdrop.style.zIndex = zIndex - 1;
-          }
-        });
-      })
-      .on('showBackdrop', this._fixBackdrop)
+      .on('show', () => addToStack(entry))
+      .on('showBackdrop', updateStack)
       .on('hidden', function ({ el }) {
         stack = stack.filter(modal => {
           return modal.el !== el;
@@ -168,26 +165,10 @@ export default class Dialog {
 
         document.body.style.paddingRight = originalBodyPad;
 
-        zIndex -= 10;
-        self._fixBackdrop();
+        removeFromStack(entry);
         DOM.remove(el);
       })
       .show();
-  }
-
-  _fixBackdrop() {
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    let shown = false;
-
-    backdrops.forEach((backdrop, index) => {
-      if (shown || (index > 0 && index === backdrops.length - 1)) {
-        backdrop.style.display = 'none';
-      } else {
-        backdrop.style.zIndex = zIndex - 1;
-        backdrop.style.display = '';
-        shown = true;
-      }
-    });
   }
 
   _makeDialog(content, className = '') {

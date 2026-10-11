@@ -1,3 +1,5 @@
+import { addToStack, removeFromStack } from './overlayStack';
+
 const DEFAULTS = Object.freeze({
   backdropClassName: '',
   backdropStyle: null,
@@ -34,17 +36,6 @@ function unlock() {
   scrollLock = null;
 }
 
-function restack() {
-  stack.forEach((modal, index) => {
-    const { zIndex } = modal.getOptions();
-    const top = index === stack.length - 1;
-
-    modal.backdrop.style.zIndex = String(zIndex + index * 10);
-    modal.backdrop.style.display = top ? '' : 'none';
-    modal.layer.getRoot().style.zIndex = String(zIndex + index * 10 + 1);
-  });
-}
-
 export default class ModalLayer {
   static configure(options) {
     return class extends ModalLayer {
@@ -62,6 +53,7 @@ export default class ModalLayer {
     this.layer = layer;
     this.subscriptions = [];
     this.backdrop = null;
+    this.entry = null;
   }
 
   getOptions() {
@@ -127,7 +119,10 @@ export default class ModalLayer {
     if (options.lockScroll) {
       lock();
     }
-    restack();
+
+    // Stacked together with the dialogs.
+    this.entry = { zIndex: options.zIndex, root, getBackdrop: () => this.backdrop };
+    addToStack(this.entry);
   }
 
   remove() {
@@ -141,8 +136,8 @@ export default class ModalLayer {
     this.backdrop.remove();
     this.backdrop = null;
     stack.splice(stack.indexOf(this), 1);
-
-    style.zIndex = '';
+    removeFromStack(this.entry);
+    this.entry = null;
     if (options.center) {
       ['position', 'top', 'left', 'transform', 'maxWidth', 'maxHeight', 'overflow'].forEach(name => {
         style[name] = '';
@@ -152,6 +147,5 @@ export default class ModalLayer {
     if (!stack.length) {
       unlock();
     }
-    restack();
   }
 }

@@ -3,6 +3,7 @@ import Arbiter from '../Arbiter';
 import Dialog from '../Dialog';
 import HideOnEscape from '../layer/HideOnEscape';
 import Layer from '../layer/Layer';
+import ModalLayer from '../layer/ModalLayer';
 
 let dialog;
 
@@ -116,6 +117,7 @@ describe('events', () => {
     const lower = dialog.showFromModel(model);
     const upper = dialog.showFromModel(model);
     vi.advanceTimersByTime(0);
+    [lower, upper].forEach(m => m.el.removeAttribute('style'));
     expect(lower.el.isEqualNode(upper.el)).toBe(true);
 
     press('Escape');
@@ -181,13 +183,15 @@ describe('layer', () => {
   });
 
   it('keeps the dialog open when beforehide returns false', () => {
-    const modal = open({ controller: m => m.layer.subscribe('beforehide', () => false) });
+    let keep;
+    const modal = open({ controller: m => (keep = m.layer.subscribe('beforehide', () => false)) });
 
     modal.hide();
     vi.runAllTimers();
 
     expect(modal.layer.isShown()).toBe(true);
     expect(document.querySelector('.modal')).not.toBeNull();
+    keep.remove();
   });
 
   it('can be hidden before it is shown completely', () => {
@@ -289,6 +293,37 @@ describe('hiding', () => {
     vi.runAllTimers();
 
     expect(modal.layer.isShown()).toBe(true);
+  });
+});
+
+describe('stacking', () => {
+  const zIndex = element => Number(element.style.zIndex);
+
+  it('shares one stacking order with the modal layers', () => {
+    const lower = open();
+    const [lowerBackdrop] = document.querySelectorAll('.modal-backdrop');
+    const modal = new Layer('<div>Modal</div>', { behaviors: [ModalLayer] });
+    modal.show();
+    const modalBackdrop = modal.getRoot().previousElementSibling;
+
+    expect(zIndex(modalBackdrop)).toBeGreaterThan(zIndex(lower.el));
+    expect(zIndex(modal.getRoot())).toBeGreaterThan(zIndex(modalBackdrop));
+    expect(lowerBackdrop.style.display).toBe('none');
+
+    const upper = open();
+    const upperBackdrop = document.querySelectorAll('.modal-backdrop')[1];
+    expect(zIndex(upperBackdrop)).toBeGreaterThan(zIndex(modal.getRoot()));
+    expect(zIndex(upper.el)).toBeGreaterThan(zIndex(upperBackdrop));
+    expect(modalBackdrop.style.display).toBe('none');
+    expect(upperBackdrop.style.display).toBe('');
+
+    upper.hide();
+    vi.runAllTimers();
+    expect(modalBackdrop.style.display).toBe('');
+
+    modal.destroy();
+    expect(lowerBackdrop.style.display).toBe('');
+    expect(lower.el.style.zIndex).toBe('1050');
   });
 });
 

@@ -5,8 +5,8 @@ sidebar_label: Dialog
 ---
 
 `Dialog` shows modal dialogs with [modal-vanilla](https://github.com/KaneCohen/modal-vanilla), which uses the same
-markup and classes as Bootstrap modals. Dialogs can be stacked: each new one is shown above the previous one and
-<kbd>Esc</kbd> closes only the topmost.
+markup and classes as Bootstrap modals. Dialogs can be stacked: each new one is shown above the previous one, and
+above a [`ModalLayer`](layer.md#modallayer) shown before it, and <kbd>Esc</kbd> closes only the topmost.
 
 The server usually opens dialogs with `DialogResponse`, see
 [Dialogs API](https://richarddobron.github.io/bigpipe-php/docs/dialogs). You can also open them from JavaScript.

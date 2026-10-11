@@ -30,6 +30,30 @@ function place(position, alignment, rect, width, height, offsetX, offsetY) {
   return { top, left };
 }
 
+// The z-index of the outermost positioned ancestor of the element below `relative` that has one,
+// e.g. of the modal or dialog the element is in, or null.
+function getOverlayZIndex(element, relative) {
+  const ancestors = [];
+  let node = element;
+  for (; node && node !== relative; node = node.parentElement) {
+    ancestors.unshift(node);
+  }
+
+  if (node !== relative) {
+    return null;
+  }
+
+  for (const ancestor of ancestors) {
+    const style = window.getComputedStyle(ancestor);
+    const zIndex = parseInt(style.zIndex, 10);
+    if (style.position !== 'static' && !Number.isNaN(zIndex)) {
+      return zIndex;
+    }
+  }
+
+  return null;
+}
+
 function fits(position, { top, left }, width, height, viewport) {
   if (position === 'above' || position === 'below') {
     return top >= 0 && top + height <= viewport.height;
@@ -132,6 +156,10 @@ export default class ContextualLayer extends Layer {
     root.style.position = 'absolute';
     root.style.top = `${top + window.scrollY}px`;
     root.style.left = `${left + window.scrollX}px`;
+
+    // Above the modal or dialog of the context, which it is not inside of.
+    const zIndex = getOverlayZIndex(context, this.getInsertParent());
+    root.style.zIndex = zIndex === null ? '' : String(zIndex + 1);
 
     this.actualPosition = position;
     this.inform('reposition', { position, alignment: this.alignment });

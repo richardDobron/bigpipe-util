@@ -116,7 +116,8 @@ calls `finishHide()` when the fade is over.
 ## ModalLayer
 
 `ModalLayer` makes a layer modal: it puts a backdrop before the root, locks the scrolling of the page, centers the
-root and stacks modals so that the last one shown is on top, with the only visible backdrop. Combine it with
+root and stacks modals so that the last one shown is on top, with the only visible backdrop. Modals and
+[dialogs](dialog.md) share one stacking order, so a modal opened from a dialog is above it, and the other way round. Combine it with
 `HideOnBlur` to hide on a click on the backdrop and `HideOnEscape` for <kbd>Esc</kbd>.
 
 ```javascript
@@ -132,7 +133,8 @@ It styles the backdrop and centers the root with inline styles, so it works with
 const Modal = ModalLayer.configure({
   backdropClassName: 'fixed inset-0 bg-black/50', // no default look is applied when set
   backdropStyle: { backdropFilter: 'blur(2px)' },
-  zIndex: 50,                                     // the first modal, the next ones are 10 above
+  zIndex: 50,                                     // of the backdrop, the root is 1 above; a modal shown
+                                                  // over another one is at least 10 above it
   center: false,                                  // position the root with your CSS
   lockScroll: false
 });
@@ -165,7 +167,8 @@ menu.setPosition('right');
 ```
 
 It is positioned again while it is shown when the window is resized or scrolled and informs `reposition` with the
-side and alignment. A layer whose context is not on the page is not shown.
+side and alignment. A layer whose context is not on the page is not shown. When the context is inside of a modal or a
+dialog (a positioned ancestor with a `z-index`), the layer gets a `z-index` 1 above it.
 
 ## Dialogs
 

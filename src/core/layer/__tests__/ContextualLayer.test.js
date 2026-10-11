@@ -125,6 +125,20 @@ describe('ContextualLayer', () => {
     expect(placed()[0]).toBe('400px');
   });
 
+  it('is above the modal or dialog its context is in', () => {
+    document.body.innerHTML = '<div id="modal" style="position: fixed; z-index: 1050"></div>';
+    document.getElementById('modal').appendChild(button);
+    create().show();
+
+    expect(layer.getRoot().style.zIndex).toBe('1051');
+  });
+
+  it('sets no z-index for a context outside of a modal', () => {
+    create().show();
+
+    expect(layer.getRoot().style.zIndex).toBe('');
+  });
+
   it('informs reposition', () => {
     const repositioned = vi.fn();
     create();
