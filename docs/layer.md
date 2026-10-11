@@ -104,7 +104,7 @@ new Layer(menuElement, { behaviors: [HideOnBlur, HideOnEscape] }).show();
 | Behavior         | Does                                                                                                        |
 |------------------|-------------------------------------------------------------------------------------------------------------|
 | `AutoFocus`      | Moves the focus into the layer when it is shown: to the element with `autofocus`, else the first control (not a link), else the root. A control inside that already has the focus keeps it. |
-| `TabIsolation`   | Keeps <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> inside of the topmost layer.                        |
+| `TabIsolation`   | Keeps <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> inside of the layer, also under layers that don't, when it is the last one shown with `TabIsolation`. In a layer opened from inside of it, e.g. a menu in the body, <kbd>Tab</kbd> moves through that layer and from its ends back to the element that opened it. |
 | `RefocusOnHide`  | Gives the focus back to the `causalElement`, or else the element that had it before the layer was shown, when the focus was in the layer. When that element is hidden by now, the focus goes to the closest visible element instead: the opener of the hidden layer it is in, or an ancestor, which gets `tabindex="-1"` to take the focus. |
 
 `focusWithinLayer(element)` from `core/layer/focusWithinLayer` is the focus logic of `AutoFocus`, and `getTabbable(element)`

@@ -253,6 +253,24 @@ describe('focus', () => {
     expect(document.activeElement.className).toBe('close');
   });
 
+  it('keeps Tab inside of the dialog under a menu opened from it', () => {
+    const modal = open();
+    const menu = new Layer('<div><button id="item">Item</button></div>', {
+      causalElement: document.getElementById('ok')
+    });
+    menu.show();
+    vi.runAllTimers();
+
+    const opener = document.getElementById('opener');
+    opener.focus();
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    opener.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(modal.el.contains(document.activeElement)).toBe(true);
+    menu.destroy();
+  });
+
   it('can be turned off', () => {
     const opener = document.getElementById('opener');
     opener.focus();

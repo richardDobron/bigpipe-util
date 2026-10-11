@@ -154,17 +154,75 @@ describe('TabIsolation', () => {
     expect(document.activeElement.id).toBe('a');
   });
 
-  it('does not trap layers below the topmost', () => {
+  it('keeps Tab in the topmost trapping layer only', () => {
     const lower = create('<div><button id="low">Low</button></div>', [TabIsolation]);
     const upper = create(html, [TabIsolation]);
     lower.show();
     upper.show();
     vi.runAllTimers();
 
-    document.getElementById('a').focus();
+    document.getElementById('b').focus();
     tab();
-
     expect(document.activeElement.id).toBe('a');
+
+    document.getElementById('low').focus();
+    tab();
+    expect(document.activeElement.id).toBe('a');
+
+    upper.hide();
+    document.getElementById('low').focus();
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement.id).toBe('low');
+  });
+
+  it('keeps Tab in a trapping layer under a layer that does not trap', () => {
+    const dialog = create(html, [TabIsolation]);
+    const tooltip = create('<div><button id="tip">Tip</button></div>', []);
+    dialog.show();
+    tooltip.show();
+    vi.runAllTimers();
+
+    document.getElementById('b').focus();
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement.id).toBe('a');
+
+    document.getElementById('opener').focus();
+    tab();
+    expect(document.activeElement.id).toBe('a');
+
+    document.getElementById('tip').focus();
+    tab();
+    expect(document.activeElement.id).toBe('a');
+  });
+
+  it('moves Tab through the layers opened from inside of it and back', () => {
+    const dialog = create(html, [TabIsolation]);
+    const menu = create('<div><button id="m1">1</button><button id="m2">2</button></div>', []);
+    const submenu = create('<div><button id="s1">1</button></div>', []);
+    dialog.show();
+    menu.setCausalElement(document.getElementById('b')).show();
+    submenu.setCausalElement(document.getElementById('m2')).show();
+    vi.runAllTimers();
+
+    document.getElementById('m1').focus();
+    expect(tab().defaultPrevented).toBe(false);
+
+    document.getElementById('m2').focus();
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement.id).toBe('b');
+
+    document.getElementById('m1').focus();
+    tab(true);
+    expect(document.activeElement.id).toBe('b');
+
+    document.getElementById('s1').focus();
+    tab();
+    expect(document.activeElement.id).toBe('m2');
+
+    menu.getRoot().setAttribute('tabindex', '-1');
+    menu.getRoot().focus();
+    tab();
+    expect(document.activeElement.id).toBe('m1');
   });
 });
 
