@@ -95,7 +95,8 @@ function onPreResponse(request, uri, response) {
 
   clearCanvas();
   new Arbiter().clearState(BIGPIPE_EVENT.DISPLAYED).clearState(BIGPIPE_EVENT.LOADED);
-  new BigPipe().resetTti();
+  // The pagelets of this response are the next page.
+  new BigPipe().startPage(request.getRequestNumber());
 
   return true;
 }

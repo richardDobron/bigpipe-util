@@ -163,6 +163,29 @@ describe('Quickling', () => {
     expect(informed).not.toHaveBeenCalled();
   });
 
+  it('informs the events of the next page, but not for a lazy pagelet of the page', async () => {
+    const { default: Arbiter } = await import('../core/Arbiter');
+    const { default: AsyncRequest } = await import('../async/AsyncRequest');
+    const loaded = vi.fn();
+    new Arbiter().subscribe('all_pagelets_loaded', loaded);
+    Quickling.init(canvas, { version: 'v1' });
+    PageTransitions.go('/feed');
+
+    requests[0].respond(200, feedResponse());
+    expect(loaded).toHaveBeenCalledOnce();
+
+    document.getElementById('pagelet_feed').innerHTML = '<div id="pagelet_lazy"></div>';
+    new AsyncRequest('/lazy').setAllowCrossPageTransition(true).send();
+    requests[1].respond(
+      200,
+      asyncResponse({
+        pagelets: [{ id: 'lazy', css: [], js: [], domops: [], jsmods: {}, is_last: true }]
+      })
+    );
+    expect(new BigPipe().pagelets.get('lazy').isComplete()).toBe(true);
+    expect(loaded).toHaveBeenCalledOnce();
+  });
+
   it('loads a page of another version in full', () => {
     Quickling.init(canvas, { version: 'v1' });
     PageTransitions.go('/feed');

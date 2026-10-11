@@ -11,12 +11,19 @@ export { BIGPIPE_EVENT, BIGPIPE_PHASE, PAGELET_EVENT, PAGELET_PHASE };
 
 let instance = null;
 
+// The pagelets of the page are the group `null`, unless a page transition starts another page. The
+// pagelets of a response, e.g. a lazy pagelet, are a group of their own: they load their JS once all
+// of them are displayed, and do not count for the events of the page.
+const PAGE = null;
+
 export default class BigPipe {
   pagelets = new Map();
   phase = BIGPIPE_PHASE.WAITING;
   ttiPhase = null;
   ttiReached = false;
   lastArrived = false;
+  pageGroup = PAGE;
+  groups = new Map();
 
   constructor() {
     if (instance) {
@@ -39,16 +46,36 @@ export default class BigPipe {
 
   /**
    * Starts a pagelet. A pagelet that fails to arrive is reported and does not stop the page.
+   * `group` tells the response the pagelet came with, see AsyncResponse; the pagelets of the page
+   * have none.
    */
-  onPageletArrive(pageletData) {
+  onPageletArrive(pageletData, group = PAGE) {
     try {
-      this.arrive(pageletData);
+      this.arrive(pageletData, group);
     } catch (error) {
       reportError(error);
     }
   }
 
-  arrive(pageletData) {
+  /**
+   * Starts the next page of a page transition: the pagelets of the response `group` are the page.
+   */
+  startPage(group) {
+    this.pageGroup = group;
+    this.groups.delete(group);
+    this.setPhase(BIGPIPE_PHASE.WAITING);
+    this.resetTti();
+  }
+
+  isPage(group) {
+    return group === this.pageGroup;
+  }
+
+  getGroupPagelets(group) {
+    return Array.from(this.pagelets.values()).filter(pagelet => pagelet.group === group);
+  }
+
+  arrive(pageletData, group = PAGE) {
     if (pageletData.resource_map) {
       Bootloader.setResourceMap(pageletData.resource_map);
     }
@@ -62,8 +89,12 @@ export default class BigPipe {
     }
 
     if (pageletData.is_last) {
-      this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
-      this.lastArrived = true;
+      if (this.isPage(group)) {
+        this.setPhase(BIGPIPE_PHASE.READY_FOR_JS);
+        this.lastArrived = true;
+      } else {
+        this.groups.set(group, { lastArrived: true, jsStarted: false });
+      }
     }
 
     const previous = this.pagelets.get(pageletData.id);
@@ -72,6 +103,7 @@ export default class BigPipe {
     }
 
     const pagelet = new Pagelet(pageletData, this);
+    pagelet.group = group;
     this.registerPagelet(pagelet);
     pagelet.start();
 
@@ -141,25 +173,25 @@ export default class BigPipe {
     this.pagelets.set(pagelet.id, pagelet);
   }
 
-  areAllPageletsDisplayed() {
-    if (this.pagelets.size === 0) {
+  areAllPageletsDisplayed(group = this.pageGroup) {
+    const pagelets = this.getGroupPagelets(group);
+
+    if (pagelets.length === 0) {
       return false;
     }
 
-    return Array.from(this.pagelets.values()).every(
-      pagelet => pagelet.phase >= PAGELET_PHASE.DISPLAY_END
-    );
+    return pagelets.every(pagelet => pagelet.phase >= PAGELET_PHASE.DISPLAY_END);
   }
 
   /**
-   * Whether the pagelet may be displayed: after the pagelets of a lower `phase` that arrived, and
-   * after its `display_dependency`, the pagelets it has to be displayed after.
+   * Whether the pagelet may be displayed: after the pagelets of a lower `phase` that arrived with
+   * it, and after its `display_dependency`, the pagelets it has to be displayed after.
    */
   canDisplay(pagelet) {
     const isDisplayed = other => other.phase >= PAGELET_PHASE.DISPLAY_END;
 
     return (
-      Array.from(this.pagelets.values()).every(
+      this.getGroupPagelets(pagelet.group).every(
         other => other.displayPhase >= pagelet.displayPhase || isDisplayed(other)
       ) &&
       pagelet.displayDependency.every(id => {
@@ -173,13 +205,33 @@ export default class BigPipe {
     this.pagelets.forEach(pagelet => pagelet.display());
   }
 
-  pageletDisplayed() {
+  pageletDisplayed(pagelet) {
     this.displayWaitingPagelets();
     this.checkTti();
+
+    if (pagelet && !this.isPage(pagelet.group)) {
+      this.loadGroupJSResources(pagelet.group);
+      return;
+    }
 
     if (this.phase === BIGPIPE_PHASE.READY_FOR_JS && this.areAllPageletsDisplayed()) {
       this.loadJSResources();
     }
+  }
+
+  /**
+   * Loads the JS files of the pagelets of a response once its last pagelet arrived and all of
+   * them are displayed.
+   */
+  loadGroupJSResources(group) {
+    const state = this.groups.get(group);
+
+    if (!state || state.jsStarted || !this.areAllPageletsDisplayed(group)) {
+      return;
+    }
+
+    state.jsStarted = true;
+    this.getGroupPagelets(group).forEach(pagelet => pagelet.startJs());
   }
 
   /**
@@ -191,7 +243,7 @@ export default class BigPipe {
       return;
     }
 
-    const pagelets = Array.from(this.pagelets.values());
+    const pagelets = this.getGroupPagelets(this.pageGroup);
     const complete =
       this.lastArrived || pagelets.some(pagelet => pagelet.displayPhase > this.ttiPhase);
     const isEarly = pagelet => pagelet.displayPhase <= this.ttiPhase;
@@ -218,21 +270,26 @@ export default class BigPipe {
     new Arbiter().clearState(BIGPIPE_EVENT.TTI);
   }
 
-  pageletFinished() {
-    if (this.phase !== BIGPIPE_PHASE.LOADING_JS) {
+  pageletFinished(pagelet) {
+    const group = pagelet ? pagelet.group : this.pageGroup;
+    const pagelets = this.getGroupPagelets(group);
+
+    if (!pagelets.every(other => other.isComplete())) {
       return;
     }
 
-    if (!Array.from(this.pagelets.values()).every(pagelet => pagelet.isComplete())) {
+    if (!this.isPage(group)) {
+      this.groups.delete(group);
+    } else if (this.phase === BIGPIPE_PHASE.LOADING_JS) {
+      this.setPhase(BIGPIPE_PHASE.COMPLETE);
+      this.inform(BIGPIPE_EVENT.LOADED);
+    } else {
       return;
     }
-
-    this.setPhase(BIGPIPE_PHASE.COMPLETE);
-    this.inform(BIGPIPE_EVENT.LOADED);
 
     onAfterLoad(() => {
-      this.pagelets.forEach(pagelet => {
-        pagelet.processAfterLoadJsMods();
+      pagelets.forEach(other => {
+        other.processAfterLoadJsMods();
       });
     });
   }
@@ -245,7 +302,7 @@ export default class BigPipe {
     this.inform(BIGPIPE_EVENT.DISPLAYED);
     this.setPhase(BIGPIPE_PHASE.LOADING_JS);
 
-    this.pagelets.forEach(pagelet => {
+    this.getGroupPagelets(this.pageGroup).forEach(pagelet => {
       pagelet.startJs();
     });
 

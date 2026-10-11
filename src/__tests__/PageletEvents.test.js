@@ -94,3 +94,74 @@ describe('page events', () => {
     expect(late).toHaveBeenCalledWith(events.all_pagelets_loaded);
   });
 });
+
+describe('pagelets of a response', () => {
+  const pagelet = (id, fields = {}) => ({
+    id,
+    css: [],
+    js: [],
+    domops: [['setContent', `#pagelet_${id}`, false, { __html: id }]],
+    jsmods: {},
+    ...fields
+  });
+
+  it('do not start the JS of the page or inform its events', () => {
+    document.body.innerHTML = '<div id="pagelet_feed"></div><div id="pagelet_lazy"></div>';
+    const informed = vi.fn();
+    const arbiter = new Arbiter();
+    arbiter.subscribe(BIGPIPE_EVENT.DISPLAYED, informed);
+    arbiter.subscribe(BIGPIPE_EVENT.LOADED, informed);
+
+    bigPipe.onPageletArrive(pagelet('feed', { js: ['/feed.js'] }));
+    bigPipe.onPageletArrive(pagelet('lazy', { js: ['/lazy.js'], is_last: true }), 1);
+
+    expect(document.getElementById('pagelet_lazy').innerHTML).toBe('lazy');
+    expect(document.querySelector('script[src="/lazy.js"]')).not.toBeNull();
+    expect(document.querySelector('script[src="/feed.js"]')).toBeNull();
+    expect(informed).not.toHaveBeenCalled();
+
+    bigPipe.fileLoaded(bigPipe.resolveResourceName('/lazy.js'));
+    expect(bigPipe.pagelets.get('lazy').isComplete()).toBe(true);
+    expect(informed).not.toHaveBeenCalled();
+  });
+
+  it('do not inform the events of a page that has loaded again', () => {
+    document.body.innerHTML = '<div id="pagelet_feed"></div><div id="pagelet_lazy"></div>';
+    bigPipe.onPageletArrive(pagelet('feed', { is_last: true }));
+    const informed = vi.fn();
+    const arbiter = new Arbiter();
+    arbiter.subscribe(BIGPIPE_EVENT.DISPLAYED, informed);
+    arbiter.subscribe(BIGPIPE_EVENT.LOADED, informed);
+    informed.mockClear();
+
+    bigPipe.onPageletArrive(pagelet('lazy', { is_last: true }), 1);
+
+    expect(bigPipe.pagelets.get('lazy').isComplete()).toBe(true);
+    expect(informed).not.toHaveBeenCalled();
+  });
+
+  it('are displayed in the order of their phases, apart from the pagelets of the page', () => {
+    document.body.innerHTML =
+      '<div id="pagelet_slow"></div><div id="pagelet_first"></div><div id="pagelet_second"></div>';
+
+    bigPipe.onPageletArrive(pagelet('slow', { phase: 0, css: ['/slow.css'] }));
+    bigPipe.onPageletArrive(pagelet('first', { phase: 0, css: ['/first.css'] }), 1);
+    bigPipe.onPageletArrive(pagelet('second', { phase: 1, is_last: true }), 1);
+    expect(document.getElementById('pagelet_second').innerHTML).toBe('');
+
+    bigPipe.fileLoaded(bigPipe.resolveResourceName('/first.css'));
+    expect(document.getElementById('pagelet_first').innerHTML).toBe('first');
+    expect(document.getElementById('pagelet_second').innerHTML).toBe('second');
+    expect(document.getElementById('pagelet_slow').innerHTML).toBe('');
+  });
+
+  it('are the page once a page transition starts it', () => {
+    const informed = vi.fn();
+    new Arbiter().subscribe(BIGPIPE_EVENT.LOADED, informed);
+
+    bigPipe.startPage(7);
+    bigPipe.onPageletArrive(pagelet('feed', { is_last: true }), 7);
+
+    expect(informed).toHaveBeenCalledOnce();
+  });
+});

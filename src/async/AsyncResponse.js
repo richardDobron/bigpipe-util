@@ -7,7 +7,11 @@ const _AsyncDOM = new AsyncDOM();
 const _ServerJS = new ServerJS();
 
 export default class AsyncResponse {
-  handle(response, element) {
+  /**
+   * Applies a response. `group` tells the request it answers, e.g. the number of an AsyncRequest:
+   * the pagelets of a response load their JS together, see BigPipe.
+   */
+  handle(response, element, group = Symbol('response')) {
     if (response !== null && typeof response === 'object') {
       const { domops, pagelets, jsmods } = response;
       const bigPipe = new BigPipe();
@@ -26,7 +30,7 @@ export default class AsyncResponse {
       }
 
       if (pagelets) {
-        pagelets.forEach(pagelet => bigPipe.onPageletArrive(pagelet));
+        pagelets.forEach(pagelet => bigPipe.onPageletArrive(pagelet, group));
       }
 
       if (jsmods) {

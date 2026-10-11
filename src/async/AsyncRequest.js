@@ -228,6 +228,7 @@ export default class AsyncRequest {
     this.abandoned = false;
     this.allowCrossPageTransition = false;
     this.cancelRefresh = null;
+    this.requestNumber = null;
 
     if (uri !== undefined) {
       this.setURI(uri);
@@ -273,6 +274,14 @@ export default class AsyncRequest {
   }
   getURI() {
     return this.uri;
+  }
+
+  /**
+   * The number of the request, sent as `__req`, once it is sent. It also tells the pagelets of its
+   * response apart from the pagelets of other responses, see BigPipe.startPage().
+   */
+  getRequestNumber() {
+    return this.requestNumber;
   }
 
   setInitialHandler(fn) {
@@ -492,6 +501,7 @@ export default class AsyncRequest {
     const stream = Boolean(this.getOption('stream'));
     const streamParam = stream ? { __stream: 1 } : {};
     const requestNumber = requests;
+    this.requestNumber = requestNumber;
     let csrf = null;
 
     // The URL and the body of an attempt, with the CSRF token the server defines at that time.
@@ -548,7 +558,7 @@ export default class AsyncRequest {
       }
 
       // DOM operations and modules of an error response run too, e.g. to mark an invalid field.
-      new AsyncResponse().handle(response, self.relative);
+      new AsyncResponse().handle(response, self.relative, requestNumber);
 
       // The server rejected the CSRF token and sent a new one: send the request again, once.
       if (response.csrf_refresh && !tokenRefreshed && parts === 1) {

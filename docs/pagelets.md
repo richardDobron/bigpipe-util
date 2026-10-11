@@ -91,7 +91,9 @@ show in the performance panel of the browser. The names are exported as `PAGELET
 The page informs its own events, exported as `BIGPIPE_EVENT`, with the time `ts`: `BigPipe/init` when `BigPipe` is
 created, `tti_bigpipe` when the [time to interactive](#time-to-interactive) is reached, `all_pagelets_displayed`
 when the last pagelet has arrived and all are displayed, and `all_pagelets_loaded` when all have run their `jsmods`. They are informed as states, so a module that subscribes later is called right
-away, and they are marked with `performance.mark()` as well. A response with pagelets informs them again.
+away, and they are marked with `performance.mark()` as well. The pagelets of a response, e.g. a lazy pagelet, do
+not count for them: they load their JS on their own, once the last of them has arrived and all are displayed. The
+pagelets of a [page transition](page_transitions.md) are the next page, which informs them again.
 
 ```javascript
 new Arbiter().subscribe('pagelet_event', ({ event, id, ts }) => {
