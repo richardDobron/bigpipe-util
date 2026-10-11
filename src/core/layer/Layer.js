@@ -58,16 +58,18 @@ function createRoot(html) {
   return template.content.firstElementChild;
 }
 
+// Whether the target is inside of root, or of a layer opened from inside of it, at any depth.
 function containsIncludingLayers(root, target) {
-  if (root.contains(target)) {
-    return true;
+  const seen = new Set();
+
+  for (let node = target; node && !seen.has(node); node = Layer.getCausalElementOf(node)) {
+    if (root.contains(node)) {
+      return true;
+    }
+    seen.add(node);
   }
 
-  return layers.some(layer => {
-    const causal = layer.getCausalElement();
-    const element = layer.getRoot();
-    return element && causal && root.contains(causal) && element.contains(target);
-  });
+  return false;
 }
 
 function onKeyDown(event) {
@@ -139,6 +141,40 @@ export default class Layer {
 
   static getLayerOf(element) {
     return DataStore.get(element, 'layer');
+  }
+
+  /**
+   * The innermost layer whose root contains the element, or null.
+   */
+  static getLayerContaining(element) {
+    for (let node = element; node; node = node.parentNode) {
+      const layer = DataStore.get(node, 'layer');
+      if (layer instanceof Layer) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The causal element of the innermost layer that contains the element and has one, or null.
+   */
+  static getCausalElementOf(element) {
+    let layer = Layer.getLayerContaining(element);
+
+    while (layer) {
+      const causal = layer.getCausalElement();
+      if (causal) {
+        return causal;
+      }
+      layer = Layer.getLayerContaining(layer.getRoot().parentNode);
+    }
+
+    return null;
+  }
+
+  static containsIncludingLayers(root, target) {
+    return containsIncludingLayers(root, target);
   }
 
   static informBlur(target) {

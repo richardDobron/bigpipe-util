@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ContextualLayer from '../ContextualLayer';
+import Layer from '../Layer';
 
 let layer;
 let button;
@@ -187,5 +188,69 @@ describe('ContextualLayer', () => {
     layer.show();
 
     expect(repositioned).toHaveBeenCalledWith({ position: 'below', alignment: 'start' }, 'reposition');
+  });
+});
+
+describe('nested ContextualLayers', () => {
+  let submenu;
+  let subsubmenu;
+
+  beforeEach(() => {
+    create();
+    layer.getRoot().innerHTML = '<button id="more">More</button>';
+    submenu = new ContextualLayer('<div><button id="even-more">Even more</button></div>', {
+      context: () => document.getElementById('more')
+    });
+    subsubmenu = new ContextualLayer('<div><button id="deep">Deep</button></div>', {
+      context: () => document.getElementById('even-more')
+    });
+    layer.show();
+    submenu.show();
+    subsubmenu.show();
+  });
+
+  afterEach(() => {
+    subsubmenu.destroy();
+    submenu.destroy();
+  });
+
+  it('have their context as the causal element', () => {
+    expect(submenu.getCausalElement().id).toBe('more');
+
+    const trigger = document.createElement('button');
+    expect(
+      new ContextualLayer('<div></div>', {
+        context: button,
+        causalElement: trigger
+      }).getCausalElement()
+    ).toBe(trigger);
+  });
+
+  it('are part of the layers they are opened from, at any depth', () => {
+    const deep = document.getElementById('deep');
+
+    expect(Layer.containsIncludingLayers(layer.getRoot(), deep)).toBe(true);
+    expect(Layer.containsIncludingLayers(submenu.getRoot(), deep)).toBe(true);
+    expect(
+      Layer.containsIncludingLayers(subsubmenu.getRoot(), document.getElementById('more'))
+    ).toBe(false);
+    expect(Layer.containsIncludingLayers(layer.getRoot(), document.body)).toBe(false);
+  });
+
+  it('hide with the layer they are opened from', () => {
+    layer.hide();
+
+    expect(submenu.isShown()).toBe(false);
+    expect(subsubmenu.isShown()).toBe(false);
+  });
+
+  it('stop following the parent once hidden', () => {
+    submenu.hide();
+    subsubmenu.hide();
+    subsubmenu.setContext(button).show();
+
+    layer.hide();
+
+    expect(subsubmenu.isShown()).toBe(true);
   });
 });

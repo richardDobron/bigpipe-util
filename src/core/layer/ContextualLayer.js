@@ -113,23 +113,51 @@ export default class ContextualLayer extends Layer {
     this.keepInViewport = config.keepInViewport !== false;
     this.actualPosition = this.position;
     this.reposition = () => window.requestAnimationFrame(() => this.updatePosition());
+    this.parentSubscription = null;
 
     this.subscribe('show', () => {
       window.addEventListener('resize', this.reposition);
       window.addEventListener('scroll', this.reposition, true);
+      this.followParent();
     });
     this.subscribe('hide', () => {
       window.removeEventListener('resize', this.reposition);
       window.removeEventListener('scroll', this.reposition, true);
+      this.unfollowParent();
     });
+  }
+
+  // A layer opened from inside of another one, e.g. a submenu, hides with it.
+  followParent() {
+    this.unfollowParent();
+
+    const context = this.getContext();
+    const parent = context && Layer.getLayerContaining(context);
+    if (parent && parent !== this) {
+      this.parentSubscription = parent.subscribe('hide', () => this.hide());
+    }
+  }
+
+  unfollowParent() {
+    if (this.parentSubscription) {
+      this.parentSubscription.remove();
+      this.parentSubscription = null;
+    }
   }
 
   getContext() {
     return typeof this.context === 'function' ? this.context() : this.context;
   }
 
+  getCausalElement() {
+    return super.getCausalElement() || this.getContext();
+  }
+
   setContext(context) {
     this.context = context;
+    if (this.shown) {
+      this.followParent();
+    }
     return this.refresh();
   }
 

@@ -47,10 +47,14 @@ the event is about, where it says so.
 | `blur`       | The user clicked outside of the layer, with `{ target }`. Returning `false` stops it from reaching the layers below. |
 
 `Layer.subscribe(name, callback)` listens to `show`, `hide` and `destroy` of all layers, with the layer as the data.
-`Layer.getTopmostLayer()` is the layer that was shown last, and `Layer.getLayerOf(element)` the layer of a root.
+`Layer.getTopmostLayer()` is the layer that was shown last, `Layer.getLayerOf(element)` the layer of a root,
+`Layer.getLayerContaining(element)` the innermost layer an element is in, and
+`Layer.containsIncludingLayers(root, element)` tells whether an element is inside of `root` or of a layer opened from
+inside of it, at any depth.
 
 A click counts as a click outside only when the mouse was pressed and released on the same element outside of the
-layer and of the layers opened from inside it (their `causalElement` is inside it).
+layer and of the layers opened from inside it (their `causalElement`, or the context of a `ContextualLayer`, is inside
+it), at any depth.
 
 ## Behaviors
 
@@ -168,7 +172,8 @@ menu.setPosition('right');
 ```
 
 It is positioned again while it is shown when the window is resized or scrolled and informs `reposition` with the
-side and alignment. A layer whose context is not on the page or not displayed (`display: none`) is not shown. When the context is inside of a modal or a
+side and alignment. A layer whose context is inside of another layer, e.g. a submenu, is hidden with that layer, and its
+context is its `causalElement` unless one is set. A layer whose context is not on the page or not displayed (`display: none`) is not shown. When the context is inside of a modal or a
 dialog (a positioned ancestor with a `z-index`), the layer gets a `z-index` 1 above it.
 
 ## Dialogs
