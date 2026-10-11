@@ -103,6 +103,34 @@ $response->bigPipe()->define('SiteData', [
 ]);
 ```
 
+## Modules the server chooses
+
+A module can stand for another one that the server chooses, e.g. the variant of a feature flag or an A/B test for the
+user, or `null` to turn a feature off. The define is `{"__rc": module}`:
+
+```json
+{
+  "define": [["Editor", {"__rc": "EditorNext"}], ["Chat", {"__rc": null}]]
+}
+```
+
+The JavaScript does not know which one it gets: `requireModule('Editor')`, `requireLazy(['Editor'], ...)`, a call of
+`Editor` and a `{"__m": "Editor"}` marker get `EditorNext`. When `EditorNext` is [bootloadable](bootloader.md), only its
+resources are loaded, so the page never downloads the variants it does not use. A module turned off is `null`: its
+calls do nothing, and `ifRequired('Chat', ...)` calls back the function for a missing module.
+
+```javascript
+requireLazy(['Editor'], Editor => Editor.open(textarea));
+ifRequired('Chat', Chat => Chat.mount());
+```
+
+In PHP:
+
+```php
+$response->bigPipe()->defineCond('Editor', $user->isBeta() ? 'EditorNext' : 'EditorClassic');
+$response->bigPipe()->defineCond('Chat', $chatEnabled ? 'ChatDock' : null);
+```
+
 ## Errors
 
 Every define, instance and call runs on its own: when one fails, e.g. a module that doesn't exist or a method that

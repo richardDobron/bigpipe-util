@@ -114,6 +114,9 @@ import requireCond from 'bigpipe-util/dist/core/requireCond';
 const Chart = requireCond(window.matchMedia('(max-width: 600px)').matches, 'SparkLine', 'FullChart');
 ```
 
+When the server decides, e.g. by a feature flag of the user, it defines the module as the one it chose, see
+[modules the server chooses](server_js.md#modules-the-server-chooses): only the resources of that one are loaded.
+
 ## Display resources
 
 A pagelet waits for its `css` before it is displayed, and for its `js` before it runs its `onload` jsmods. With a

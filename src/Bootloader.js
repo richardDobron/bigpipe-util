@@ -1,6 +1,6 @@
 import getCSPNonce from './core/getCSPNonce';
 import reportError from './core/reportError';
-import requireModule from './core/requireModule';
+import requireModule, { resolveCondition } from './core/requireModule';
 import { requestIdleCallbackAcrossTransitions } from './core/TimerStorage';
 import warning from './core/warning';
 
@@ -268,7 +268,7 @@ const Bootloader = {
    */
   preloadModules(modules) {
     modules.forEach(module => {
-      (bootloadable.get(module) || []).forEach(name => preload(name));
+      (bootloadable.get(resolveCondition(module)) || []).forEach(name => preload(name));
     });
   },
 
@@ -277,7 +277,7 @@ const Bootloader = {
   },
 
   isBootloadable(module) {
-    return bootloadable.has(module);
+    return bootloadable.has(resolveCondition(module));
   },
 
   /**
@@ -285,7 +285,10 @@ const Bootloader = {
    * not bootloadable are required right away.
    */
   loadModules(modules, callback, onError) {
-    const names = modules.reduce((all, module) => all.concat(bootloadable.get(module) || []), []);
+    const names = modules.reduce(
+      (all, module) => all.concat(bootloadable.get(resolveCondition(module)) || []),
+      []
+    );
 
     Bootloader.loadResources(names, () => {
       let exports;
@@ -305,7 +308,7 @@ const Bootloader = {
   },
 
   isLoaded(module) {
-    return (bootloadable.get(module) || []).every(name => {
+    return (bootloadable.get(resolveCondition(module)) || []).every(name => {
       const { type, src } = getResource(name);
       const url = resolveURL(src);
       const entry = requests.get(url);

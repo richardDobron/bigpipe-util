@@ -6,6 +6,8 @@ const registered = new Map();
 const builtins = new Map();
 const instances = new Map();
 const defined = new Map();
+// The modules the server chose an implementation for, see defineCondition().
+const conditions = new Map();
 let loader = null;
 
 export function setModuleLoader(fn) {
@@ -33,7 +35,34 @@ export function defineInstance(id, create) {
 }
 
 export function defineModule(name, create) {
+  conditions.delete(name);
   defined.set(name, lazy(create));
+}
+
+/**
+ * Makes `name` the module the server chose for it, e.g. the variant of a feature flag: requiring
+ * `name` requires `target`. A null target turns the module off: it is null.
+ */
+export function defineCondition(name, target) {
+  defined.delete(name);
+  conditions.set(name, target);
+}
+
+/**
+ * The module `name` stands for: the module the server chose for it, or `name` itself. Null when
+ * the server turned it off.
+ */
+export function resolveCondition(name) {
+  const seen = new Set();
+  let current = name;
+
+  while (current !== null && conditions.has(current)) {
+    invariant(!seen.has(current), 'BigPipe: module "%s" stands for itself.', name);
+    seen.add(current);
+    current = conditions.get(current);
+  }
+
+  return current;
 }
 
 /**
@@ -50,7 +79,7 @@ export function canResolveAppModules() {
 }
 
 export function isModuleDefined(name) {
-  return registered.has(name) || defined.has(name);
+  return registered.has(name) || defined.has(name) || conditions.has(name);
 }
 
 function resolve(entry, kind, name) {
@@ -69,6 +98,11 @@ function resolve(entry, kind, name) {
 }
 
 export default function requireModule(name) {
+  if (conditions.has(name)) {
+    const target = resolveCondition(name);
+    return target === null ? null : requireModule(target);
+  }
+
   if (registered.has(name)) {
     return registered.get(name);
   }

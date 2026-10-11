@@ -12,7 +12,8 @@ export default function ifRequired(name, whenLoaded, whenMissing) {
     module = undefined;
   }
 
-  if (module === undefined) {
+  // A module the server turned off is null, see defineCondition().
+  if (module === undefined || module === null) {
     return whenMissing ? whenMissing() : undefined;
   }
 

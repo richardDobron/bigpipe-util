@@ -2,7 +2,12 @@ import Bootloader from './Bootloader';
 import invariant from './core/invariant';
 import replaceTransportMarkers from './core/replaceTransportMarkers';
 import reportError from './core/reportError';
-import requireModule, { defineInstance, defineModule } from './core/requireModule';
+import requireModule, {
+  defineCondition,
+  defineInstance,
+  defineModule,
+  resolveCondition
+} from './core/requireModule';
 
 // The class and the modules of the arguments of every instance the server defined, so that a call
 // can load them first when they are bootloadable: an instance is created by the first call that
@@ -14,6 +19,12 @@ function addModule(name, modules) {
     return;
   }
   modules.add(name);
+
+  // A module the server chose an implementation for needs that one.
+  const target = resolveCondition(name);
+  if (target !== null && target !== name) {
+    addModule(target, modules);
+  }
 
   (instanceModules.get(name) || []).forEach(module => addModule(module, modules));
 }
@@ -29,6 +40,16 @@ function collectModules(value, modules) {
       Object.keys(value).forEach(key => collectModules(value[key], modules));
     }
   }
+}
+
+function isCondition(exports) {
+  return (
+    exports !== null &&
+    typeof exports === 'object' &&
+    Object.keys(exports).length === 1 &&
+    Object.prototype.hasOwnProperty.call(exports, '__rc') &&
+    (exports.__rc === null || typeof exports.__rc === 'string')
+  );
 }
 
 function handler(dependencies, guard, context, relativeTo) {
@@ -53,6 +74,12 @@ export default class ServerJS {
   }
 
   _handleDefine(relativeTo, name, exports) {
+    // {"__rc": "EditorNext"}: the server chose the module that `name` stands for, or null.
+    if (isCondition(exports)) {
+      defineCondition(name, exports.__rc);
+      return;
+    }
+
     defineModule(name, () => {
       const holder = [exports];
       replaceTransportMarkers(relativeTo, holder);
@@ -108,6 +135,12 @@ export default class ServerJS {
       }
 
       const factory = requireModule(modulePath);
+
+      // The server turned the module off, see defineCondition().
+      if (factory === null) {
+        return;
+      }
+
       const context = typeof factory === 'function' ? new factory() : factory;
 
       if (!context[method]) {
