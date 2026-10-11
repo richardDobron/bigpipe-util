@@ -240,6 +240,24 @@ describe('focus', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('gives the focus back to the element inside of the causal element that had it', () => {
+    document.body.innerHTML =
+      '<form id="form"><input id="email"><button id="submit">Send</button></form><a id="link" href="#">Open</a>';
+    document.getElementById('submit').focus();
+
+    const modal = open({ causalElement: document.getElementById('form') });
+    modal.hide();
+    vi.runAllTimers();
+    expect(document.activeElement.id).toBe('submit');
+
+    document.activeElement.blur();
+    const link = document.getElementById('link');
+    const second = open({ causalElement: link });
+    second.hide();
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(link);
+  });
+
   it('keeps Tab inside of the dialog', () => {
     open();
     vi.runAllTimers();

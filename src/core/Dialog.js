@@ -48,9 +48,21 @@ function layerConfig(source) {
     behaviors.push(HideOnSuccess);
   }
 
+  // The element that sent the request may be a form: the focused element inside of it is closer.
+  let { causalElement } = source;
+  const active = document.activeElement;
+  if (
+    causalElement instanceof Element &&
+    active &&
+    active !== causalElement &&
+    causalElement.contains(active)
+  ) {
+    causalElement = active;
+  }
+
   return {
     behaviors,
-    causalElement: source.causalElement,
+    causalElement,
     hideOnSuccess: source.hideOnSuccess,
     position: source.position
   };
