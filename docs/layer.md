@@ -145,7 +145,8 @@ With `center: false` the root has to be positioned (e.g. `fixed`) by your CSS fo
 ## ContextualLayer
 
 `ContextualLayer` is a `Layer` that is positioned next to an element, for menus, tooltips and popovers. It is placed with
-`position: absolute` in the page, so insert it in the body (the default).
+`position: absolute` in the page, or in its `insertParent` when that is (or is inside of) a positioned or transformed
+element.
 
 ```javascript
 import ContextualLayer from 'bigpipe-util/dist/core/layer/ContextualLayer';
@@ -167,7 +168,7 @@ menu.setPosition('right');
 ```
 
 It is positioned again while it is shown when the window is resized or scrolled and informs `reposition` with the
-side and alignment. A layer whose context is not on the page is not shown. When the context is inside of a modal or a
+side and alignment. A layer whose context is not on the page or not displayed (`display: none`) is not shown. When the context is inside of a modal or a
 dialog (a positioned ancestor with a `z-index`), the layer gets a `z-index` 1 above it.
 
 ## Dialogs

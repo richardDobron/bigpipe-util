@@ -30,6 +30,45 @@ function place(position, alignment, rect, width, height, offsetX, offsetY) {
   return { top, left };
 }
 
+// An element with display: none, or inside of one, has no offsetParent. Neither has a fixed one, and
+// jsdom has no layout, so the styles decide then.
+function isRendered(element) {
+  if (element.offsetParent) {
+    return true;
+  }
+
+  for (let node = element; node; node = node.parentElement) {
+    if (window.getComputedStyle(node).display === 'none') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Where the absolute position of the root starts, in the viewport: the padding box of its containing
+// block when it is inserted in a positioned or transformed element, else the page.
+function getOrigin(root, insertParent) {
+  const { body, documentElement } = document;
+  let node = insertParent === body ? null : root.parentElement;
+
+  while (node && node !== body && node !== documentElement) {
+    const style = window.getComputedStyle(node);
+
+    if (style.position !== 'static' || (style.transform && style.transform !== 'none')) {
+      const rect = node.getBoundingClientRect();
+      return {
+        top: rect.top + node.clientTop - node.scrollTop,
+        left: rect.left + node.clientLeft - node.scrollLeft
+      };
+    }
+
+    node = node.parentElement;
+  }
+
+  return { top: -window.scrollY, left: -window.scrollX };
+}
+
 // The z-index of the outermost positioned ancestor of the element below `relative` that has one,
 // e.g. of the modal or dialog the element is in, or null.
 function getOverlayZIndex(element, relative) {
@@ -123,7 +162,7 @@ export default class ContextualLayer extends Layer {
 
   updatePosition() {
     const context = this.getContext();
-    if (!context || !context.isConnected) {
+    if (!context || !context.isConnected || !isRendered(context)) {
       return false;
     }
 
@@ -153,9 +192,10 @@ export default class ContextualLayer extends Layer {
       left = Math.min(Math.max(left, 0), viewport.width - width);
     }
 
+    const origin = getOrigin(root, this.getInsertParent());
     root.style.position = 'absolute';
-    root.style.top = `${top + window.scrollY}px`;
-    root.style.left = `${left + window.scrollX}px`;
+    root.style.top = `${top - origin.top}px`;
+    root.style.left = `${left - origin.left}px`;
 
     // Above the modal or dialog of the context, which it is not inside of.
     const zIndex = getOverlayZIndex(context, this.getInsertParent());

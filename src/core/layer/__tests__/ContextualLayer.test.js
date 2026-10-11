@@ -112,6 +112,46 @@ describe('ContextualLayer', () => {
     expect(layer.isShown()).toBe(false);
   });
 
+  it('does not show while its context is not displayed', () => {
+    button.style.display = 'none';
+    create().show();
+    expect(layer.isShown()).toBe(false);
+    layer.destroy();
+
+    button.style.display = '';
+    document.body.innerHTML = '<div style="display: none"></div>';
+    document.body.firstChild.appendChild(button);
+    create().show();
+    expect(layer.isShown()).toBe(false);
+  });
+
+  it.each([
+    ['positioned', 'position: relative'],
+    ['transformed', 'transform: translateX(10px)']
+  ])('is placed relative to a %s insert parent', (_, style) => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="host" style="${style}"></div>`);
+    const host = document.getElementById('host');
+    host.getBoundingClientRect = () => rect(40, 100, 500, 400);
+    Object.defineProperty(host, 'scrollTop', { value: 20 });
+    window.scrollY = 300;
+
+    create({ insertParent: host }).show();
+    window.scrollY = 0;
+
+    expect(layer.getRoot().parentNode).toBe(host);
+    expect(placed()).toEqual(['60px', '150px']);
+  });
+
+  it('is placed in the page in an insert parent that is not positioned', () => {
+    document.body.insertAdjacentHTML('beforeend', '<div id="host"></div>');
+    window.scrollY = 300;
+
+    create({ insertParent: document.getElementById('host') }).show();
+    window.scrollY = 0;
+
+    expect(placed()).toEqual(['100px', '530px']);
+  });
+
   it('updates its position on resize while it is shown, not after it is hidden', () => {
     create().show();
     button.getBoundingClientRect = () => rect(400, 200, 80, 30);
