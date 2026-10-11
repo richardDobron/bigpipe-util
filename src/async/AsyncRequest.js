@@ -518,6 +518,7 @@ export default class AsyncRequest {
     let offset = 0;
     let parts = 0;
     let stopped = false;
+    let failed = false;
     let restarting = false;
     let tokenRefreshed = false;
 
@@ -545,8 +546,9 @@ export default class AsyncRequest {
       }
 
       if (response.error && !response.errorIsWarning) {
+        failed = true;
         errorHandler(transport, createServerError(transport, response));
-      } else {
+      } else if (!failed) {
         handler(response);
 
         if (isLast && self.relative instanceof Element) {
@@ -631,6 +633,7 @@ export default class AsyncRequest {
       offset = 0;
       parts = 0;
       stopped = false;
+      failed = false;
 
       request.open(method, target, true);
 

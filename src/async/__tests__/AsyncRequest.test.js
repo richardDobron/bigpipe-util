@@ -833,6 +833,32 @@ describe('streamed responses', () => {
     vi.clearAllTimers();
   });
 
+  it('applies the rest of a response that failed, but does not handle it as a success', () => {
+    document.body.innerHTML = '<form id="form"><ul class="feed"></ul></form>';
+    const listener = vi.fn();
+    document.body.addEventListener('success', listener);
+    const h = handlers();
+
+    send(
+      new AsyncRequest('/feed')
+        .setOption('stream', true)
+        .setRelative(document.getElementById('form')),
+      h
+    );
+    requests[0].respond(
+      200,
+      part({ error: 1, errorSummary: 'Partly failed' }) +
+        part({ domops: [['appendContent', 'ul.feed', false, { __html: '<li>1</li>' }]] }) +
+        part({ payload: 'done' }, true)
+    );
+
+    expect(document.querySelector('ul.feed').innerHTML).toBe('<li>1</li>');
+    expect(h.error).toHaveBeenCalledOnce();
+    expect(h.success).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
+    expect(h.finally).toHaveBeenCalledOnce();
+  });
+
   it('rejects a part without content', () => {
     vi.useFakeTimers();
     const h = handlers();
