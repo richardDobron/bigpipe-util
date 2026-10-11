@@ -1,9 +1,14 @@
 {
   "name": "bigpipe-util",
-  "description": "This library currently implements small part of Facebook BigPipe so far, but the advantage is to efficiently insert/replace content and work with the DOM. It is also possible to easily call JavaScript modules from PHP.",
-  "version": "2.0.0",
+  "description": "The JavaScript runtime of BigPipe for PHP: shows the pagelets of a page as they stream in, applies the DOM operations of the server, loads the next page into the layout and calls the JavaScript modules the server asks for.",
+  "version": "2.1.0",
   "keywords": [
     "bigpipe",
+    "pagelets",
+    "streaming",
+    "page-transitions",
+    "server-driven",
+    "php",
     "xhr",
     "html",
     "dom",
