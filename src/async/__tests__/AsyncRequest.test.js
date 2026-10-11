@@ -171,6 +171,35 @@ describe('responses', () => {
     expect(() => vi.runAllTimers()).toThrow(/Failed to handle response/);
   });
 
+  it.each([
+    ['whitespace', ' \n\tfor (;;);{"payload":1}'],
+    ['a byte order mark', '﻿for (;;);{"payload":1}'],
+    ['the shield without a space', 'for(;;);{"payload":1}']
+  ])('accepts a response with %s before it', (name, text) => {
+    const h = handlers();
+
+    send(new AsyncRequest('/save'), h);
+    requests[0].respond(200, text);
+
+    expect(h.success).toHaveBeenCalledWith(expect.objectContaining({ payload: 1 }));
+    expect(h.error).not.toHaveBeenCalled();
+  });
+
+  it('rejects a response without the shield', () => {
+    vi.useFakeTimers();
+    const h = handlers();
+
+    send(new AsyncRequest('/save'), h);
+    requests[0].respond(200, '123456789{"payload":1}');
+
+    expect(h.success).not.toHaveBeenCalled();
+    expect(h.error).toHaveBeenCalledWith(
+      requests[0],
+      expect.objectContaining({ type: ERROR_TYPE.INVALID_RESPONSE })
+    );
+    expect(() => vi.runAllTimers()).toThrow(/without the "for \(;;\);" shield/);
+  });
+
   it('calls the finally handler when the handler throws', () => {
     const h = handlers();
     h.success.mockImplementation(() => {

@@ -10,7 +10,13 @@ let requests = 0;
 /** Separates the parts of a streamed response, see the `stream` option. */
 export const STREAM_DELIMITER = '/*<!-- fetch-stream -->*/';
 
-const SHIELD = 'for (;;);';
+const SHIELD_REGEX = /^\s*for ?\(;;\);/;
+
+function unshield(text) {
+  const match = text.match(SHIELD_REGEX);
+
+  return match ? text.substring(match[0].length) : null;
+}
 
 // The requests in flight. A page transition abandons the ones that must not outlive their page.
 const pending = new Set();
@@ -413,14 +419,13 @@ export default class AsyncRequest {
   }
 
   _unshieldResponseText(text) {
-    const shield = 'for (;;);';
-    const shieldLength = shield.length;
+    const unshielded = unshield(text);
 
-    if (text.length <= shieldLength) {
-      throw new Error('Response too short on async to ' + this.getURI());
+    if (unshielded === null) {
+      throw new Error('Response without the "for (;;);" shield on async to ' + this.getURI());
     }
 
-    return text.substring(shieldLength);
+    return unshielded;
   }
 
   send() {
@@ -562,9 +567,9 @@ export default class AsyncRequest {
     const readParts = (transport, complete) => {
       const text = transport.responseText || '';
 
-      if (parts === 0 && text.startsWith(SHIELD)) {
+      if (parts === 0 && SHIELD_REGEX.test(text)) {
         if (complete) {
-          const response = parse(transport, text.substring(SHIELD.length));
+          const response = parse(transport, unshield(text));
           if (response) {
             handleResponse(transport, response, true);
           }
