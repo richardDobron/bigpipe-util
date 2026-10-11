@@ -65,7 +65,7 @@ describe('PageTransitions', () => {
     expect(event.defaultPrevented).toBe(true);
     expect(handler.mock.calls[0][0].href).toBe(window.location.origin + '/feed?page=2');
     expect(window.location.pathname + window.location.search).toBe('/feed?page=2');
-    expect(window.history.state).toEqual({ uri: '/feed?page=2', index: 1 });
+    expect(window.history.state).toEqual({ uri: '/feed?page=2', index: 1, id: expect.any(String) });
     expect(informed).toHaveBeenCalledOnce();
     subscription.remove();
   });
@@ -126,7 +126,7 @@ describe('PageTransitions', () => {
 
     expect(window.location.pathname + window.location.search).toBe('/list?sort=new');
     expect(window.history.length).toBe(length);
-    expect(window.history.state).toEqual({ uri: '/list?sort=new', index });
+    expect(window.history.state).toEqual({ uri: '/list?sort=new', index, id: expect.any(String) });
   });
 
   it('lets a page replace the entry of a delaying handler before it is added', async () => {
@@ -216,6 +216,36 @@ describe('PageTransitions', () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 420);
   });
 
+  it('keeps a scroll position for every history entry, also of the same URL', async () => {
+    PageTransitions.go('/same');
+    PageTransitions.transitionComplete();
+    scroll(100);
+    PageTransitions.go('/same');
+    PageTransitions.transitionComplete();
+    scroll(300);
+    vi.mocked(window.scrollTo).mockClear();
+
+    await traverse(-1);
+
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 100);
+    expect(window.scrollTo).not.toHaveBeenCalledWith(0, 300);
+  });
+
+  it('keeps the scroll position in the state of the history entry', async () => {
+    PageTransitions.go('/kept');
+    PageTransitions.transitionComplete();
+    scroll(250);
+    PageTransitions.go('/next');
+    PageTransitions.transitionComplete();
+    scroll(80);
+
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }));
+    expect(window.history.state.scroll).toEqual({ x: 0, y: 80 });
+
+    await traverse(-1);
+    expect(window.history.state.scroll).toEqual({ x: 0, y: 250 });
+  });
+
   it('asks before leaving a page with a before leave hook', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const hook = PageTransitions.addBeforeLeaveHook(() => 'You have unsaved changes.');
@@ -286,5 +316,24 @@ describe('PageTransitions', () => {
     expect(goOrReplace).not.toHaveBeenCalled();
     expect(document.getElementById('reviews').scrollIntoView).toHaveBeenCalled();
     expect(PageTransitions.getCurrentURI().hash).toBe('#reviews');
+  });
+});
+
+describe('PageTransitions of a page loaded in full again', () => {
+  it('restores the scroll position of its history entry once the page has loaded', async () => {
+    window.history.replaceState(
+      { uri: '/reloaded', index: 3, id: 'entry', scroll: { x: 0, y: 640 } },
+      '',
+      '/reloaded'
+    );
+    vi.mocked(window.scrollTo).mockClear();
+    vi.resetModules();
+    const { default: ReloadedPageTransitions } = await import('../PageTransitions');
+
+    ReloadedPageTransitions.init();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 640);
+    expect(window.history.state).toEqual({ uri: '/reloaded', index: 3, id: 'entry' });
   });
 });

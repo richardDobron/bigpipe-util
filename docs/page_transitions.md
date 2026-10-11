@@ -30,7 +30,8 @@ like `href="#"`, does nothing.
 `PageTransitions.go(url)` loads a page from JavaScript; `PageTransitions.go(url, true)` replaces the current history
 entry instead of adding one, as a `redirect` of the server does. The back and forward buttons load the page of the
 history entry and restore its scroll position, also for the entries other scripts added with `history.pushState()`;
-an entry of the same page with another fragment only scrolls to it.
+an entry of the same page with another fragment only scrolls to it. Every entry keeps its own scroll position, also in
+its `history.state`, so it is restored after a reload too.
 
 When a page transition can't be used, the page is loaded in full: when the page must not be handled, the request
 fails, or the server sends a page of another version, e.g. after a deploy.

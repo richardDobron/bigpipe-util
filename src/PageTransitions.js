@@ -1,5 +1,6 @@
 import Arbiter from './core/Arbiter';
 import goOrReplace from './core/goOrReplace';
+import onAfterLoad from './core/onAfterLoad';
 import { byTag } from './core/Parent';
 import reportError from './core/reportError';
 
@@ -17,6 +18,9 @@ let leaveHooks = [];
 let completionCallbacks = [];
 let pendingHistory = null;
 let currentIndex = 0;
+let currentId = null;
+// The scroll positions of the history entries by their id. They are also kept in the state of the
+// entries, for a page loaded in full again, e.g. reloaded.
 const scrollPositions = new Map();
 
 function toURI(uri) {
@@ -43,13 +47,32 @@ function indexOf(state) {
   return state && typeof state.index === 'number' ? state.index : null;
 }
 
+function idOf(state) {
+  return state && typeof state.id === 'string' ? state.id : null;
+}
+
+function createId() {
+  return Math.random().toString(36).slice(2);
+}
+
+function saveScrollPosition() {
+  const position = scrollPositions.get(currentId);
+  const state = window.history.state;
+  if (position && currentId && idOf(state) === currentId) {
+    window.history.replaceState({ ...state, scroll: position }, '', window.location.href);
+  }
+}
+
 // Every entry has its index in the history, to go back to it when the user stays on the page
-// after all. The index of an entry another script added is not known.
-function updateHistory(uri, replace) {
+// after all, and an id for its scroll position. The index and the id of an entry another script
+// added are not known.
+function updateHistory(uri, replace, id = createId()) {
   if (!replace) {
+    saveScrollPosition();
     currentIndex = currentIndex === null ? null : currentIndex + 1;
   }
-  const state = { uri: key(uri), index: currentIndex };
+  currentId = id;
+  const state = { uri: key(uri), index: currentIndex, id };
   if (replace) {
     window.history.replaceState(state, '', uri.href);
   } else {
@@ -171,18 +194,28 @@ function onPopState(event) {
     pendingHistory = null;
   }
 
+  const { state } = event;
   const uri = toURI(window.location.href);
-  if (uri.href === currentURI.href) {
+  const id = idOf(state);
+  if (uri.href === currentURI.href && (!id || id === currentId)) {
     return;
   }
 
-  const entry = { index: indexOf(event.state) };
+  const entry = { index: indexOf(state), id, scroll: state && state.scroll };
   load(uri, entry, false, () => goOrReplace(window.location, uri.href, true));
 }
 
 function onScroll() {
-  if (!transitioning && currentURI) {
-    scrollPositions.set(key(currentURI), { x: window.scrollX, y: window.scrollY });
+  if (!transitioning && currentId) {
+    scrollPositions.set(currentId, { x: window.scrollX, y: window.scrollY });
+  }
+}
+
+function enter(entry) {
+  currentIndex = entry.index;
+  currentId = entry.id;
+  if (entry.id && entry.scroll && !scrollPositions.has(entry.id)) {
+    scrollPositions.set(entry.id, entry.scroll);
   }
 }
 
@@ -200,7 +233,7 @@ function load(uri, entry, replace, fallback) {
   if ((uri.hash || entry) && withoutHash(uri) === withoutHash(currentURI)) {
     new Arbiter().inform('pre_page_fragment_transition', { from: currentURI.hash, to: uri.hash });
     if (entry) {
-      currentIndex = entry.index;
+      enter(entry);
     } else {
       addToHistory(uri, replace, false);
     }
@@ -228,7 +261,7 @@ function load(uri, entry, replace, fallback) {
   }
 
   if (entry) {
-    currentIndex = entry.index;
+    enter(entry);
   }
 
   new Arbiter().inform('pre_page_transition', { from: currentURI, to: uri });
@@ -259,7 +292,7 @@ function stay(entry) {
   }
 
   currentIndex = entry.index;
-  updateHistory(currentURI, true);
+  updateHistory(currentURI, true, currentId || undefined);
 }
 
 function runHooks(hooks) {
@@ -300,15 +333,29 @@ const PageTransitions = {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    // A reloaded page keeps the index of its entry.
-    currentIndex = indexOf(window.history.state) || 0;
-    updateHistory(currentURI, true);
+    // A page loaded in full again, e.g. reloaded, keeps the index and the id of its entry, and its
+    // scroll position once it has loaded.
+    const { state } = window.history;
+    const entry =
+      state && state.uri === key(currentURI)
+        ? { index: indexOf(state), id: idOf(state), scroll: state.scroll }
+        : { index: 0, id: null };
+    enter({ ...entry, index: entry.index || 0 });
+    updateHistory(currentURI, true, entry.id || undefined);
+    if (entry.id && entry.scroll) {
+      onAfterLoad(() => {
+        if (currentId === entry.id && !transitioning) {
+          PageTransitions.restoreScrollPosition(currentURI);
+        }
+      });
+    }
 
     document.addEventListener('click', onClick);
     document.addEventListener('submit', onSubmit);
     window.addEventListener('popstate', onPopState);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('pagehide', saveScrollPosition);
 
     return true;
   },
@@ -392,8 +439,7 @@ const PageTransitions = {
       return;
     }
 
-    scrollPositions.delete(key(next));
-    load(next, false, replace, () => goOrReplace(window.location, next.href, replace));
+    load(next, null, replace, () => goOrReplace(window.location, next.href, replace));
   },
 
   /**
@@ -420,8 +466,15 @@ const PageTransitions = {
     }
   },
 
+  /**
+   * Scrolls to the position the page had in its history entry, when the URL is of the current
+   * page. A new entry, also one not added yet, has none.
+   */
   restoreScrollPosition(uri) {
-    const position = scrollPositions.get(key(toURI(uri)));
+    const position =
+      currentURI && key(toURI(uri)) === key(currentURI) && !pendingHistory
+        ? scrollPositions.get(currentId)
+        : null;
     if (!position) {
       return false;
     }
