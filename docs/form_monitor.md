@@ -44,7 +44,7 @@ The module is created with the form, so the server can start monitoring it:
 
 ```php
 $response->call('bigpipe-util/dist/core/FormMonitor', null, [
-    dobronBigPipeTransportMarker::element('post-form'),
+    \dobron\BigPipe\TransportMarker::element('post-form'),
     ['message' => 'Leave without saving the post?'],
 ]);
 ```

@@ -58,8 +58,8 @@ setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
 - A loader that returns nothing for a name makes BigPipe throw `module "..." was not found`.
 - Modules of this package are resolved automatically. The server may refer to them as `bigpipe-util/src/...` (or
   `bigpipe-util/dist/...`); you don't need to handle them in the loader.
-- `setModuleLoader()` also defines `window.require`, which the inline script in the next step uses. Pass
-  `{ global: false }` as the second argument to prevent it.
+- `setModuleLoader()` also defines `window.require`, for code that still uses it; the inline scripts in the next
+  step use a queue instead. Pass `{ global: false }` as the second argument to prevent it.
 - Single modules can be registered under an exact name with `registerModules({ Name: module })`. They win over the
   loader.
 

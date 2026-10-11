@@ -11,7 +11,7 @@ of them are displayed, so scripts never delay the content.
 The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library. For every pagelet, it outputs:
 
 ```javascript
-(new (require("bigpipe-util/src/BigPipe"))).onPageletArrive({
+(window.__bigpipe = window.__bigpipe || []).push(['arrive', {
   id: "sidebar",
   css: ["/css/sidebar.css"],
   js: ["/js/sidebar.js"],
@@ -20,14 +20,11 @@ The server renders the pagelets, see `dobron\BigPipe\Pagelet` in the PHP library
   onload: {"require": [["SidebarChat", "connect", []]]},
   onafterload: {"require": [["SidebarPrefetch", "start", []]]},
   is_last: true,
-});
+}]);
 ```
 
-Like the inline script of [ServerJS](server_js.md), it needs `require` to exist. When the entrypoint is loaded as
-`<script type="module">` (Vite), it runs after the page is parsed. Use `<script type="module">` for the inline
-scripts as well: they run in document order after the entrypoint, and the pagelets are displayed once the page has
-been parsed instead of while it streams. With a classic `<script src>` (webpack) the entrypoint, placed before the
-pagelets, makes them display progressively.
+The script queues the pagelet until the entrypoint has run, so the entrypoint can be loaded any way, see
+[Getting started](getting_started.md#3-handle-the-modules-of-the-first-page-load).
 
 ## Lifecycle
 
@@ -59,12 +56,12 @@ them, see `Pagelet::setPhase()` and `Pagelet::displayAfter()` in the PHP library
   It waits for them to arrive.
 
 ```javascript
-(new (require("bigpipe-util/src/BigPipe"))).onPageletArrive({
+(window.__bigpipe = window.__bigpipe || []).push(['arrive', {
   id: "chat",
   phase: 1,
   display_dependency: ["feed"],
   // ...
-});
+}]);
 ```
 
 The JS of the pagelets still loads only when all of them are displayed.
@@ -107,7 +104,7 @@ new Arbiter().subscribe('Pagelet/event', ({ event, id, ts }) => {
 
 With a nonce-based policy, `BigPipe` adds the nonce of the page to the stylesheets and scripts it loads. It takes the
 nonce from the `CSPNonce` module, which the PHP library defines in the page script after `BigPipe::setNonce()`, or
-else from the first `<script nonce="...">` on the page, e.g. the inline script that calls `onPageletArrive`.
+else from the first `<script nonce="...">` on the page, e.g. the inline script of the page.
 
 With [Trusted Types](https://developer.mozilla.org/docs/Web/API/Trusted_Types_API), a policy that requires them
 (`require-trusted-types-for 'script'`) blocks strings in `innerHTML`, `insertAdjacentHTML`, the `src` of a script and
@@ -173,7 +170,8 @@ next page.
 The server marks the last pagelet of every phase with `last_in_phase`, so the browser knows a phase is complete
 without waiting for the next one, which may take longer to render. Once every pagelet of a phase and of the phases
 before it is displayed, `BigPipe/phaseDisplayed` is informed with the phase, e.g. to start what can wait for the
-first screen; `new BigPipe().isPhaseDisplayed(phase)` tells it later:
+first screen. It is informed once, not as a state, so a module that subscribes later is not called;
+`new BigPipe().isPhaseDisplayed(phase)` tells whether the phase is displayed already:
 
 ```javascript
 new Arbiter().subscribe('BigPipe/phaseDisplayed', ({ phase }) => {

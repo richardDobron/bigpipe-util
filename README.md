@@ -102,13 +102,14 @@ $response->send();
 **Requests and responses**
 * [Primer](docs/primer.md): makes links and forms with `rel` asynchronous, with the progress of file uploads, and can load `AsyncRequest` on demand.
 * [AsyncRequest](docs/async_request.md): requests with handlers, structured errors, timeouts, retries, `abandon()`, streamed responses, a `success` event and a CSRF token that is refreshed when it expires.
-* [How it works](docs/how_it_works.md): the response format, DOM operations and `AsyncResponse`.
-* [ServerJS](docs/server_js.md): calls the modules of a response, keeps instances and defined modules, transport markers.
+* [How it works](docs/how_it_works.md): the response format, DOM operations and `AsyncResponse`. The HTML of a pagelet can come in a hidden container of the page (`__container`) instead of the JSON.
+* [ServerJS](docs/server_js.md): calls the modules of a response, keeps instances and defined modules, transport markers, and [modules the server chooses](docs/server_js.md#modules-the-server-chooses) (`__rc`).
 * [DOM](docs/dom.md) (with morphing) and [Arbiter](docs/arbiter.md), a small event system with states.
 
 **Pages**
-* [Pagelets](docs/pagelets.md): independent parts of a page, displayed as they arrive, in phases, with lifecycle events, timings and a time to interactive (`tti_bigpipe`); loaded on demand with `UIPagelet` and `MorePagerFetchOnScroll`.
-* [Page transitions](docs/page_transitions.md): load the next page into the layout instead of in full.
+* [Pagelets](docs/pagelets.md): independent parts of a page, displayed as they arrive, in [phases](docs/pagelets.md#phases) (`last_in_phase`, `BigPipe/phaseDisplayed`), with lifecycle events, timings and a time to interactive (`BigPipe/tti`); loaded on demand with `UIPagelet` and `MorePagerFetchOnScroll`. They work with [Trusted Types](docs/pagelets.md#content-security-policy).
+* The inline scripts of a page queue the pagelets and modules in `window.__bigpipe` until the entrypoint has run, see [getting started](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
+* [Page transitions](docs/page_transitions.md): load the next page into the layout instead of in full, and notice [a new deploy](docs/page_transitions.md#a-new-deploy) (`BigPipeRevision`, `BigPipe/newRevision`).
 * [Bootloader](docs/bootloader.md): loads CSS and JavaScript once, and modules only when they are called, with `ifRequired`, `requireDeferred` and `requireCond`.
 * [Poller](docs/poller.md): requests a URL again and again, controlled by the server.
 * [Run](docs/run.md): `onLoad`, `onAfterLoad`, `onBeforeUnload`, `onLeave`, `onUnload` and `onCleanupOrLeave`, for full page loads and page transitions alike.
@@ -117,7 +118,7 @@ $response->send();
 * [Layer](docs/layer.md): a base for everything that floats, with behaviors (hide on <kbd>Esc</kbd>, outside click and page transition, focus handling, fades) and `ModalLayer` and `ContextualLayer`. It sets no class names, so Bootstrap, Tailwind or your own CSS work.
 * [Dialogs](docs/dialog.md): Bootstrap-compatible dialogs that are layers, with their events kept.
 * [Form](docs/form.md) and [FormMonitor](docs/form_monitor.md): read a form the way PHP does, and warn before unsaved changes are lost.
-* [Utilities](docs/utilities.md): `onVisible`, `TimerStorage`, `DataStore`, `Cookie`, `WebStorage`, `KeyEventController` and more.
+* [Utilities](docs/utilities.md): `onVisible`, `DataStore`, `Cookie`, `WebStorage`, `KeyEventController` and more. Timers that end with the page are in `TimerStorage`, see [leaving a page](docs/page_transitions.md#leaving-a-page).
 
 ## 🛜 Request API
 
@@ -237,8 +238,8 @@ From 2.0, `bigpipe-util` and the PHP library share the major and minor version: 
 sends comes out in both, e.g. 2.1.x of `bigpipe-util` works with 2.1.0 of the PHP library. Fixes are released on their
 own as patch versions.
 
-A release is a tag of the version in `package.json`, e.g. `npm version minor && git push --follow-tags`. The `Release`
-workflow then tests, builds and publishes it to npm; `dist` is built on publish and isn't in the repository.
+A release is the version in `package.json`, published by hand with `npm publish`. Before it publishes, npm runs the lint,
+the tests and the build (`prepublishOnly`); `dist` is built on publish and isn't in the repository.
 
 ## 🤝 Contributing
 

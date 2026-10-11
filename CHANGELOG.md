@@ -4,7 +4,7 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## Unreleased
+## v2.1.0 - 2026-10-11
 
 ### Added
 - A new deploy: a response with a `revision` other than the `BigPipeRevision` of the page informs `BigPipe/newRevision`,
@@ -28,14 +28,14 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - `BigPipe.startPage()` makes the pagelets of a response the next page, see Quickling.
 
 ### Changed
+- The page events are named like `BigPipe/init`: `tti_bigpipe` is `BigPipe/tti`, `all_pagelets_displayed` is
+  `BigPipe/allPageletsDisplayed` and `all_pagelets_loaded` is `BigPipe/allPageletsLoaded`, see `BIGPIPE_EVENT`.
 - The other events are named the same way: `Pagelet/event`, `Pagelet/destroy` and `Pagelet/error`; the steps of a
   pagelet `cssLoad`, `displayStart`, `jsStart` and `jsDone`; `Quickling/send`, `Quickling/firstResponse`,
   `Quickling/beforeClearCanvas`, `Quickling/unload` and `Quickling/response`; `PageTransitions/beforeTransition`,
   `PageTransitions/transition`, `PageTransitions/beforeFragmentTransition` and `PageTransitions/fragmentTransition`,
   exported as `PAGE_TRANSITION_EVENT`; `DocumentTitle/update`, `Visibility/hidden`, `Visibility/visible` and
   `UserActivity/activity`, whose `last_inform` is `lastInform`.
-- The page events are named like `BigPipe/init`: `tti_bigpipe` is `BigPipe/tti`, `all_pagelets_displayed` is
-  `BigPipe/allPageletsDisplayed` and `all_pagelets_loaded` is `BigPipe/allPageletsLoaded`, see `BIGPIPE_EVENT`.
 - The pagelets of a response, e.g. a lazy pagelet, are kept apart from the page: they load their JS once all of them
   are displayed, and no longer start the JS of the page or inform `BigPipe/allPageletsDisplayed` and `BigPipe/allPageletsLoaded`.
 - A response whose error is a warning goes to the handler, not to the error handler.

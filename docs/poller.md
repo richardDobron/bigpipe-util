@@ -47,6 +47,9 @@ the poller as the module of that id, e.g. to poll less often or to stop:
 The poller uses two modules that can be used on their own:
 
 - `core/Visibility`: `isHidden()`, and `subscribe(Visibility.HIDDEN | Visibility.VISIBLE, callback)` when the page is
-  hidden or shown.
+  hidden or shown. It informs `Visibility/hidden` and `Visibility/visible` through [Arbiter](arbiter.md), with the
+  `changeTime`.
 - `core/UserActivity`: `isActive(ms)`, whether the user scrolled, moved the mouse, clicked, typed or focused the window
-  in the last `ms` milliseconds, and `subscribe(callback)` when they are active again.
+  in the last `ms` milliseconds, and `subscribe(callback)` when they are active again after more than half a second.
+  It informs `UserActivity/activity` through [Arbiter](arbiter.md), with the DOM `event`, the `idleness` in
+  milliseconds and the time of the inform, `lastInform`.

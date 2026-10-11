@@ -106,7 +106,8 @@ Informed through [Arbiter](arbiter.md), exported as `PAGE_TRANSITION_EVENT` from
 | `Quickling/firstResponse`            | The response is about to be applied.           |
 | `Quickling/beforeClearCanvas`        | The canvas is about to be emptied.             |
 | `Quickling/response`                 | The response was applied.                      |
-| `PageTransitions/fragmentTransition` | A link to a fragment of the page was followed. |
+| `PageTransitions/beforeFragmentTransition` | Before a fragment of the same page is scrolled to, with the `from` and `to` fragments. |
+| `PageTransitions/fragmentTransition` | A link to a fragment of the page was followed, with its `fragment`. |
 
 Handlers of other kinds of page transitions can be added with `PageTransitions.registerHandler(handler, priority)`: a
 handler gets the URL and returns `true` when it loads the page.

@@ -29,7 +29,17 @@ for (;;);{"payload":null,"domops":[...],"jsmods":{"require":[...]},"__ar":1}
 | `domops`  | [DOM operations](#dom-operations), applied in order.                                |
 | `pagelets`| Optional [pagelets](pagelets.md), handed to `BigPipe` after the DOM operations, e.g. a pagelet loaded lazily or refreshed. |
 | `jsmods`  | Modules to call, see [ServerJS](server_js.md).                                      |
+| `revision` | Optional revision of the deploy of the server, see [a new deploy](page_transitions.md#a-new-deploy). |
+| `resource_map` | Optional names of CSS and JS files, see the [Bootloader](bootloader.md#resource-map). |
+| `bootloadable` | Optional files of modules loaded on demand, see [bootloadable modules](bootloader.md#bootloadable-modules). |
 | `__ar`    | Marks the response as an async response.                                            |
+
+`AsyncResponse` reads the revision first, then `resource_map` and `bootloadable`, applies the DOM operations, hands
+the pagelets to `BigPipe` and calls the modules last.
+
+`AsyncRequest` reads a few more keys. `csrf_refresh` sends the request again, once, with a new
+[CSRF token](async_request.md#token-refresh). `error`, `errorSummary`, `errorDescription`, `errorIsWarning` and
+`isTransient` describe an [error](async_request.md#errors) the server sent.
 
 The whole response object is also passed to the handler set with
 [`setHandler()`](async_request.md#handlers).
@@ -64,7 +74,7 @@ Each operation is an array `[type, selector, targetRelative, content]`:
   for `eval`, which runs with `this` bound to the element.
 
 The content of a pagelet of the page may be `{"__container": "u_0_5"}` instead, the id of a hidden `<code>` element
-the page printed before the script of the pagelet, with the HTML in a comment, where `` and `-` are escaped with a
+the page printed before the script of the pagelet, with the HTML in a comment, where `\` and `-` are escaped with a
 backslash (see `BigPipe::setHtmlContainers()` in the PHP library). The HTML is then not escaped in the JSON of the
 script, and the browser does not parse it until the pagelet is displayed. The container is removed.
 

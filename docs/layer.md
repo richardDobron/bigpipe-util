@@ -80,7 +80,7 @@ class LogOnShow {
 
 ## Hiding
 
-The `hide()` of a layer takes the source of the request, one of `HideSources` (`blur`, `escape`, `transition`), which
+The `hide()` of a layer takes the source of the request, one of `HideSources` (`blur`, `escape`, `success`, `transition`), which
 `beforehide` and `starthide` get as their data.
 
 | Behavior           | Does                                                                                              |
@@ -88,6 +88,7 @@ The `hide()` of a layer takes the source of the request, one of `HideSources` (`
 | `HideOnEscape`     | Hides the topmost layer when <kbd>Esc</kbd> is pressed, and handles the key.                       |
 | `HideOnBlur`       | Hides the layer on a click outside of it. Layers below stay open.                                  |
 | `HideOnTransition` | Hides the layer before a [page transition](page_transitions.md). Override `isTransitionRelevant({ from, to })` to hide only for some. |
+| `HideOnSuccess`    | Hides the layer when a request sent from inside of it succeeds, see the [success event](async_request.md#success-event). The `hideOnSuccess` option of the layer is `true` for any request, or a selector of the elements that sent it. |
 | `DestroyOnHide`    | Destroys the layer after it was hidden.                                                            |
 | `RemoveOnHide`     | Removes the root from the page when the layer is hidden. `show()` puts it back.                    |
 

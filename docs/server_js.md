@@ -5,14 +5,12 @@ sidebar_label: ServerJS
 ---
 
 `ServerJS` calls the JavaScript modules that the server requires. It handles the `jsmods` of every response and,
-at the end of the page, the modules required while rendering it:
+at the end of the page, the modules required while rendering it. `BigPipe::render()` in the PHP library prints them
+in an inline script that queues them until the entrypoint has run, see
+[Getting started](getting_started.md#3-handle-the-modules-of-the-first-page-load):
 
-```php
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        (new (require("bigpipe-util/src/ServerJS"))).handle(<?=json_encode(\dobron\BigPipe\BigPipe::jsmods())?>);
-    });
-</script>
+```javascript
+(window.__bigpipe = window.__bigpipe || []).push(['handle', jsmods]);
 ```
 
 ## Requiring modules
@@ -42,7 +40,7 @@ In PHP:
 ```php
 $response->bigPipe()->require("require('UserLoggedInAlert')", ['Marvin']);
 $response->bigPipe()->require("require('ChartRenderer').render()", [
-    \dobron\BigPipe\TransportMarker::transportElement('chart'),
+    \dobron\BigPipe\TransportMarker::element('chart'),
     [10, 20, 30],
 ]);
 ```
@@ -70,7 +68,7 @@ In PHP:
 
 ```php
 $chart = $response->bigPipe()->instance('ChartRenderer', [
-    \dobron\BigPipe\TransportMarker::transportElement('chart'),
+    \dobron\BigPipe\TransportMarker::element('chart'),
     [10, 20, 30],
 ]);
 
