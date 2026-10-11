@@ -140,6 +140,13 @@ function onScroll() {
   }
 }
 
+function onPageShow(event) {
+  if (event.persisted) {
+    leaveConfirmed = false;
+    transitioning = false;
+  }
+}
+
 function load(uri, fromHistory, fallback) {
   if (uri.hash && withoutHash(uri) === withoutHash(currentURI)) {
     new Arbiter().inform('pre_page_fragment_transition', { from: currentURI.hash, to: uri.hash });
@@ -234,6 +241,7 @@ const PageTransitions = {
     document.addEventListener('submit', onSubmit);
     window.addEventListener('popstate', onPopState);
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('pageshow', onPageShow);
 
     return true;
   },

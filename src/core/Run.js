@@ -41,7 +41,11 @@ function onNativeBeforeUnload(event) {
 function listen() {
   if (!listening && typeof window !== 'undefined') {
     listening = true;
-    window.addEventListener('pagehide', () => runAll(unloadHooks));
+    window.addEventListener('pagehide', event => {
+      if (!event.persisted) {
+        runAll(unloadHooks);
+      }
+    });
     window.addEventListener('beforeunload', onNativeBeforeUnload);
   }
 }

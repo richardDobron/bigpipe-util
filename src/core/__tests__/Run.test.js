@@ -96,6 +96,22 @@ describe('Run.onUnload', () => {
     window.dispatchEvent(new Event('pagehide'));
     expect(callback).toHaveBeenCalledOnce();
   });
+
+  it('does not run when the page is kept in the back/forward cache', () => {
+    const unload = vi.fn();
+    const leave = vi.fn();
+    Run.onUnload(unload);
+    Run.onLeave(leave);
+
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    expect(unload).not.toHaveBeenCalled();
+    expect(leave).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }));
+    expect(unload).toHaveBeenCalledOnce();
+    expect(leave).toHaveBeenCalledOnce();
+  });
 });
 
 describe('Run.onBeforeUnload', () => {
@@ -146,6 +162,22 @@ describe('Run.onBeforeUnload', () => {
 
     expect(PageTransitions.isLeaveConfirmed()).toBe(true);
     expect(event.defaultPrevented).toBe(false);
+    subscription.remove();
+  });
+
+  it('asks again when the page comes back from the back/forward cache', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    PageTransitions.init();
+    const subscription = Run.onBeforeUnload(() => 'You have unsaved changes.');
+
+    PageTransitions.go('/next');
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(PageTransitions.isLeaveConfirmed()).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
     subscription.remove();
   });
 
