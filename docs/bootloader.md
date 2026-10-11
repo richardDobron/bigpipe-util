@@ -63,7 +63,9 @@ module:
 ```
 
 The script has to make the module available when it runs, e.g. a chunk of the bundle that calls `registerModules()`
-from `bigpipe-util/dist/ModuleRegistry`. The other module calls of the response do not wait for it.
+from `bigpipe-util/dist/ModuleRegistry`. The other module calls of the response do not wait for it. A call also waits
+for the bootloadable modules it gets as arguments (`{"__m": "Editor"}`) and for the class of an instance it calls or
+gets as an argument.
 
 `requireLazy(modules, callback)` does the same in JavaScript: it loads the resources of the bootloadable modules and
 calls back with the modules. Modules that are not bootloadable are required right away.

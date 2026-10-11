@@ -4,6 +4,33 @@ import replaceTransportMarkers from './core/replaceTransportMarkers';
 import reportError from './core/reportError';
 import requireModule, { defineInstance, defineModule } from './core/requireModule';
 
+// The class and the modules of the arguments of every instance the server defined, so that a call
+// can load them first when they are bootloadable: an instance is created by the first call that
+// needs it.
+const instanceModules = new Map();
+
+function addModule(name, modules) {
+  if (modules.has(name)) {
+    return;
+  }
+  modules.add(name);
+
+  (instanceModules.get(name) || []).forEach(module => addModule(module, modules));
+}
+
+// Adds the modules of the `__m` markers in the arguments, as they are before they are replaced.
+function collectModules(value, modules) {
+  if (Array.isArray(value)) {
+    value.forEach(item => collectModules(item, modules));
+  } else if (value && typeof value === 'object') {
+    if (typeof value.__m === 'string') {
+      addModule(value.__m, modules);
+    } else if (!value.__e && !value.__map && !value.__set) {
+      Object.keys(value).forEach(key => collectModules(value[key], modules));
+    }
+  }
+}
+
 function handler(dependencies, guard, context) {
   dependencies.forEach(args => {
     try {
@@ -34,6 +61,10 @@ export default class ServerJS {
   }
 
   _handleInstance(id, modulePath, marker) {
+    const modules = new Set([modulePath]);
+    collectModules(marker, modules);
+    instanceModules.set(id, Array.from(modules));
+
     defineInstance(id, () => {
       if (marker) {
         replaceTransportMarkers(this._relativeTo, marker);
@@ -51,9 +82,18 @@ export default class ServerJS {
     });
   }
 
+  /**
+   * Calls the module once it is loaded, with the modules of its arguments and of the instances it
+   * uses, when they are bootloadable.
+   */
   _handleRequireLazy(modulePath, method, marker) {
-    if (Bootloader.isBootloadable(modulePath)) {
-      Bootloader.loadModules([modulePath], () => this._handleRequire(modulePath, method, marker));
+    const modules = new Set();
+    addModule(modulePath, modules);
+    collectModules(marker, modules);
+    const bootloadable = Array.from(modules).filter(module => Bootloader.isBootloadable(module));
+
+    if (bootloadable.length > 0) {
+      Bootloader.loadModules(bootloadable, () => this._handleRequire(modulePath, method, marker));
     } else {
       this._handleRequire(modulePath, method, marker);
     }

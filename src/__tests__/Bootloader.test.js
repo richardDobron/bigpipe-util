@@ -263,6 +263,47 @@ describe('bootloadable modules', () => {
     expect(Editor.open).toHaveBeenCalledWith(document.getElementById('post'));
   });
 
+  it('loads a bootloadable module that a call gets as an argument', () => {
+    const Editor = { name: 'editor' };
+    const Page = { init: vi.fn() };
+    registerModules({ Page });
+
+    new ServerJS().handle({ require: [['Page', 'init', [{ __m: 'Editor' }]]] });
+    expect(Page.init).not.toHaveBeenCalled();
+
+    loadEditor(Editor);
+    expect(Page.init).toHaveBeenCalledWith(Editor);
+  });
+
+  it('loads the bootloadable class of an instance before the instance is used', () => {
+    class Editor {
+      constructor(element) {
+        this.element = element;
+      }
+      open() {
+        opened.push(this.element);
+      }
+    }
+    const opened = [];
+    const Page = { init: vi.fn() };
+    registerModules({ Page });
+    document.body.innerHTML = '<textarea id="post"></textarea>';
+
+    new ServerJS().handle({
+      instances: [['editor_1', 'Editor', [{ __e: 'post' }]]],
+      require: [
+        ['editor_1', 'open'],
+        ['Page', 'init', [{ __m: 'editor_1' }]]
+      ]
+    });
+    expect(opened).toEqual([]);
+    expect(Page.init).not.toHaveBeenCalled();
+
+    loadEditor(Editor);
+    expect(opened).toEqual([document.getElementById('post')]);
+    expect(Page.init).toHaveBeenCalledWith(expect.any(Editor));
+  });
+
   it('takes the bootloadable modules of a response', () => {
     new AsyncResponse().handle({
       resource_map: { 'chat.js': { type: 'js', src: '/static/chat.js' } },
