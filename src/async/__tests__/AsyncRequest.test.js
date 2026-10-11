@@ -279,7 +279,7 @@ describe('errors', () => {
           error: 1001,
           errorSummary: 'Could not save',
           errorDescription: 'The title is too long.',
-          errorIsWarning: true,
+          errorIsWarning: false,
           isTransient: false
         })
       )
@@ -291,10 +291,30 @@ describe('errors', () => {
       status: 200,
       summary: 'Could not save',
       description: 'The title is too long.',
-      isWarning: true,
+      isWarning: false,
       isTransient: false,
       payload: { field: 'title' }
     });
+  });
+
+  it('passes a warning to the handler, not the error handler', () => {
+    document.body.innerHTML = '<button id="button"></button>';
+    const listener = vi.fn();
+    document.body.addEventListener('success', listener);
+    const h = handlers();
+    const warning = {
+      payload: { saved: true },
+      error: 1002,
+      errorSummary: 'Saved with a warning',
+      errorIsWarning: true
+    };
+
+    send(new AsyncRequest('/save').setRelative(document.getElementById('button')), h);
+    requests[0].respond(200, asyncResponse(warning));
+
+    expect(h.error).not.toHaveBeenCalled();
+    expect(h.success).toHaveBeenCalledWith(expect.objectContaining(warning));
+    expect(listener).toHaveBeenCalledOnce();
   });
 
   it('still applies the DOM operations of an error response', () => {

@@ -93,12 +93,13 @@ new AsyncRequest('/ajax/save')
 | `status`      | The HTTP status, `0` when there is no response.                                               |
 | `summary`     | A short title of the error.                                                                  |
 | `description` | A sentence for the user.                                                                     |
-| `isWarning`   | The server marked the error as a warning.                                                    |
+| `isWarning`   | Always `false`: a warning is not an error, see below.                                        |
 | `isTransient` | Trying again may help: network errors, timeouts, 5xx and 429 statuses, or as the server marked it. |
 | `payload`     | The payload of a `server` error, `null` otherwise.                                          |
 
 - `server`: the server sent an error with `$response->setError()`. The DOM operations and modules of the response
-  are applied anyway, e.g. to mark an invalid field.
+  are applied anyway, e.g. to mark an invalid field. An error the server marked as a warning (`$isWarning`) is not a
+  failure: the handler gets the response, with its `error`, `errorSummary` and `errorDescription`.
 - `http`: the server answered with a status other than 2xx, e.g. 404 or 500. Redirects are followed by the browser.
 - `invalid_response`: the response is not a BigPipe response, e.g. a PHP fatal error page.
 - `network`: there is no response, e.g. the browser is offline.

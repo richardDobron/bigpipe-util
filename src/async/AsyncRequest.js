@@ -544,7 +544,7 @@ export default class AsyncRequest {
         return;
       }
 
-      if (response.error) {
+      if (response.error && !response.errorIsWarning) {
         errorHandler(transport, createServerError(transport, response));
       } else {
         handler(response);
