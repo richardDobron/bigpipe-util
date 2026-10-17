@@ -63,26 +63,6 @@ setModuleLoader(modulePath => modules[`./${modulePath}.js`]?.default);
 - Single modules can be registered under an exact name with `registerModules({ Name: module })`. They win over the
   loader.
 
-### Vite: the `events` module
-
-[Dialogs](dialog.md) use `modal-vanilla`, which imports the Node.js module `events`. Vite doesn't polyfill Node.js
-modules for the browser, so loading fails with `Class extends value [object Object] is not a constructor or null`.
-Install the npm package of the same name and point the import to it (the trailing slash selects the package instead of
-the Node.js module):
-
-```shell
-npm install events
-```
-
-```javascript title="vite.config.js"
-export default defineConfig({
-  resolve: { alias: { events: 'events/' } }
-});
-```
-
-Restart Vite with `--force` to rebuild its dependency cache. webpack 5 picks the `events` package up on its own when
-it's installed.
-
 ### Upgrading from `window.require`
 
 Defining `window.require` yourself still works when no loader is set, so existing setups don't have to change. The

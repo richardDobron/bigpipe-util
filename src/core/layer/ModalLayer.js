@@ -1,4 +1,5 @@
 import { addToStack, removeFromStack } from './overlayStack';
+import { lockScroll, unlockScroll } from './scrollLock';
 
 const DEFAULTS = Object.freeze({
   backdropClassName: '',
@@ -9,32 +10,6 @@ const DEFAULTS = Object.freeze({
 });
 
 const stack = [];
-let scrollLock = null;
-
-function lock() {
-  if (scrollLock) {
-    return;
-  }
-
-  const { body, documentElement } = document;
-  scrollLock = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
-
-  const scrollbar = window.innerWidth - documentElement.clientWidth;
-  if (scrollbar > 0) {
-    body.style.paddingRight = `${(parseFloat(window.getComputedStyle(body).paddingRight) || 0) + scrollbar}px`;
-  }
-  body.style.overflow = 'hidden';
-}
-
-function unlock() {
-  if (!scrollLock) {
-    return;
-  }
-
-  document.body.style.overflow = scrollLock.overflow;
-  document.body.style.paddingRight = scrollLock.paddingRight;
-  scrollLock = null;
-}
 
 export default class ModalLayer {
   static configure(options) {
@@ -54,6 +29,7 @@ export default class ModalLayer {
     this.subscriptions = [];
     this.backdrop = null;
     this.entry = null;
+    this.locked = false;
   }
 
   getOptions() {
@@ -117,7 +93,8 @@ export default class ModalLayer {
     stack.push(this);
 
     if (options.lockScroll) {
-      lock();
+      lockScroll();
+      this.locked = true;
     }
 
     // Stacked together with the dialogs.
@@ -146,8 +123,9 @@ export default class ModalLayer {
       );
     }
 
-    if (!stack.length) {
-      unlock();
+    if (this.locked) {
+      unlockScroll();
+      this.locked = false;
     }
   }
 }

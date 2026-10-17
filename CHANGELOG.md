@@ -4,6 +4,28 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## Unreleased
+
+### Changed
+- Dialogs use the built-in `Modal` (`bigpipe-util/dist/core/Modal`) instead of `modal-vanilla`: the package has no
+  dependencies, and Vite no longer needs the alias for the Node.js module `events`. The markup, the classes and the
+  events stay as they were.
+- The markup and the class names of dialogs can be replaced for Tailwind or your own CSS: `Modal.templates`
+  (now also `title`), `Modal.options` (`animateClass`, `animateInClass`, `openClass`, which take lists of classes) and
+  `Modal.selectors` for the parts of the markup of `render()`. `render()` builds its container from the template.
+- Dialogs keep their CSS `display` (e.g. `flex`) and set `block` only when the CSS hides them; the backdrop is put right
+  below the dialog.
+- Dialogs and modal layers share one scroll lock, with inline styles, released when the last of them is hidden.
+- Any element with `data-close` closes the dialog it is in, and the close button of the header uses it;
+  `data-dismiss="modal"` still works. `dismiss` gets the element that closed the dialog as the third argument.
+
+### Added
+- Dialogs are labelled by their title (`aria-labelledby`), or by the `label` option, and have `aria-modal`.
+- A click outside of the dialog closes it only when the press started outside too, not after selecting text inside.
+
+### Fixed
+- A dialog hidden before it was shown completely no longer emits `shown` after `hidden`.
+
 ## v2.1.0 - 2026-10-11
 
 ### Added

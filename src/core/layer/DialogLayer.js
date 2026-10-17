@@ -29,7 +29,8 @@ export default class DialogLayer extends Layer {
   }
 
   getFocusRoot() {
-    const body = this.root.querySelector('.modal-body');
+    // The parts come from the templates or the selectors of the modal, whatever the classes are.
+    const { body } = this.modal._html;
     return body && getTabbable(body).length ? body : this.root;
   }
 
@@ -77,7 +78,7 @@ export default class DialogLayer extends Layer {
       return true;
     }
 
-    const dialog = this.root.firstElementChild || this.root;
+    const dialog = this.modal._html.dialog || this.root.firstElementChild || this.root;
     const options = position === true ? {} : position;
 
     dialog.style.marginTop = `${calculateTopMargin(dialog.offsetHeight, options)}px`;

@@ -407,7 +407,9 @@ describe('preloading', () => {
   it('preloads a module script with modulepreload and runs it as a module', () => {
     const idle = [];
     vi.stubGlobal('requestIdleCallback', callback => idle.push(callback));
-    Bootloader.setResourceMap({ 'editor.mjs': { type: 'js', src: '/static/editor.mjs', module: true } });
+    Bootloader.setResourceMap({
+      'editor.mjs': { type: 'js', src: '/static/editor.mjs', module: true }
+    });
     Bootloader.enableBootload({ Editor: ['editor.mjs'] });
 
     Bootloader.preloadModules(['Editor']);

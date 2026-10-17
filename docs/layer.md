@@ -179,7 +179,7 @@ dialog (a positioned ancestor with a `z-index`), the layer gets a `z-index` 1 ab
 
 ## Dialogs
 
-[Dialogs](dialog.md) are layers: `DialogLayer` wraps a `modal-vanilla` modal, keeps its events and markup, and adds the
+[Dialogs](dialog.md) are layers: `DialogLayer` wraps a [`Modal`](dialog.md#modal), keeps its events and markup, and adds the
 layer events and behaviors (`AutoFocus`, `TabIsolation`, `RefocusOnHide`, `HideOnTransition`, and `HideOnSuccess` which hides
 the layer when a request sent from inside succeeds, see the [success event](async_request.md#success-event)). A dialog
 is always shown through the modal, so it does not use `ModalLayer` and the fades, which the modal has built in.

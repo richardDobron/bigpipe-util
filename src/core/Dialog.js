@@ -1,5 +1,5 @@
-import Modal from 'modal-vanilla/lib/modal';
 import DOM from './DOM';
+import Modal from './Modal';
 import AutoFocus from './layer/AutoFocus';
 import DialogLayer from './layer/DialogLayer';
 import HideOnSuccess from './layer/HideOnSuccess';
@@ -8,6 +8,7 @@ import RefocusOnHide from './layer/RefocusOnHide';
 import TabIsolation from './layer/TabIsolation';
 import { addToStack, removeFromStack, updateStack } from './layer/overlayStack';
 import requireModule from './requireModule';
+import { trustedHTML } from './trustedTypes';
 
 // The z-index of the backdrop of the first dialog, the dialog is 1 above. The modal layers and the
 // dialogs share one stacking order, see overlayStack.
@@ -15,17 +16,6 @@ const DEFAULT_Z_INDEX = 1049;
 
 let stack = [];
 let dialogId = 1;
-let originalBodyPad = null;
-
-const handleKeydownEvent = Modal.prototype._handleKeydownEvent;
-
-// The Escape of a dialog goes through the layers (DialogLayer), so that the topmost layer, e.g. a
-// menu opened inside of the dialog, gets it first.
-Modal.prototype._handleKeydownEvent = function (event) {
-  if (!this.layer) {
-    handleKeydownEvent.call(this, event);
-  }
-};
 
 function layerConfig(source) {
   const enabled = (name, fallback) =>
@@ -88,14 +78,12 @@ export default class Dialog {
   }
 
   render(options, args) {
-    DOM.appendContent(document.body, this._makeDialog(options.content, options.dialogClassName));
-
-    dialogId++;
+    const el = this._makeDialog(options.content, options.dialogClassName);
 
     return this._maybeWithTimeout(options.timeout, () =>
       this._show(
         {
-          el: document.getElementById(this.id),
+          el,
           animate: this._getOption(options, 'animate', false),
           keyboard: this._getOption(options, 'keyboard', true),
           backdrop: this._getOption(options, 'backdrop', true),
@@ -116,6 +104,7 @@ export default class Dialog {
           title: model.title || '',
           content: model.body,
           footer: model.footer || false,
+          label: model.label || '',
           animate: this._getOption(model, 'animate', false),
           keyboard: this._getOption(model, 'keyboard', true),
           backdrop: this._getOption(model, 'backdrop', true),
@@ -141,53 +130,55 @@ export default class Dialog {
   }
 
   _show(options, controller, args = [], layerOptions = {}) {
-    if (originalBodyPad === null) {
-      originalBodyPad = document.body.style.paddingRight;
-    }
-
-    const _modal = new Modal(options);
-    stack.push(_modal);
-    new DialogLayer(_modal, layerOptions);
+    const modal = new Modal(options);
+    stack.push(modal);
+    new DialogLayer(modal, layerOptions);
 
     if (controller) {
       if (typeof controller === 'string') {
-        new (requireModule(controller))(_modal, ...args);
+        new (requireModule(controller))(modal, ...args);
       } else if (typeof controller === 'function') {
-        controller(_modal, ...args);
+        controller(modal, ...args);
       }
     }
 
     const entry = {
       zIndex: DEFAULT_Z_INDEX,
-      root: _modal.el,
-      getBackdrop: () => _modal._html.backdrop || null
+      root: modal.el,
+      getBackdrop: () => modal.backdrop
     };
 
-    return _modal
+    return modal
       .on('show', () => addToStack(entry))
       .on('showBackdrop', updateStack)
-      .on('hidden', function ({ el }) {
-        stack = stack.filter(modal => {
-          return modal.el !== el;
-        });
-
-        if (stack.length) {
-          document.body.classList.add('modal-open');
-        }
-
-        document.body.style.paddingRight = originalBodyPad;
-
+      .on('hidden', () => {
+        stack = stack.filter(item => item !== modal);
         removeFromStack(entry);
-        DOM.remove(el);
+        DOM.remove(modal.el);
       })
       .show();
   }
 
+  // The container of the markup is the one of `Modal.templates`, so your templates apply here too.
   _makeDialog(content, className = '') {
-    this.id = `js_${dialogId.toString(16)}`;
-    return `
-      <div id="${this.id}" class="modal fade ${className}" tabindex="-1" role="dialog">
-  ${content}
-</div>`;
+    const template = document.createElement('template');
+    template.innerHTML = trustedHTML(Modal.templates.container.trim());
+    const container = template.content.firstElementChild;
+
+    this.id = `js_${(dialogId++).toString(16)}`;
+    container.id = this.id;
+    // The animation class makes Modal animate it, as before.
+    `${Modal.options.animateClass} ${className}`
+      .split(/\s+/)
+      .filter(Boolean)
+      .forEach(name => container.classList.add(name));
+    container.setAttribute('role', 'dialog');
+    if (!container.hasAttribute('tabindex')) {
+      container.setAttribute('tabindex', '-1');
+    }
+
+    document.body.appendChild(container);
+    DOM.appendContent(container, content);
+    return container;
   }
 }
