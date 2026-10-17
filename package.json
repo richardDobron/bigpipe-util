@@ -1,7 +1,7 @@
 {
   "name": "bigpipe-util",
   "description": "The JavaScript runtime of BigPipe for PHP: shows the pagelets of a page as they stream in, applies the DOM operations of the server, loads the next page into the layout and calls the JavaScript modules the server asks for.",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "keywords": [
     "bigpipe",
     "pagelets",
