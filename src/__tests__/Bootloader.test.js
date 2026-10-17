@@ -40,6 +40,22 @@ describe('Bootloader', () => {
     expect(callback).toHaveBeenCalledOnce();
   });
 
+  it('loads a module script as a module, and calls back once it ran', () => {
+    const callback = vi.fn();
+    Bootloader.setResourceMap({
+      'chat.mjs': { type: 'js', src: '/static/chat.mjs', module: true },
+      'feed.js': { type: 'js', src: '/static/feed.js' }
+    });
+
+    Bootloader.loadResources(['chat.mjs', 'feed.js'], callback);
+
+    const [chat, feed] = document.querySelectorAll('script');
+    expect([chat.type, feed.type]).toEqual(['module', '']);
+    chat.onload();
+    feed.onload();
+    expect(callback).toHaveBeenCalledOnce();
+  });
+
   it('requests a script that failed again, then counts it as loaded and reports it', () => {
     vi.useFakeTimers();
     const callback = vi.fn();
@@ -386,6 +402,24 @@ describe('preloading', () => {
     document.querySelector('link[href="/static/dialog.css"]').onload();
     expect(preloads().map(([href]) => href)).toContain('/static/chat.js');
     expect(preloads().map(([href]) => href)).not.toContain('/static/editor.js');
+  });
+
+  it('preloads a module script with modulepreload and runs it as a module', () => {
+    const idle = [];
+    vi.stubGlobal('requestIdleCallback', callback => idle.push(callback));
+    Bootloader.setResourceMap({ 'editor.mjs': { type: 'js', src: '/static/editor.mjs', module: true } });
+    Bootloader.enableBootload({ Editor: ['editor.mjs'] });
+
+    Bootloader.preloadModules(['Editor']);
+    expect(preloads()).toEqual([]);
+    const link = document.querySelector('link[rel="modulepreload"]');
+    expect(link.getAttribute('href')).toBe('/static/editor.mjs');
+    expect(link.hasAttribute('as')).toBe(false);
+
+    link.onload();
+    idle.forEach(callback => callback());
+    expect(document.querySelector('script').type).toBe('module');
+    vi.unstubAllGlobals();
   });
 
   it('preloads the modules right away and runs their scripts once the browser is idle', () => {

@@ -85,8 +85,12 @@ function preload(name, onLoad, execute = true) {
   preloading.add(url);
 
   const link = document.createElement('link');
-  link.rel = 'preload';
-  link.setAttribute('as', type === 'css' ? 'style' : 'script');
+  if (getResource(name).module) {
+    link.rel = 'modulepreload';
+  } else {
+    link.rel = 'preload';
+    link.setAttribute('as', type === 'css' ? 'style' : 'script');
+  }
   link.href = src;
 
   const nonce = getCSPNonce();
@@ -125,7 +129,7 @@ function enqueuePreload(name, priority) {
   runPreloadQueue();
 }
 
-function request({ type, src }) {
+function request({ type, src, module = false }) {
   const url = resolveURL(src);
   let entry = requests.get(url);
 
@@ -159,6 +163,9 @@ function request({ type, src }) {
       element.href = src;
     } else {
       element = document.createElement('script');
+      if (module) {
+        element.type = 'module';
+      }
       element.src = trustedScriptURL(src);
       element.async = false;
     }
@@ -206,7 +213,8 @@ function request({ type, src }) {
 
 const Bootloader = {
   /**
-   * Adds resources by name: `{name: {type: 'css' | 'js', src}}`. A name keeps its first resource.
+   * Adds resources by name: `{name: {type: 'css' | 'js', src}}`, with `module: true` for a script
+   * that is an ES module. A name keeps its first resource.
    */
   setResourceMap(map) {
     Object.keys(map || {}).forEach(name => {

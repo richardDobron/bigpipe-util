@@ -28,6 +28,18 @@ A pagelet or a response carries the map in `resource_map`, and its `css` and `js
 
 A name keeps the first resource it was given. Anything that is not a name in the map is a URL.
 
+A script that is an ES module, e.g. a chunk of Vite, has `"module": true`: it is added as `<script type="module">`
+and preloaded with `<link rel="modulepreload">`. Its load event fires once it and its imports have run, so a module it
+registers is there when the callbacks run:
+
+```javascript
+{
+  "resource_map": {
+    "editor.js": {"type": "js", "src": "/build/assets/editor-4d5e6f.js", "module": true}
+  }
+}
+```
+
 ## Loading resources
 
 ```javascript
@@ -63,7 +75,18 @@ module:
 ```
 
 The script has to make the module available when it runs, e.g. a chunk of the bundle that calls `registerModules()`
-from `bigpipe-util/dist/ModuleRegistry`. The other module calls of the response do not wait for it. A call also waits
+from `bigpipe-util/dist/ModuleRegistry`. With Vite, give every bootloadable module a small entry of its own and mark
+its chunk as a module script (see [resource map](#resource-map)); it shares the chunks of the page, such as
+`bigpipe-util` itself, with the entrypoint:
+
+```javascript title="resources/js/bootload/Editor.js"
+import { registerModules } from 'bigpipe-util/dist/ModuleRegistry';
+import Editor from '../Editor';
+
+registerModules({ Editor });
+```
+
+The other module calls of the response do not wait for it. A call also waits
 for the bootloadable modules it gets as arguments (`{"__m": "Editor"}`) and for the class of an instance it calls or
 gets as an argument.
 
