@@ -177,6 +177,49 @@ side and alignment. A layer whose context is inside of another layer, e.g. a sub
 context is its `causalElement` unless one is set. A layer whose context is not on the page or not displayed (`display: none`) is not shown. When the context is inside of a modal or a
 dialog (a positioned ancestor with a `z-index`), the layer gets a `z-index` 1 above it.
 
+## Tooltip
+
+`Tooltip` shows one tooltip for the whole page, a `ContextualLayer` next to an element while the pointer is over it or it
+has the focus. Set the tooltip of an element once:
+
+```javascript
+import Tooltip from 'bigpipe-util/dist/core/Tooltip';
+
+Tooltip.set(button, 'Saves the draft');
+Tooltip.set(avatar, 'Loading…', { uri: '/ajax/hovercard?id=4', position: 'below' });
+Tooltip.set(title, null, { overflow: true });
+```
+
+The content is text, where new lines are kept, a DOM node or `{__html}`. The options:
+
+| Option           | Does                                                                                         |
+|------------------|----------------------------------------------------------------------------------------------|
+| `position`       | `above` (default), `below`, `left` or `right`. It flips to the other side when it doesn't fit. |
+| `alignment`      | `start`, `center` (default) or `end` of the element.                                           |
+| `delay`          | Milliseconds the pointer has to stay before it is shown.                                       |
+| `className`      | Added to the tooltip while it shows this content.                                              |
+| `persistOnClick` | Stays shown on a click on the element, which hides it otherwise.                               |
+| `overflow`       | Shown only when the text of the element is cut off, e.g. with `text-overflow: ellipsis`, and with that text when there is no content. |
+| `uri`            | Loads the content once, on the first hover, from the `payload` of a response (`$response->setPayload()`), showing the content until then. |
+
+It hides when the pointer or the focus leaves the element, on <kbd>Esc</kbd>, on scroll and before a page transition.
+While it is shown, the element is `aria-describedby` the tooltip, whose role is `tooltip`. `Tooltip.show(element)`,
+`Tooltip.hide()`, `Tooltip.remove(element)` and `Tooltip.isActive(element)` control it from code, and
+`Tooltip.getLayer()` is its layer.
+
+It has a dark inline look, so it works without CSS. `Tooltip.configure({ className: 'tooltip', zIndex: 60, delay: 300 })`
+replaces the look with your class, puts it above your other layers and sets the default delay.
+
+The server sets tooltips with a call, e.g. for an element of a pagelet:
+
+```php
+$pagelet->call('bigpipe-util/dist/core/Tooltip', 'set', [
+    TransportMarker::element('save-button'),
+    'Saves the draft',
+    ['position' => 'below'],
+]);
+```
+
 ## Dialogs
 
 [Dialogs](dialog.md) are layers: `DialogLayer` wraps a [`Modal`](dialog.md#modal), keeps its events and markup, and adds the

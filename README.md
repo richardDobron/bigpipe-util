@@ -112,7 +112,7 @@ $response->send();
 * [Run](docs/run.md): `onLoad`, `onAfterLoad`, `onBeforeUnload`, `onLeave`, `onUnload` and `onCleanupOrLeave`, for full page loads and page transitions alike.
 
 **User interface**
-* [Layer](docs/layer.md): a base for everything that floats, with behaviors (hide on <kbd>Esc</kbd>, outside click and page transition, focus handling, fades) and `ModalLayer` and `ContextualLayer`. It sets no class names, so Bootstrap, Tailwind or your own CSS work.
+* [Layer](docs/layer.md): a base for everything that floats, with behaviors (hide on <kbd>Esc</kbd>, outside click and page transition, focus handling, fades), `ModalLayer`, `ContextualLayer` and `Tooltip`. It sets no class names, so Bootstrap, Tailwind or your own CSS work.
 * [Dialogs](docs/dialog.md): dialogs that are layers, with a built-in modal without dependencies. Bootstrap markup by default; the templates and class names can be replaced for Tailwind or your own CSS.
 * [Form](docs/form.md) and [FormMonitor](docs/form_monitor.md): read a form the way PHP does, and warn before unsaved changes are lost.
 * [Utilities](docs/utilities.md): `onVisible`, `DataStore`, `Cookie`, `WebStorage`, `KeyEventController` and more. Timers that end with the page are in `TimerStorage`, see [leaving a page](docs/page_transitions.md#leaving-a-page).

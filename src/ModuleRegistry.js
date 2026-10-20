@@ -19,6 +19,7 @@ import requireDeferred from './core/requireDeferred';
 import Run from './core/Run';
 import ServerRedirect from './core/ServerRedirect';
 import TimerStorage from './core/TimerStorage';
+import Tooltip from './core/Tooltip';
 import UserActivity from './core/UserActivity';
 import Visibility from './core/Visibility';
 import WebStorage from './core/WebStorage';
@@ -76,6 +77,7 @@ registerBuiltins({
   'core/Run': Run,
   'core/ServerRedirect': ServerRedirect,
   'core/TimerStorage': TimerStorage,
+  'core/Tooltip': Tooltip,
   'core/UserActivity': UserActivity,
   'core/Visibility': Visibility,
   'core/WebStorage': WebStorage,
