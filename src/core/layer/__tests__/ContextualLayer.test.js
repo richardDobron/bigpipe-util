@@ -42,6 +42,19 @@ function placed() {
 }
 
 describe('ContextualLayer', () => {
+  it('measures the root with its own width the first time it is shown', () => {
+    layer = new ContextualLayer('<div>Menu</div>', { context: button, alignment: 'center' });
+    const { style } = layer.getRoot();
+    Object.defineProperty(layer.getRoot(), 'offsetWidth', {
+      get: () => (style.position === 'absolute' && style.left === '0px' ? 120 : 800)
+    });
+    Object.defineProperty(layer.getRoot(), 'offsetHeight', { value: 50 });
+
+    layer.show();
+
+    expect(placed()).toEqual(['80px', '230px']);
+  });
+
   it('shows below the context, aligned to its start', () => {
     create().show();
 

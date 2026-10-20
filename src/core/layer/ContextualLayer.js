@@ -200,6 +200,8 @@ export default class ContextualLayer extends Layer {
     }
 
     const root = this.getRoot();
+    root.style.position = 'absolute';
+    root.style.left = '0px';
     const rect = context.getBoundingClientRect();
     const width = root.offsetWidth;
     const height = root.offsetHeight;
