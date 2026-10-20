@@ -18,6 +18,7 @@ import requireCond from './core/requireCond';
 import requireDeferred from './core/requireDeferred';
 import Run from './core/Run';
 import ServerRedirect from './core/ServerRedirect';
+import TabLeader from './core/TabLeader';
 import TimerStorage from './core/TimerStorage';
 import Tooltip from './core/Tooltip';
 import UserActivity from './core/UserActivity';
@@ -76,6 +77,7 @@ registerBuiltins({
   'core/requireDeferred': requireDeferred,
   'core/Run': Run,
   'core/ServerRedirect': ServerRedirect,
+  'core/TabLeader': TabLeader,
   'core/TimerStorage': TimerStorage,
   'core/Tooltip': Tooltip,
   'core/UserActivity': UserActivity,

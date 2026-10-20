@@ -108,7 +108,7 @@ $response->send();
 * The inline scripts of a page queue the pagelets and modules in `window.__bigpipe` until the entrypoint has run, see [getting started](docs/getting_started.md#3-handle-the-modules-of-the-first-page-load).
 * [Page transitions](docs/page_transitions.md): load the next page into the layout instead of in full, and notice [a new deploy](docs/page_transitions.md#a-new-deploy) (`BigPipeRevision`, `BigPipe/newRevision`).
 * [Bootloader](docs/bootloader.md): loads CSS and JavaScript once, and modules only when they are called, with `ifRequired`, `requireDeferred` and `requireCond`.
-* [Poller](docs/poller.md): requests a URL again and again, controlled by the server.
+* [Poller](docs/poller.md): requests a URL again and again, controlled by the server, and from one tab for all of them.
 * [Run](docs/run.md): `onLoad`, `onAfterLoad`, `onBeforeUnload`, `onLeave`, `onUnload` and `onCleanupOrLeave`, for full page loads and page transitions alike.
 
 **User interface**

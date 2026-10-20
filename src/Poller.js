@@ -1,5 +1,7 @@
 import AsyncRequest from './async/AsyncRequest';
+import AsyncResponse from './async/AsyncResponse';
 import Arbiter from './core/Arbiter';
+import TabLeader from './core/TabLeader';
 import { setTimeout, clearTimeout, setTimeoutAcrossTransitions } from './core/TimerStorage';
 import UserActivity from './core/UserActivity';
 import Visibility from './core/Visibility';
@@ -32,6 +34,7 @@ export default class Poller {
       id: null,
       muteWhenHidden: true,
       muteWhenIdle: 0,
+      shareAcrossTabs: false,
       ...options
     };
     this.handle = null;
@@ -42,6 +45,9 @@ export default class Poller {
     this.cancelRequest = emptyFunction;
     this.listeners = {};
     this.subscriptions = [];
+    this.channel = null;
+    this.leadership = null;
+    this.leader = true;
 
     if (this.config.id) {
       defineInstance(this.config.id, () => this);
@@ -80,6 +86,77 @@ export default class Poller {
     if (clearOnQuicklingEvents) {
       this.subscriptions.push(new Arbiter().subscribe('Quickling/unload', () => this.destroy()));
     }
+
+    this.share();
+  }
+
+  /**
+   * With `shareAcrossTabs`, only the leader of the tabs with a poller of the same name, `id` or
+   * `uri` sends requests, and the other tabs apply its responses. A hidden tab is not the leader.
+   */
+  share() {
+    const { shareAcrossTabs, id, uri, muteWhenHidden } = this.config;
+    const name = shareAcrossTabs === true ? uri || id : shareAcrossTabs;
+
+    if (!name || !TabLeader.isSupported() || typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+
+    this.leader = false;
+    this.channel = new BroadcastChannel('bigpipe-poller:' + name);
+    this.channel.onmessage = ({ data }) => {
+      if (!this.leader && data && data.response) {
+        new AsyncResponse().handle(this.adopt(data.response, data.id));
+      }
+    };
+
+    const hides = muteWhenHidden && Visibility.isSupported();
+    if (hides) {
+      this.subscriptions.push(
+        Visibility.subscribe(Visibility.HIDDEN, () => this.lead(false, name)),
+        Visibility.subscribe(Visibility.VISIBLE, () => this.lead(true, name))
+      );
+    }
+
+    this.subscriptions.push({
+      remove: () => {
+        this.lead(false, name);
+        this.channel.close();
+        this.channel = null;
+      }
+    });
+
+    this.lead(!(hides && Visibility.isHidden()), name);
+  }
+
+  // Calls of the response to the poller of the leader are for this one.
+  adopt(response, leaderId) {
+    const calls = response.jsmods && response.jsmods.require;
+    if (leaderId && Array.isArray(calls)) {
+      response.jsmods.require = calls
+        .filter(call => call[0] !== leaderId || this.config.id)
+        .map(call => (call[0] === leaderId ? [this.config.id, ...call.slice(1)] : call));
+    }
+    return response;
+  }
+
+  lead(wanted, name) {
+    if (wanted && !this.leadership) {
+      this.leadership = TabLeader.request(name, () => {
+        this.leader = true;
+        if (this.polling && this.handle === null) {
+          this.request();
+        }
+      });
+    } else if (!wanted && this.leadership) {
+      this.leadership.release();
+      this.leadership = null;
+      this.leader = false;
+    }
+  }
+
+  isLeader() {
+    return this.leader;
   }
 
   start() {
@@ -141,7 +218,7 @@ export default class Poller {
       this.muted = true;
     }
 
-    if (this.muted) {
+    if (this.muted || !this.leader) {
       return this;
     }
 
@@ -187,6 +264,20 @@ export default class Poller {
     };
 
     this.config.setupRequest(request, this);
+
+    if (this.channel) {
+      const { preResponseHandler } = request;
+      request.setPreResponseHandler(response => {
+        const result = preResponseHandler ? preResponseHandler(response) : undefined;
+        if (result !== false && !response.error && this.channel) {
+          this.channel.postMessage({
+            response: JSON.parse(JSON.stringify(response)),
+            id: this.config.id
+          });
+        }
+        return result;
+      });
+    }
 
     if (this.skipNext) {
       this.skipNext = false;

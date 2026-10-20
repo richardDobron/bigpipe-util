@@ -27,6 +27,7 @@ new Poller({
 | `muteWhenHidden`         | `true`  | Pauses while the page is hidden, e.g. in a background tab.                                        |
 | `muteWhenIdle`           | `0`     | Pauses when the user was not active for this many milliseconds, and goes on once they are.        |
 | `clearOnQuicklingEvents` | `true`  | A [page transition](page_transitions.md) ends the poller.                                         |
+| `shareAcrossTabs`        | `false` | Only one tab sends the requests, see [below](#shared-across-tabs). `true` shares by `uri`, a string by that name. |
 | `dontStart`              | `false` | Waits for `start()`.                                                                              |
 | `id`                     |         | Lets the server control the poller, see below.                                                    |
 
@@ -41,6 +42,29 @@ the poller as the module of that id, e.g. to poll less often or to stop:
 ```json
 {"jsmods": {"require": [["poller_notifications", "setInterval", [60000]]]}}
 ```
+
+## Shared across tabs
+
+A user with the page open in ten tabs would send ten requests per interval. With `shareAcrossTabs`, the tabs with a
+poller of the same name elect a leader, and only the leader sends the requests. The other tabs get its responses and
+apply them like their own, so every tab shows the new notifications.
+
+```javascript
+new Poller({ uri: '/notifications/poll', interval: 30000, shareAcrossTabs: true });
+```
+
+- A hidden tab gives up the lead with `muteWhenHidden`, so a visible tab polls when there is one. When every tab is
+  hidden, none does.
+- When the leader is closed, hidden or leaves the page, the next tab leads and sends a request right away.
+- The other tabs apply the DOM operations, modules and pagelets of the responses, not the handlers of `setupRequest`.
+  Error responses are not shared.
+- A call of a response to the poller of the leader, e.g. `[id, 'setInterval', [60000]]`, is a call to the poller of
+  each tab, whose `id` differs.
+- `isLeader()` tells whether this tab sends the requests.
+
+It needs the [Web Locks API](https://developer.mozilla.org/docs/Web/API/Web_Locks_API) and `BroadcastChannel`; without
+them, every tab polls. `core/TabLeader` elects the leader and can be used on its own:
+`TabLeader.request(name, onLead)` calls `onLead` once this tab leads, and its `release()` gives up the lead.
 
 ## Visibility and user activity
 
