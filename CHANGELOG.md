@@ -4,7 +4,7 @@ All notable changes to `bigpipe-util` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## Unreleased
+## v2.2.0 - 2026-10-28
 
 ### Changed
 - Dialogs use the built-in `Modal` (`bigpipe-util/dist/core/Modal`) instead of `modal-vanilla`: the package has no
